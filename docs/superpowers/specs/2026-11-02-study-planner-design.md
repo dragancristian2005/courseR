@@ -56,6 +56,17 @@ Success: the author and classmates use it daily instead of the PDF; importing a 
 
 **Chosen: 2 (Expo).** It gives the phone/iPad app and widgets the author wants, and the web build is a free way to share with classmates and to use on a laptop.
 
+## Visual design: "Orar" (chosen)
+
+The app borrows the visual language students already read every week: the printed orar sheet. Reference mockup: "Direction A: Orar" on the mockups canvas.
+
+- **Colour tokens:** paper `#F4F6F8` (background), ink `#17213A` (text, rules, strong lines), muted ink `#48536B` (secondary text), rule `#C9CFD8` (hairlines), course fill `#C3CBF2`, seminar fill `#F6D9B0`, lab fill `#BFE3DA`, now/urgent red `#C8302A`. Type colours must stay distinguishable by lightness as well as hue.
+- **Type:** Schibsted Grotesk, one family. Times use tabular figures and are the largest element in each row. Sentence case everywhere; no all-caps labels, no dot-joined meta strings.
+- **Layout:** the day is a column cut from the timetable. A time spine on the left; filled slots are full-width cells in their type colour; empty slots collapse to thin ruled rows. Sections are separated by rules and spacing, not cards. A heavy ink rule closes the header, the day, and sits above the tab bar.
+- **The one bold element:** the red "now" line across the current slot, with the time in a small red tag. Everything else stays quiet.
+- **User-written text** (notes) appears in a different typeface from app text, so the student can tell their words from the app's (face left to the builder).
+- **Week grid and iPad:** same tokens; the week view is the sheet itself, Monday to Friday columns, one row per slot.
+
 ## Architecture
 
 - **App:** Expo (React Native, TypeScript), targets iOS/iPadOS, Android, web.
