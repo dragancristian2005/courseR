@@ -127,6 +127,7 @@ A Subjects list shows every subject found by import or added manually, each with
 6. Type detection: explicit markers where present (Poli: `curs`, `(S)`, `(L)`); otherwise inferred, and always editable in review.
 7. **Week parity:** a block split diagonally holds two alternating subjects. **Top-left half = odd week, bottom-right = even week.** This rule holds for both UVT and Politehnica.
 8. **Subjects step:** student switches off subjects they do not attend.
+   - **Choose-one offerings:** some subjects are offered in several slots and the student attends one (e.g. UVT `DCT`, a subject from another field of study, offered Wednesday and Thursday 16:20 to 19:30; stacked optional courses in one slot). The review screen asks which one the student attends and keeps only that one.
 9. **Review screen:** every block for the chosen group is shown and editable before anything is saved. Nothing is saved without review.
 10. Saved patterns keep their source. Re-importing a newer version of the sheet (e.g. "orar valabil din 08 Octombrie") shows what changed instead of starting over.
 
