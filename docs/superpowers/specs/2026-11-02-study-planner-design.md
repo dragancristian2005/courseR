@@ -123,7 +123,7 @@ A Subjects list shows every subject found by import or added manually, each with
 2. Server sends it to an AI vision model with instructions to return structured JSON for the whole sheet: groups, semigroups, blocks with spans.
 3. App asks: which group (and semigroup, when present)?
 4. App filters to blocks that apply to that group: blocks spanning the group's column, full-width blocks for everyone, semigroup-specific blocks.
-5. Abbreviations are expanded by matching seminar/lab codes to course rows (RPA → Robotic Process Automation).
+5. Abbreviations are expanded by matching seminar/lab codes to course rows (RPA → Robotic Process Automation). Matching ignores diacritics: UVT writes the same subject as `ȘP` on the course and `SP` on the labs (Șabloane de proiectare).
 6. Type detection: explicit markers where present (Poli: `curs`, `(S)`, `(L)`); otherwise inferred, and always editable in review.
 7. **Week parity:** a block split diagonally holds two alternating subjects. **Top-left half = odd week, bottom-right = even week.** This rule holds for both UVT and Politehnica.
 8. **Subjects step:** student switches off subjects they do not attend.
