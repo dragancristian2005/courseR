@@ -25,10 +25,11 @@ Success: the author and classmates use it daily instead of the PDF; importing a 
 - One-way publishing of the schedule to Google Calendar, Apple Calendar and Notion.
 - Home-screen widgets (iOS first).
 - Works offline for daily use.
+- The same data on all of one student's devices (iPhone, iPad, laptop/web), via a Google sign-in account.
 
 ## Non-goals
 
-- Shared groups, accounts between students, or syncing between classmates. Each student runs their own private copy.
+- Shared groups or syncing between classmates. Each student's account is private; nothing is shared between students.
 - Two-way calendar sync. Edits in Google/Apple/Notion are not read back. The app is the source of truth.
 - Grades, attendance tracking, social features.
 - Google Classroom import in the first version (planned later; see Phasing).
@@ -43,7 +44,7 @@ Success: the author and classmates use it daily instead of the PDF; importing a 
 ## Constraints
 
 - Primary devices: iPhone and iPad. Desktop use through the web version. Android is a free side effect, not a target to polish.
-- Distribution to other iPhones requires the Apple Developer Program ($99/year, App Store or TestFlight). The author accepts this cost when/if they decide to deploy; development on own devices is free.
+- Distribution to other iPhones requires the Apple Developer Program ($99/year, App Store or TestFlight). The author has not decided when or whether to pay; it depends on how useful the app proves in their own use. Without it, a native build on the author's own iPhone expires every 7 days, and iOS widgets (which need App Groups) are unavailable. The plan therefore must not depend on the native iOS build for daily use until the fee is paid (see Phasing).
 - Timetable formats differ by university and faculty (see Timetable formats). No hand-written parser per layout.
 - Notifications on iOS must be scheduled locally so they fire offline.
 
@@ -58,13 +59,23 @@ Success: the author and classmates use it daily instead of the PDF; importing a 
 ## Architecture
 
 - **App:** Expo (React Native, TypeScript), targets iOS/iPadOS, Android, web.
-- **Local-first data:** all user data (timetable, exams, homework, notes, links, settings) lives on the device in a local database. No user accounts. Daily use is fully offline.
-- **Small server** with three jobs only:
-  1. **Import:** receives an image/PDF, calls an AI vision model, returns structured JSON. Nothing is stored after the response.
-  2. **Calendar feed:** hosts a per-user ICS subscription URL (unguessable token) that Google Calendar and Apple Calendar subscribe to. The app uploads a snapshot of the student's schedule (classes, exams; homework due dates optional) whenever it changes.
-  3. **Notion push:** writes the schedule into a Notion database the student connects.
-  The server never stores notes. It holds only the calendar snapshot and, if Notion is connected, the Notion credential.
-- **Backup:** export/import of all local data to a file, so changing phones does not lose notes.
+- **Accounts:** sign in with Google ("Sign in with Google" is the only sign-up method). One account per student; data is private to that account.
+- **Offline-first with sync:** each device keeps a full local copy of the student's data (timetable, exams, homework, notes, links, settings) and works offline. Changes sync through the backend to the student's other devices when online. Conflicts: last write wins per record (my call; a single student rarely edits the same item on two devices at once). Deletions sync as tombstones.
+- **Backend** (stack left to the builder; a hosted backend with Google auth and offline sync, e.g. Firebase or Supabase, fits) with these jobs:
+  1. **Auth and sync:** stores the student's data, including notes, scoped to their account.
+  2. **Import:** receives an image/PDF, calls an AI vision model, returns structured JSON. The uploaded file is not kept after the response.
+  3. **Calendar feed:** a per-user ICS subscription URL (unguessable token) that Google Calendar and Apple Calendar subscribe to, generated from the synced data.
+  4. **Notion push:** writes the schedule into a Notion database the student connects.
+- **Backup:** export of all data to a file (my call; less critical now that data syncs, kept as a safety net).
+
+### Paying for AI import
+
+AI import costs money per call. The policy must be swappable later (the author may change it if the app is released), so the gate sits behind one server-side check. Initial policy, chosen by the author:
+
+- **Watch a rewarded ad** to unlock one import (native apps; e.g. AdMob rewarded ads), or
+- **Enter your own AI API key**, used for the student's imports.
+
+My calls: on the web build, only the own-key option is offered at first (rewarded ads are a native-app feature). The own key is stored only on the student's devices and sent with each import request, never saved on the server. Manual entry is always free.
 
 ## Data model (conceptual)
 
@@ -120,6 +131,12 @@ Any class pattern, the full timetable, any exam, homework, note or link can be c
 
 Once per semester: start date and holiday weeks. Required to turn weekly patterns into dated sessions and to count odd/even weeks correctly.
 
+Odd/even (my call): by default holidays do not count, so week 1 is the first teaching week (odd) and parity alternates across teaching weeks only. Semester setup shows the full list of weeks with their computed parity, and the student can flip any single week. This covers faculties whose official week calendar breaks the simple rule.
+
+### Timetable changes over time (my call)
+
+Class patterns carry an effective date range. An imported sheet's "valid from" date, or an "every week" edit, applies from a date onward. Earlier weeks keep their sessions, and the notes attached to them are never moved or lost.
+
 ### Homework
 
 Own item: title, subject, due date, done checkbox, reminder. Shows on Today, the Homework tab, Class detail, and the homework widget.
@@ -138,12 +155,13 @@ General list (portal, email, library, etc.) and per-subject links (Classroom pag
 - Homework: 1 day before due (default).
 - Adjustable per item.
 - Class reminders: available, **off by default**.
-- Scheduled as local notifications on the device (work offline).
+- Scheduled as local notifications on the device (work offline). Each device schedules from its synced copy.
+- Web build (my call): no reminders in the first version; the web app says so. Phones get them through the native app (Android installable for free).
 
 ### Calendar publishing (one-way)
 
 - **Google Calendar and Apple Calendar:** one ICS subscription URL, hosted by the server, covering attended classes and exams.
-- **Notion:** push to a Notion database the student connects.
+- **Notion (my call):** one row per dated class session and one per exam, kept up to date as sessions change. The student connects by pasting a Notion integration token and choosing a database (no public Notion OAuth app needed).
 - Edits happen only in the app.
 
 ### Widgets (iOS first)
@@ -161,11 +179,14 @@ Two real sheets drove this design:
 
 ## Phasing (suggested order)
 
-1. Manual entry, semester setup, Today, week grid, class detail, subjects on/off, homework, notes, links, local reminders, backup export.
-2. AI timetable import with review, and exam import.
+Because the Apple fee is undecided, the author's daily use starts on the **web build, installed to the iPhone/iPad home screen**. Every phase ships on web first; native-only items wait for the fee.
+
+1. Google sign-in and sync, manual entry, semester setup, Today, week grid, class detail, subjects on/off, homework, notes, links, backup export. Web build usable daily on iPhone/iPad.
+2. AI timetable import with review, and exam import (own-key gate on web).
 3. Calendar feed (Google/Apple) and Notion push.
-4. iOS widgets.
-5. Google Classroom homework import, if the university's Google Workspace allows third-party access.
+4. Native app builds: local reminders, rewarded-ad gate. Android installable free; iOS on the author's devices.
+5. iOS widgets (needs the paid Apple account).
+6. Google Classroom homework import, if the university's Google Workspace allows third-party access.
 
 ## Decided in conversation
 
@@ -180,6 +201,9 @@ Two real sheets drove this design:
 - Links: general list and per subject.
 - Subjects the student does not attend are switched off and hidden everywhere.
 - Home screen: Today agenda.
+- Data is the same on all of a student's devices; login with Google.
+- AI import is unlocked by watching an ad or entering your own API key; the policy may change if the app is released.
+- The $99 Apple fee is undecided; depends on how useful the app proves.
 
 ## My calls (Claude's proposals, not explicitly decided)
 
@@ -188,14 +212,19 @@ Two real sheets drove this design:
 - Re-import shows a diff instead of replacing.
 - "Just this week / every week" choice when moving a class.
 - Class reminders exist but are off by default; reminder timing adjustable per item.
-- Local-first storage, no accounts; server stores only the calendar snapshot (and Notion credential); notes never leave the device except in a backup file.
-- Backup export/import file.
-- ICS subscription URL for Google/Apple; Notion via its API.
+- Offline-first local copy on each device, synced through the backend; last write wins per record.
+- Backup export file kept as a safety net.
+- ICS subscription URL for Google/Apple; Notion via pasted integration token, one row per session and exam.
 - Widget set: next class, homework due, today.
+- Odd/even: holidays don't count; any week's parity can be flipped by hand.
+- Class patterns have effective date ranges; changes never rewrite past weeks.
+- Web build has no reminders in v1; web offers only the own-key import option.
+- Own AI key stays on the student's devices, never stored on the server.
+- Daily use starts on the web build until the Apple fee is decided.
 
 ## Left to the builder
 
-- Local database library and web persistence approach.
+- Backend product, local database and sync library, web persistence approach.
 - AI model and prompt design for extraction (structured JSON output, validated against a schema).
 - Server stack and hosting.
 - Exact UI styling and component library.
