@@ -12,8 +12,16 @@ export function StoreProvider({
 }) {
   const [data, setData] = useState<PlannerData>(emptyPlannerData);
 
-  useEffect(() => repository.subscribe(setData), [repository]);
+  const [ready, setReady] = useState(false);
 
-  const value = useMemo(() => ({ data, repo: repository }), [data, repository]);
+  useEffect(() => {
+    setReady(false);
+    return repository.subscribe((next) => {
+      setData(next);
+      setReady(true);
+    });
+  }, [repository]);
+
+  const value = useMemo(() => ({ data, repo: repository, ready }), [data, repository, ready]);
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

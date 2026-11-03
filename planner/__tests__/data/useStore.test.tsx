@@ -3,6 +3,8 @@ import { Text } from 'react-native';
 import { act, render, screen } from '@testing-library/react-native';
 import { createMemoryRepository } from '../../src/data/memoryRepository';
 import { StoreProvider } from '../../src/data/StoreProvider';
+import { emptyPlannerData, type Repository } from '../../src/data/repository';
+import type { PlannerData } from '../../src/domain/types';
 import { useStore } from '../../src/data/useStore';
 
 function Probe() {
@@ -31,6 +33,47 @@ describe('useStore', () => {
       await repo.upsert('subjects', subj('a', 'Algebra'));
     });
     expect(screen.getByTestId('names').props.children).toBe('Algebra');
+  });
+
+  it('is ready once the repository has delivered', async () => {
+    const repo = createMemoryRepository();
+    let ready: boolean | undefined;
+    function P() {
+      ready = useStore().ready;
+      return null;
+    }
+    await render(
+      <StoreProvider repository={repo}>
+        <P />
+      </StoreProvider>,
+    );
+    expect(ready).toBe(true);
+  });
+
+  it('is not ready until the first delivery', async () => {
+    let deliver: (d: PlannerData) => void = () => {};
+    const repo: Repository = {
+      ...createMemoryRepository(),
+      subscribe(cb) {
+        deliver = cb;
+        return () => {};
+      },
+    };
+    let ready: boolean | undefined;
+    function P() {
+      ready = useStore().ready;
+      return null;
+    }
+    await render(
+      <StoreProvider repository={repo}>
+        <P />
+      </StoreProvider>,
+    );
+    expect(ready).toBe(false);
+    await act(async () => {
+      deliver(emptyPlannerData());
+    });
+    expect(ready).toBe(true);
   });
 
   it('exposes the repo', async () => {

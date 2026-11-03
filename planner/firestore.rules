@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Each account can only reach its own data. Records are never hard-deleted
+    // (deletions are tombstones), and an update must be strictly newer than the stored one.
+    match /users/{uid}/{document=**} {
+      allow read, create: if request.auth != null && request.auth.uid == uid;
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.updatedAt > resource.data.updatedAt;
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -5,6 +5,8 @@ import type { Repository } from './repository';
 export interface StoreValue {
   data: PlannerData;
   repo: Repository;
+  /** False until the repository has delivered data at least once. */
+  ready: boolean;
 }
 
 export const StoreContext = createContext<StoreValue | null>(null);
