@@ -31,6 +31,8 @@ type Known = Record<Collection, Map<string, Base>>;
  * semester at users/{uid}/meta/semester. Writes never wait for the server, so they work
  * offline; last write wins by comparing against the latest snapshot data held in memory
  * (no transactions, which fail offline). Firestore rules enforce the same ordering.
+ * Write methods resolve once the write is queued locally; server rejections are reported
+ * to subscribers through onError.
  */
 export function createFirestoreRepository(db: Firestore, uid: string): Repository {
   const known = Object.fromEntries(COLLECTIONS.map((c) => [c, new Map<string, Base>()])) as Known;
@@ -52,15 +54,30 @@ export function createFirestoreRepository(db: Firestore, uid: string): Repositor
     return out;
   };
 
+  // Active subscribers' error callbacks; write failures are reported to them.
+  const errorSinks = new Set<(e: Error) => void>();
+  const toError = (e: unknown) => (e instanceof Error ? e : new Error(String(e)));
+  const reportWriteError = (e: unknown) => {
+    const err = toError(e);
+    errorSinks.forEach((sink) => sink(err));
+  };
+
   const tombstoneUpdatedAt = (stored: Base) => Math.max(Date.now(), stored.updatedAt + 1);
 
   return {
-    subscribe(cb) {
+    subscribe(cb, onError) {
       const pending = new Set<string>([...COLLECTIONS, 'semester']);
       const deliver = () => {
         if (pending.size === 0) cb(assemble());
       };
       const unsubs: (() => void)[] = [];
+      let failed = false;
+      const fail = (e: unknown) => {
+        if (failed) return;
+        failed = true;
+        onError?.(toError(e));
+      };
+      if (onError) errorSinks.add(fail);
 
       for (const c of COLLECTIONS) {
         unsubs.push(
@@ -70,7 +87,7 @@ export function createFirestoreRepository(db: Firestore, uid: string): Repositor
             snap.forEach((d) => map.set(d.id, fromDoc(d.id, d.data())));
             pending.delete(c);
             deliver();
-          }),
+          }, fail),
         );
       }
       unsubs.push(
@@ -80,17 +97,20 @@ export function createFirestoreRepository(db: Firestore, uid: string): Repositor
             : null;
           pending.delete('semester');
           deliver();
-        }),
+        }, fail),
       );
 
-      return () => unsubs.forEach((u) => u());
+      return () => {
+        errorSinks.delete(fail);
+        unsubs.forEach((u) => u());
+      };
     },
 
     async upsert<T extends Base>(c: Collection, record: T) {
       const stored = known[c].get(record.id);
       if (stored && record.updatedAt <= stored.updatedAt) return;
       known[c].set(record.id, { ...record });
-      await setDoc(ref(c, record.id), toDoc(record));
+      setDoc(ref(c, record.id), toDoc(record)).catch(reportWriteError);
     },
 
     async remove(c, id) {
@@ -98,13 +118,13 @@ export function createFirestoreRepository(db: Firestore, uid: string): Repositor
       if (!stored) return;
       const updatedAt = tombstoneUpdatedAt(stored);
       known[c].set(id, { ...stored, deleted: true, updatedAt });
-      await setDoc(ref(c, id), { deleted: true, updatedAt }, { merge: true });
+      setDoc(ref(c, id), { deleted: true, updatedAt }, { merge: true }).catch(reportWriteError);
     },
 
     async saveSemester(s: Semester) {
       if (knownSemester && s.updatedAt <= knownSemester.updatedAt) return;
       knownSemester = { ...s };
-      await setDoc(semesterRef(), semesterDoc(s));
+      setDoc(semesterRef(), semesterDoc(s)).catch(reportWriteError);
     },
 
     async replaceAll(data) {
@@ -150,7 +170,8 @@ export function createFirestoreRepository(db: Firestore, uid: string): Repositor
           if (op.merge) batch.set(op.ref, op.data, { merge: true });
           else batch.set(op.ref, op.data);
         }
-        await batch.commit();
+        // Offline, commit only settles on server ack, so never await it between chunks.
+        batch.commit().catch(reportWriteError);
       }
     },
   };

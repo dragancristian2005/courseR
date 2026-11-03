@@ -4,12 +4,14 @@ const mockSetDoc = jest.fn().mockResolvedValue(undefined);
 const mockBatchSet = jest.fn();
 const mockCommit = jest.fn().mockResolvedValue(undefined);
 const listeners: Record<string, (snap: unknown) => void> = {};
+const errorListeners: Record<string, (e: Error) => void> = {};
 
 jest.mock('firebase/firestore', () => ({
   collection: (_db: unknown, ...p: string[]) => ({ path: p.join('/'), kind: 'col' }),
   doc: (_db: unknown, ...p: string[]) => ({ path: p.join('/'), kind: 'doc' }),
-  onSnapshot: (r: { path: string }, cb: (snap: unknown) => void) => {
+  onSnapshot: (r: { path: string }, cb: (snap: unknown) => void, err: (e: Error) => void) => {
     listeners[r.path] = cb;
+    errorListeners[r.path] = err;
     return () => {
       delete listeners[r.path];
     };
@@ -75,10 +77,10 @@ describe('firestore repository', () => {
   it('removes with a merged tombstone, and ignores unknown ids', async () => {
     const repo = createFirestoreRepository({} as never, 'u1');
     repo.subscribe(() => {});
-    emit('subjects', { a: stripId(subj('a', Date.now() + 100000)) });
+    const stored = Date.now() + 100000;
+    emit('subjects', { a: stripId(subj('a', stored)) });
     await repo.remove('subjects', 'zzz');
     expect(mockSetDoc).not.toHaveBeenCalled();
-    const stored = Date.now() + 100000;
     await repo.remove('subjects', 'a');
     const [, body, opts] = mockSetDoc.mock.calls[0];
     expect(body).toEqual({ deleted: true, updatedAt: stored + 1 });
@@ -105,5 +107,58 @@ describe('firestore repository', () => {
     const tomb = mockBatchSet.mock.calls.find((c) => c[0].path === 'users/u1/subjects/old');
     expect(tomb[1]).toEqual(expect.objectContaining({ deleted: true }));
     expect(tomb[2]).toEqual({ merge: true });
+  });
+
+  it('reports a listener error once through onError', () => {
+    const repo = createFirestoreRepository({} as never, 'u1');
+    const onError = jest.fn();
+    repo.subscribe(() => {}, onError);
+    errorListeners['users/u1/subjects'](new Error('permission-denied'));
+    errorListeners['users/u1/notes'](new Error('permission-denied'));
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0].message).toBe('permission-denied');
+  });
+
+  it('resolves writes without waiting for server acknowledgement', async () => {
+    const never = new Promise<void>(() => {});
+    mockSetDoc.mockReturnValue(never);
+    mockCommit.mockReturnValue(never);
+    try {
+      const repo = createFirestoreRepository({} as never, 'u1');
+      await repo.upsert('subjects', subj('a', 1));
+      await repo.saveSemester({
+        id: 's',
+        updatedAt: 1,
+        name: 'n',
+        firstDay: '2026-10-01',
+        lastDay: '2027-01-31',
+        breaks: [],
+        parityOverrides: {},
+      });
+      await repo.replaceAll({
+        semester: null,
+        subjects: Array.from({ length: 1000 }, (_, i) => subj(`s${i}`, 5)),
+        patterns: [],
+        overrides: [],
+        exams: [],
+        homework: [],
+        notes: [],
+        links: [],
+      });
+      expect(mockCommit).toHaveBeenCalledTimes(3);
+    } finally {
+      mockSetDoc.mockResolvedValue(undefined);
+      mockCommit.mockResolvedValue(undefined);
+    }
+  });
+
+  it('forwards a rejected write to subscribers', async () => {
+    mockSetDoc.mockRejectedValueOnce(new Error('denied'));
+    const repo = createFirestoreRepository({} as never, 'u1');
+    const onError = jest.fn();
+    repo.subscribe(() => {}, onError);
+    await repo.upsert('subjects', subj('a', 1));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(onError).toHaveBeenCalledTimes(1);
   });
 });

@@ -7,6 +7,8 @@ export interface StoreValue {
   repo: Repository;
   /** False until the repository has delivered data at least once. */
   ready: boolean;
+  /** Set when the repository could not load or sync data. */
+  error: Error | null;
 }
 
 export const StoreContext = createContext<StoreValue | null>(null);

@@ -11,17 +11,12 @@ import { useAuth } from '../src/data/auth';
 import { initFirebase } from '../src/data/firebase';
 import { createFirestoreRepository } from '../src/data/firestoreRepository';
 import { StoreProvider } from '../src/data/StoreProvider';
-import { useStore } from '../src/data/useStore';
+import { StoreGate } from '../src/ui/StoreGate';
 import SignIn from './sign-in';
 
 export { ErrorBoundary } from 'expo-router';
 
 SplashScreen.preventAutoHideAsync();
-
-function ReadyGate({ children }: { children: React.ReactNode }) {
-  const { ready } = useStore();
-  return ready ? <>{children}</> : null;
-}
 
 export default function RootLayout() {
   const { user, loading } = useAuth();
@@ -47,11 +42,11 @@ export default function RootLayout() {
 
   return (
     <StoreProvider repository={repository}>
-      <ReadyGate>
+      <StoreGate>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         </Stack>
-      </ReadyGate>
+      </StoreGate>
     </StoreProvider>
   );
 }

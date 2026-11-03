@@ -99,4 +99,52 @@ describe('useStore', () => {
       spy.mockRestore();
     }
   });
+
+  it('surfaces repository errors', async () => {
+    let fail: (e: Error) => void = () => {};
+    const repo: Repository = {
+      ...createMemoryRepository(),
+      subscribe(_cb, onError) {
+        fail = onError!;
+        return () => {};
+      },
+    };
+    let seen: Error | null = null;
+    function P() {
+      seen = useStore().error;
+      return null;
+    }
+    await render(
+      <StoreProvider repository={repo}>
+        <P />
+      </StoreProvider>,
+    );
+    expect(seen).toBeNull();
+    await act(async () => {
+      fail(new Error('boom'));
+    });
+    expect(seen!.message).toBe('boom');
+  });
+
+  it('does not expose the previous repository data after a switch', async () => {
+    const a = createMemoryRepository({ subjects: [subj('a', 'Algebra')] });
+    const b: Repository = { ...createMemoryRepository(), subscribe: () => () => {} };
+    const seen: { ready: boolean; names: string }[] = [];
+    function P() {
+      const { ready, data } = useStore();
+      seen.push({ ready, names: data.subjects.map((s) => s.name).join(',') });
+      return null;
+    }
+    const tree = (r: Repository) => (
+      <StoreProvider repository={r}>
+        <P />
+      </StoreProvider>
+    );
+    const view = await render(tree(a));
+    expect(seen[seen.length - 1]).toEqual({ ready: true, names: 'Algebra' });
+    const before = seen.length;
+    await view.rerender(tree(b));
+    expect(seen.slice(before).every((s) => !s.ready && s.names === '')).toBe(true);
+    expect(seen[seen.length - 1]).toEqual({ ready: false, names: '' });
+  });
 });

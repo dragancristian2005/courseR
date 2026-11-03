@@ -10,9 +10,16 @@ export type Collection =
   | 'links';
 
 export interface Repository {
-  /** Calls cb immediately with current data, then on every change. Tombstoned records are filtered out. */
-  subscribe(cb: (data: PlannerData) => void): () => void;
-  /** Last write wins per record: ignored unless updatedAt is strictly newer than the stored one. */
+  /**
+   * Calls cb with current data (immediately for in-memory stores, after the first server/cache
+   * read for Firestore), then on every change. Tombstoned records are filtered out.
+   * onError is called if the data can no longer be loaded or a write is rejected.
+   */
+  subscribe(cb: (data: PlannerData) => void, onError?: (e: Error) => void): () => void;
+  /**
+   * Last write wins per record: ignored unless updatedAt is strictly newer than the stored one.
+   * Write methods resolve once the write is queued locally, not when the server acknowledges it.
+   */
   upsert<T extends Base>(c: Collection, record: T): Promise<void>;
   /** Writes a tombstone (never a hard delete). Unknown id is a no-op. */
   remove(c: Collection, id: string): Promise<void>;
