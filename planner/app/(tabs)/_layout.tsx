@@ -1,4 +1,5 @@
 import { router, Tabs, type Href } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Rule } from '../../src/ui/Rule';
 import { Text } from '../../src/ui/Text';
@@ -19,6 +20,7 @@ interface BarProps {
 
 function NavBar({ state, layout }: BarProps & { layout: Layout }) {
   const wide = layout === 'wide';
+  const insets = useSafeAreaInsets();
   const activeName = state.routes[state.index]?.name;
 
   const items = TABS.map(({ name, label, href }) => {
@@ -40,16 +42,16 @@ function NavBar({ state, layout }: BarProps & { layout: Layout }) {
 
   if (!wide) {
     return (
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, { paddingBottom: insets.bottom }]}>
         <Rule weight="heavy" />
-        <View style={styles.tabRow}>{items}</View>
+        <View accessibilityRole="tablist" style={styles.tabRow}>{items}</View>
       </View>
     );
   }
 
   return (
     <View accessibilityLabel="Sidebar" style={styles.sidebar}>
-      <View>{items}</View>
+      <View accessibilityRole="tablist">{items}</View>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Settings"

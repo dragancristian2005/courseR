@@ -11,6 +11,7 @@ import { useAuth } from '../src/data/auth';
 import { initFirebase } from '../src/data/firebase';
 import { createFirestoreRepository } from '../src/data/firestoreRepository';
 import { StoreProvider } from '../src/data/StoreProvider';
+import { BackLink } from '../src/ui/BackLink';
 import { StoreGate } from '../src/ui/StoreGate';
 import { theme } from '../src/ui/theme';
 import SignIn from './sign-in';
@@ -51,7 +52,8 @@ export default function RootLayout() {
             headerStyle: { backgroundColor: theme.color.paper },
             headerTintColor: theme.color.ink,
             headerTitleStyle: { fontFamily: theme.font.appBold },
-            headerBackButtonDisplayMode: 'minimal',
+            headerBackVisible: false,
+            headerLeft: () => <BackLink />,
             contentStyle: { backgroundColor: theme.color.paper },
           }}
         >

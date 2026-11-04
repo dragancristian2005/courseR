@@ -24,6 +24,8 @@ describe('tabs layout', () => {
     await renderRouter(routes, { initialUrl: '/' });
     for (const l of labels) expect(screen.getByText(l)).toBeTruthy();
     expect(screen.queryByText('Settings')).toBeNull();
+    expect(screen.getAllByRole('tab')[0].parent?.props.accessibilityRole).toBe('tablist');
+    expect(screen.getAllByRole('tab')).toHaveLength(5);
     expect(screen.getByText('page today')).toBeTruthy();
   });
 
@@ -32,6 +34,9 @@ describe('tabs layout', () => {
     await renderRouter(routes, { initialUrl: '/' });
     for (const l of labels) expect(screen.getByText(l)).toBeTruthy();
     expect(screen.getByLabelText('Sidebar')).toBeTruthy();
+    expect(screen.getAllByRole('tab')[0].parent?.props.accessibilityRole).toBe('tablist');
+    expect(screen.getAllByRole('tab')).toHaveLength(5);
+    expect(screen.getByRole('button', { name: 'Settings' })).toBeTruthy();
     await fireEvent.press(screen.getByText('Week'));
     expect(await screen.findByText('page week')).toBeTruthy();
     await fireEvent.press(screen.getByText('Settings'));
