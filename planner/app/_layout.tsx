@@ -12,6 +12,7 @@ import { initFirebase } from '../src/data/firebase';
 import { createFirestoreRepository } from '../src/data/firestoreRepository';
 import { StoreProvider } from '../src/data/StoreProvider';
 import { StoreGate } from '../src/ui/StoreGate';
+import { theme } from '../src/ui/theme';
 import SignIn from './sign-in';
 
 export { ErrorBoundary } from 'expo-router';
@@ -43,7 +44,17 @@ export default function RootLayout() {
   return (
     <StoreProvider repository={repository}>
       <StoreGate>
-        <Stack>
+        <Stack
+          screenOptions={{
+            title: '',
+            headerShadowVisible: false,
+            headerStyle: { backgroundColor: theme.color.paper },
+            headerTintColor: theme.color.ink,
+            headerTitleStyle: { fontFamily: theme.font.appBold },
+            headerBackButtonDisplayMode: 'minimal',
+            contentStyle: { backgroundColor: theme.color.paper },
+          }}
+        >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         </Stack>
       </StoreGate>
