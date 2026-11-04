@@ -9,12 +9,14 @@ import { Text } from '../../src/ui/Text';
 import { theme } from '../../src/ui/theme';
 
 export default function Backup() {
-  const { data, repo } = useStore();
+  const { data, repo, ready, error: loadError } = useStore();
+  const blocked = !ready || loadError !== null;
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<PlannerData | null>(null);
   const [restored, setRestored] = useState(false);
 
   const download = () => {
+    if (blocked) return;
     setError(null);
     setRestored(false);
     try {
@@ -25,6 +27,7 @@ export default function Backup() {
   };
 
   const restore = async () => {
+    if (blocked) return;
     setError(null);
     setRestored(false);
     setPending(null);
@@ -40,7 +43,7 @@ export default function Backup() {
   };
 
   const replace = async () => {
-    if (!pending) return;
+    if (!pending || blocked) return;
     const next = pending;
     setPending(null);
     try {
@@ -56,10 +59,27 @@ export default function Backup() {
       <View style={styles.card}>
         <Text variant="title">Backup</Text>
         <Text>Download a copy of everything in your account, or restore one you saved earlier.</Text>
-        <Pressable accessibilityRole="button" onPress={download} style={styles.primary}>
+        {loadError ? (
+          <Text style={styles.error}>Backups need your data to load first.</Text>
+        ) : !ready ? (
+          <Text variant="meta">Loading your data…</Text>
+        ) : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: blocked }}
+          disabled={blocked}
+          onPress={download}
+          style={[styles.primary, blocked && styles.disabled]}
+        >
           <Text style={styles.primaryLabel}>Download backup</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={() => void restore()} style={styles.secondary}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: blocked }}
+          disabled={blocked}
+          onPress={() => void restore()}
+          style={[styles.secondary, blocked && styles.disabled]}
+        >
           <Text style={styles.secondaryLabel}>Restore from backup</Text>
         </Pressable>
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -111,5 +131,6 @@ const styles = StyleSheet.create({
     borderColor: theme.color.ink,
   },
   secondaryLabel: { color: theme.color.ink, fontFamily: theme.font.appBold },
+  disabled: { opacity: 0.5 },
   error: { color: theme.color.now },
 });

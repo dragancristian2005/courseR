@@ -12,7 +12,8 @@ export function downloadText(filename: string, text: string): void {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // Some browsers lose the download if the URL is revoked straight away.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /** Lets the user choose a JSON file and returns its text, or null if they cancel. */
@@ -30,6 +31,7 @@ export function pickTextFile(): Promise<string | null> {
       }
       file.text().then(resolve, reject);
     };
+    // Browsers without the `cancel` event leave this promise pending on cancel (harmless; the button stays usable).
     input.addEventListener('cancel', () => resolve(null));
     input.click();
   });

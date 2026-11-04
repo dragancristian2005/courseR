@@ -97,3 +97,42 @@ describe('backup screen', () => {
     expect(screen.queryByText('Replace everything')).toBeNull();
   });
 });
+
+describe('backup screen before data has loaded', () => {
+  it('disables both buttons while loading', async () => {
+    const repo = createMemoryRepository();
+    repo.subscribe = () => () => {};
+    const replaceAll = jest.spyOn(repo, 'replaceAll');
+    await render(
+      <StoreProvider repository={repo}>
+        <Backup />
+      </StoreProvider>,
+    );
+    expect(screen.getByText('Loading your data…')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Download backup'));
+    await fireEvent.press(screen.getByText('Restore from backup'));
+    expect(screen.getByRole('button', { name: 'Download backup' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Restore from backup' })).toBeDisabled();
+    expect(mockDownload).not.toHaveBeenCalled();
+    expect(mockPick).not.toHaveBeenCalled();
+    expect(replaceAll).not.toHaveBeenCalled();
+  });
+
+  it('disables both buttons when the data failed to load', async () => {
+    const repo = createMemoryRepository();
+    repo.subscribe = (_cb, onError) => {
+      onError?.(new Error('offline'));
+      return () => {};
+    };
+    await render(
+      <StoreProvider repository={repo}>
+        <Backup />
+      </StoreProvider>,
+    );
+    expect(screen.getByText('Backups need your data to load first.')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Download backup'));
+    expect(screen.getByRole('button', { name: 'Download backup' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Restore from backup' })).toBeDisabled();
+    expect(mockDownload).not.toHaveBeenCalled();
+  });
+});
