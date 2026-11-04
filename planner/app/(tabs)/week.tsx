@@ -13,25 +13,12 @@ import { Text } from "../../src/ui/Text";
 import { theme } from "../../src/ui/theme";
 import { useLayout } from "../../src/ui/useLayout";
 import { useNow } from "../../src/ui/useNow";
+import { MONTHS_LONG } from "../../src/ui/format";
 import { lastShownDay, WeekGrid } from "../../src/ui/WeekGrid";
 
-const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
 const dayMonth = (d: ISODate) => {
   const [, m, day] = d.split("-").map(Number);
-  return { day, month: MONTHS[m - 1] };
+  return { day, month: MONTHS_LONG[m - 1] };
 };
 
 function rangeLabel(from: ISODate, to: ISODate): string {

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { newId } from "../data/ids";
 import { useStore } from "../data/useStore";
-import { todayISO, weekdayOf } from "../domain/dates";
+import { todayISO } from "../domain/dates";
 import {
   cancelThisWeek,
   changeEveryWeek,
@@ -21,42 +21,14 @@ import type { ISODate, Repeat } from "../domain/types";
 import { goBack } from "./BackLink";
 import { Button } from "./Button";
 import { ChangeForm, REPEAT_OPTIONS } from "./ChangeForm";
+import { longDate, shortDate, TYPE_LABEL } from "./format";
 import { MoveForm } from "./MoveForm";
 import { openLink } from "./openLink";
 import { Rule } from "./Rule";
 import { Text } from "./Text";
 import { theme, typeFill } from "./theme";
 import { useNow } from "./useNow";
-import { TYPE_LABEL, WEEKDAY_SHORT } from "./WeekGrid";
 
-const WEEKDAYS = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
-const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-
-const longDate = (d: ISODate) =>
-  `${WEEKDAYS[weekdayOf(d) - 1]} ${Number(d.slice(8, 10))} ${MONTHS[Number(d.slice(5, 7)) - 1]}`;
-const shortDate = (d: ISODate) =>
-  `${WEEKDAY_SHORT[weekdayOf(d) - 1]} ${Number(d.slice(8, 10))} ${MONTHS[Number(d.slice(5, 7)) - 1].slice(0, 3)}`;
 const repeatLabel = (r: Repeat) =>
   REPEAT_OPTIONS.find((o) => o.value === r)!.label;
 

@@ -1,4 +1,5 @@
 import { addDays, compareDates, daysBetween, mondayOf, timeToMinutes, weekdayOf } from './dates';
+import { MONTHS_SHORT, WEEKDAYS_SHORT } from './calendarWords';
 import { sessionsBetween } from './sessions';
 import type {
   Exam,
@@ -125,8 +126,6 @@ export function linksBySubject(data: PlannerData): {
   };
 }
 
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function dueLabel(due: ISODate, today: ISODate): string {
   const diff = daysBetween(today, due);
@@ -134,6 +133,6 @@ export function dueLabel(due: ISODate, today: ISODate): string {
   if (diff === 0) return 'Today';
   if (diff === 1) return 'Tomorrow';
   const [, m, d] = due.split('-').map(Number);
-  if (diff <= 6) return `${WEEKDAYS[weekdayOf(due) - 1]} ${d}`;
-  return `${d} ${MONTHS[m - 1]}`;
+  if (diff <= 6) return `${WEEKDAYS_SHORT[weekdayOf(due) - 1]} ${d}`;
+  return `${d} ${MONTHS_SHORT[m - 1]}`;
 }

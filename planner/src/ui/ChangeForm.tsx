@@ -8,19 +8,18 @@ import type {
   Repeat,
   SessionOverride,
 } from "../domain/types";
-import { weekdayOf } from "../domain/dates";
 import { Button } from "./Button";
 import { Chips, Field, isDate, MSG_DATE, timeErrors } from "./FormBits";
 import { Text } from "./Text";
 import { theme } from "./theme";
-import { TYPE_LABEL, WEEKDAY_SHORT } from "./WeekGrid";
+import { shortDate, TYPE_LABEL, WEEKDAYS_SHORT } from "./format";
 
 export const TYPE_OPTIONS: { value: ClassType; label: string }[] = [
   { value: "course", label: TYPE_LABEL.course },
   { value: "seminar", label: TYPE_LABEL.seminar },
   { value: "lab", label: TYPE_LABEL.lab },
 ];
-export const WEEKDAY_OPTIONS = WEEKDAY_SHORT.map((label, i) => ({
+export const WEEKDAY_OPTIONS = WEEKDAYS_SHORT.map((label, i) => ({
   value: i + 1,
   label,
 }));
@@ -28,20 +27,6 @@ export const REPEAT_OPTIONS: { value: Repeat; label: string }[] = [
   { value: "every", label: "Every week" },
   { value: "odd", label: "Odd weeks" },
   { value: "even", label: "Even weeks" },
-];
-const MONTH_SHORT = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
 ];
 
 export interface ChangeValues {
@@ -65,8 +50,7 @@ export function droppedWarning(
     n > 0 ? `${n} one-off ${n === 1 ? "change" : "changes"}` : null,
     m > 0 ? `${m} ${m === 1 ? "note" : "notes"}` : null,
   ].filter((x): x is string => x !== null);
-  const day = Number(from.slice(8, 10));
-  const date = `${WEEKDAY_SHORT[weekdayOf(from) - 1]} ${day} ${MONTH_SHORT[Number(from.slice(5, 7)) - 1]}`;
+  const date = shortDate(from);
   return `${parts.join(" and ")} on or after ${date} won’t carry over to the new schedule. Your notes stay in Notes.`;
 }
 

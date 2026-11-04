@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useStore } from "../../src/data/useStore";
-import { timeToMinutes, todayISO, weekdayOf } from "../../src/domain/dates";
+import { timeToMinutes, todayISO } from "../../src/domain/dates";
 import {
   dueLabel,
   homeworkGroups,
@@ -9,12 +9,12 @@ import {
   todayAgenda,
 } from "../../src/domain/selectors";
 import type {
-  ClassType,
   Homework,
   ISODate,
   PlannerData,
   Session,
 } from "../../src/domain/types";
+import { daysCount, longDate, shortDate, STANDARD_SLOTS, TYPE_LABEL } from "../../src/ui/format";
 import { Rule } from "../../src/ui/Rule";
 import { SetupPrompt } from "../../src/ui/SetupPrompt";
 import { SlotRow } from "../../src/ui/SlotRow";
@@ -23,49 +23,6 @@ import { theme } from "../../src/ui/theme";
 import { useLayout } from "../../src/ui/useLayout";
 import { useNow } from "../../src/ui/useNow";
 
-const WEEKDAYS = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
-const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-const STANDARD_STARTS = [
-  "08:00",
-  "09:40",
-  "11:20",
-  "13:00",
-  "14:40",
-  "16:20",
-  "18:00",
-  "19:40",
-];
-const TYPE_LABEL: Record<ClassType, string> = {
-  course: "Course",
-  seminar: "Seminar",
-  lab: "Lab",
-};
-
-const parts = (d: ISODate) => {
-  const [, m, day] = d.split("-").map(Number);
-  return { day, month: MONTHS[m - 1], weekday: WEEKDAYS[weekdayOf(d) - 1] };
-};
 const hhmm = (now: Date) =>
   `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 const isUrgent = (label: string) =>
@@ -78,10 +35,9 @@ function subtitleOf(s: Session): string {
 }
 
 function Header({ today, weekLine }: { today: ISODate; weekLine: string }) {
-  const p = parts(today);
   return (
     <View>
-      <Text style={styles.date}>{`${p.weekday} ${p.day} ${p.month}`}</Text>
+      <Text style={styles.date}>{longDate(today)}</Text>
       <Text variant="meta">{weekLine}</Text>
     </View>
   );
@@ -180,7 +136,7 @@ export default function Today() {
       (m, s) => Math.max(m, timeToMinutes(s.end)),
       0,
     );
-    const thin = STANDARD_STARTS.filter((t) => timeToMinutes(t) >= lastEnd);
+    const thin = STANDARD_SLOTS.filter((t) => timeToMinutes(t) >= lastEnd);
     body = (
       <View>
         {week?.isBreak ? (
@@ -239,14 +195,10 @@ export default function Today() {
               style={styles.exam}
             >
               <Text style={styles.examTitle}>
-                {`Next exam: ${exam.exam.title}, ${parts(exam.exam.date).weekday.slice(0, 3)} ${parts(exam.exam.date).day} ${parts(exam.exam.date).month.slice(0, 3)}`}
+                {`Next exam: ${exam.exam.title}, ${shortDate(exam.exam.date)}`}
               </Text>
               <Text style={styles.examCount}>
-                {exam.daysAway === 0
-                  ? "Today"
-                  : exam.daysAway === 1
-                    ? "1 day"
-                    : `${exam.daysAway} days`}
+                {daysCount(exam.daysAway)}
               </Text>
             </Pressable>
           </>

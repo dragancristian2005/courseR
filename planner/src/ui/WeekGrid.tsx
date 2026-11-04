@@ -1,25 +1,9 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { addDays, timeToMinutes, weekdayOf } from "../domain/dates";
 import type { ClassType, ISODate, Session, Subject } from "../domain/types";
+import { STANDARD_SLOTS, TYPE_LABEL, WEEKDAYS_SHORT } from "./format";
 import { Text } from "./Text";
 import { theme, typeFill } from "./theme";
-
-export const STANDARD_SLOTS = [
-  "08:00",
-  "09:40",
-  "11:20",
-  "13:00",
-  "14:40",
-  "16:20",
-  "18:00",
-  "19:40",
-];
-export const WEEKDAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-export const TYPE_LABEL: Record<ClassType, string> = {
-  course: "Course",
-  seminar: "Seminar",
-  lab: "Lab",
-};
 
 const SLOT_MINUTES = STANDARD_SLOTS.map(timeToMinutes);
 const SLOT_LENGTH = 100;
@@ -134,7 +118,7 @@ export function WeekGrid({
                   styles.dayHeadText,
                   { color: isToday ? theme.color.paper : theme.color.ink },
                 ]}
-              >{`${WEEKDAY_SHORT[i]} ${Number(d.slice(8))}`}</Text>
+              >{`${WEEKDAYS_SHORT[i]} ${Number(d.slice(8))}`}</Text>
             </View>
           );
         })}
@@ -170,7 +154,7 @@ export function WeekGrid({
                     key={s.id}
                     testID={`cell-${s.id}`}
                     accessibilityRole="button"
-                    accessibilityLabel={`${name}, ${s.type}, ${WEEKDAY_SHORT[col]} ${s.start} to ${s.end}, room ${room}`}
+                    accessibilityLabel={`${name}, ${s.type}, ${WEEKDAYS_SHORT[col]} ${s.start} to ${s.end}, room ${room}`}
                     accessibilityState={{ selected }}
                     onPress={() => onPressSession(s)}
                     style={{
