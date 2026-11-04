@@ -10,7 +10,6 @@ import type {
   Repeat,
   Subject,
 } from "../../src/domain/types";
-import { BackLink } from "../../src/ui/BackLink";
 import { Button } from "../../src/ui/Button";
 import {
   REPEAT_OPTIONS,
@@ -105,7 +104,6 @@ export default function EditClass() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.inner}>
-        <BackLink />
         <Text style={styles.title}>Add a class</Text>
         <Chips
           label="Subject"

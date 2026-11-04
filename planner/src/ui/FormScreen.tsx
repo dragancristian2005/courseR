@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { BackLink, goBack } from "./BackLink";
+import { goBack } from "./BackLink";
 import { Button } from "./Button";
 import { Text } from "./Text";
 import { TextButton } from "./TextButton";
@@ -10,16 +10,13 @@ import { theme } from "./theme";
 export function FormScreen({
   title,
   children,
-  back = true,
 }: {
   title: string;
   children: ReactNode;
-  back?: boolean;
 }) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.inner}>
-        {back ? <BackLink /> : null}
         <Text accessibilityRole="header" style={styles.title}>
           {title}
         </Text>
@@ -84,7 +81,7 @@ const styles = StyleSheet.create({
 /** Shown when an edit screen is opened for a record that no longer exists. */
 export function MissingRecord() {
   return (
-    <FormScreen title="This item no longer exists." back={false}>
+    <FormScreen title="This item no longer exists.">
       <Button label="Go back" onPress={goBack} />
     </FormScreen>
   );

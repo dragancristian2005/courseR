@@ -100,6 +100,12 @@ beforeEach(() => {
 afterEach(() => jest.useRealTimers());
 
 describe("Class detail", () => {
+  it("has no in-content Back control (the stack header provides it)", async () => {
+    await detail();
+    expect(screen.queryByText("‹ Back")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
+  });
+
   it("renders the TSS seminar", async () => {
     await detail();
     expect(screen.getByText("Teoria Sistemelor")).toBeTruthy();
@@ -524,6 +530,11 @@ describe("Class detail", () => {
 });
 
 describe("Add a class", () => {
+  it("has no in-content Back control", async () => {
+    await setup(EditClass);
+    expect(screen.queryByText("‹ Back")).toBeNull();
+  });
+
   const addClass = (initial: Partial<PlannerData> = base) =>
     setup(EditClass, initial);
 

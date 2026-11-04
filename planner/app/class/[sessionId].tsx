@@ -1,6 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { BackLink } from "../../src/ui/BackLink";
 import { ClassDetail } from "../../src/ui/ClassDetail";
 import { theme } from "../../src/ui/theme";
 
@@ -9,7 +8,6 @@ export default function ClassScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.inner}>
-        <BackLink />
         <ClassDetail sessionId={String(sessionId ?? "")} />
       </View>
     </ScrollView>
