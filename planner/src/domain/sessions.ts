@@ -19,8 +19,14 @@ function overrideMap(data: PlannerData): Map<string, SessionOverride> {
   return map;
 }
 
-/** All sessions over the whole semester (overrides applied), unsorted. */
-function generate(data: PlannerData, only?: string): Session[] {
+interface Generated {
+  session: Session;
+  /** The occurrence has a live 'cancelled' override; session is then the original slot. */
+  cancelled: boolean;
+}
+
+/** Every occurrence over the whole semester, cancelled ones included and flagged. */
+function generateAll(data: PlannerData, only?: string): Generated[] {
   const sem = data.semester;
   if (!sem || sem.deleted) return [];
   const attending = new Set(
@@ -32,7 +38,7 @@ function generate(data: PlannerData, only?: string): Session[] {
   if (patterns.length === 0) return [];
   const overrides = overrideMap(data);
   const weeks = buildWeeks(sem).filter((w) => !w.isBreak);
-  const out: Session[] = [];
+  const out: Generated[] = [];
 
   for (const p of patterns) {
     const to = p.validTo ?? sem.lastDay;
@@ -43,11 +49,18 @@ function generate(data: PlannerData, only?: string): Session[] {
       if (compareDates(date, p.validFrom) < 0 || compareDates(date, to) > 0) continue;
       const id = `${p.id}:${date}`;
       const o = overrides.get(id);
-      if (o?.kind === 'cancelled') continue;
-      out.push(build(p, id, date, o));
+      const cancelled = o?.kind === 'cancelled';
+      out.push({ session: build(p, id, date, cancelled ? undefined : o), cancelled });
     }
   }
   return out;
+}
+
+/** All sessions over the whole semester (overrides applied, cancelled ones left out), unsorted. */
+function generate(data: PlannerData, only?: string): Session[] {
+  return generateAll(data, only)
+    .filter((g) => !g.cancelled)
+    .map((g) => g.session);
 }
 
 function build(p: ClassPattern, id: string, date: ISODate, o?: SessionOverride): Session {
@@ -86,4 +99,18 @@ export function sessionById(data: PlannerData, id: string): Session | null {
   if (i <= 0 || i === id.length - 1) return null;
   const patternId = id.slice(0, i);
   return generate(data, patternId).find((s) => s.id === id) ?? null;
+}
+
+/**
+ * Like sessionById, but a cancelled occurrence still resolves (to its original slot) with
+ * cancelled: true, so the class screen can offer to undo the cancellation.
+ */
+export function resolveSession(
+  data: PlannerData,
+  id: string,
+): { session: Session; cancelled: boolean } | null {
+  const i = id.lastIndexOf(':');
+  if (i <= 0 || i === id.length - 1) return null;
+  const patternId = id.slice(0, i);
+  return generateAll(data, patternId).find((g) => g.session.id === id) ?? null;
 }

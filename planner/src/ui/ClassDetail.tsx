@@ -16,7 +16,7 @@ import {
   linksBySubject,
   notesFor,
 } from "../domain/selectors";
-import { sessionById, sessionsBetween } from "../domain/sessions";
+import { resolveSession, sessionsBetween } from "../domain/sessions";
 import type { ISODate, Repeat } from "../domain/types";
 import { goBack } from "./BackLink";
 import { Button } from "./Button";
@@ -123,7 +123,9 @@ export function ClassDetail({
   const now = useNow();
   const [mode, setMode] = useState<Mode>("none");
   const today = todayISO(now);
-  const session = sessionById(data, sessionId);
+  const resolved = resolveSession(data, sessionId);
+  const session = resolved?.session;
+  const cancelled = resolved?.cancelled ?? false;
   const pattern = session
     ? data.patterns.find((p) => p.id === session.patternId)
     : undefined;
@@ -226,6 +228,19 @@ export function ClassDetail({
         ))}
       </View>
 
+      {cancelled ? (
+        <View style={styles.moved}>
+          <Text style={styles.cancelledNote}>Cancelled this week</Text>
+          {override ? (
+            <Button
+              label="Undo cancellation"
+              kind="outline"
+              onPress={() => void repo.remove("overrides", override.id)}
+            />
+          ) : null}
+        </View>
+      ) : null}
+
       {session.moved ? (
         <View style={styles.moved}>
           <Text>{`Moved from ${shortDate(originalDate)}, ${pattern.start}`}</Text>
@@ -240,13 +255,15 @@ export function ClassDetail({
       ) : null}
 
       <View style={styles.actions}>
-        <View style={styles.flex}>
-          <Button
-            label="Move this week"
-            kind="outline"
-            onPress={() => setMode(mode === "move" ? "none" : "move")}
-          />
-        </View>
+        {cancelled ? null : (
+          <View style={styles.flex}>
+            <Button
+              label="Move this week"
+              kind="outline"
+              onPress={() => setMode(mode === "move" ? "none" : "move")}
+            />
+          </View>
+        )}
         <View style={styles.flex}>
           <Button
             label="Change every week"
@@ -279,7 +296,7 @@ export function ClassDetail({
         />
       ) : null}
 
-      {mode === "cancel" ? (
+      {cancelled ? null : mode === "cancel" ? (
         <View style={styles.confirm}>
           <Text>{`Cancel this class on ${longDate(session.date)}?`}</Text>
           <View style={styles.buttons}>
@@ -459,6 +476,7 @@ const styles = StyleSheet.create({
   },
   defLabel: { width: 90 },
   defValue: { flex: 1 },
+  cancelledNote: { fontFamily: theme.font.appBold, color: theme.color.now },
   moved: {
     padding: theme.space(4),
     gap: theme.space(2),

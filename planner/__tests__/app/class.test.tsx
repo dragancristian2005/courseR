@@ -10,6 +10,7 @@ import { router } from "expo-router";
 import ClassScreen from "../../app/class/[sessionId]";
 import EditClass from "../../app/class/edit";
 import { createMemoryRepository } from "../../src/data/memoryRepository";
+import { sessionsBetween } from "../../src/domain/sessions";
 import { StoreProvider } from "../../src/data/StoreProvider";
 import type {
   ClassPattern,
@@ -180,6 +181,33 @@ describe("Class detail", () => {
       expect(screen.getByText("11:20 to 12:50")).toBeTruthy(),
     );
     expect(screen.queryByText(/Moved from/)).toBeNull();
+  });
+
+  it("opens a cancelled class by id, shows it as cancelled, and undoes the cancellation", async () => {
+    const cancelled = {
+      id: "ov_p1_2026-11-02",
+      sessionId: SID,
+      kind: "cancelled" as const,
+      updatedAt: 5,
+    };
+    const { repo, remove } = await detail({ ...base, overrides: [cancelled] });
+    expect(screen.getByText("Teoria Sistemelor")).toBeTruthy();
+    expect(screen.getByText("Cancelled this week")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Move this week" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Cancel this week’s class" }),
+    ).toBeNull();
+    await press("Undo cancellation");
+    expect(remove).toHaveBeenCalledWith("overrides", "ov_p1_2026-11-02");
+    await waitFor(() =>
+      expect(screen.queryByText("Cancelled this week")).toBeNull(),
+    );
+    expect(screen.getByRole("button", { name: "Move this week" })).toBeTruthy();
+    let seen = 0;
+    repo.subscribe((d) => {
+      seen = sessionsBetween(d, "2026-11-02", "2026-11-02").length;
+    });
+    expect(seen).toBe(1);
   });
 
   it("validates the move form", async () => {

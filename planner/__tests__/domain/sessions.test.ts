@@ -1,4 +1,4 @@
-import { sessionById, sessionsBetween } from '../../src/domain/sessions';
+import { resolveSession, sessionById, sessionsBetween } from '../../src/domain/sessions';
 import type {
   ClassPattern,
   PlannerData,
@@ -227,5 +227,31 @@ describe('sessionById', () => {
     ).toBeNull();
     expect(sessionById(make({ patterns: [{ ...p1, deleted: true }] }), 'p1:2026-11-02')).toBeNull();
     expect(sessionById(make({ semester: null }), 'p1:2026-11-02')).toBeNull();
+  });
+});
+
+describe('resolveSession', () => {
+  it('resolves a live session with cancelled false', () => {
+    const r = resolveSession(make(), 'p1:2026-11-02');
+    expect(r?.cancelled).toBe(false);
+    expect(r?.session.id).toBe('p1:2026-11-02');
+  });
+
+  it('resolves a cancelled session to its original slot with cancelled true', () => {
+    const d = make({ overrides: [ov({ kind: 'cancelled' })] });
+    expect(sessionById(d, 'p1:2026-11-02')).toBeNull();
+    const r = resolveSession(d, 'p1:2026-11-02');
+    expect(r?.cancelled).toBe(true);
+    expect(r?.session).toEqual(expect.objectContaining({ date: '2026-11-02', start: '11:20' }));
+  });
+
+  it('treats a removed cancellation as live again', () => {
+    const d = make({ overrides: [ov({ kind: 'cancelled', deleted: true })] });
+    expect(resolveSession(d, 'p1:2026-11-02')?.cancelled).toBe(false);
+  });
+
+  it('returns null for malformed or unknown ids', () => {
+    expect(resolveSession(make(), 'nope')).toBeNull();
+    expect(resolveSession(make(), 'p1:2026-11-03')).toBeNull();
   });
 });
