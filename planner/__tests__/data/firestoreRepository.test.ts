@@ -152,13 +152,16 @@ describe('firestore repository', () => {
     }
   });
 
-  it('forwards a rejected write to subscribers', async () => {
+  it('forwards a rejected write to onWriteError, not the fatal onError', async () => {
     mockSetDoc.mockRejectedValueOnce(new Error('denied'));
     const repo = createFirestoreRepository({} as never, 'u1');
     const onError = jest.fn();
-    repo.subscribe(() => {}, onError);
+    const onWriteError = jest.fn();
+    repo.subscribe(() => {}, onError, onWriteError);
     await repo.upsert('subjects', subj('a', 1));
     await new Promise((r) => setTimeout(r, 0));
-    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onWriteError).toHaveBeenCalledTimes(1);
+    expect(onWriteError.mock.calls[0][0].message).toBe('denied');
+    expect(onError).not.toHaveBeenCalled();
   });
 });

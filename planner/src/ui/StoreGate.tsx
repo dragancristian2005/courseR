@@ -3,11 +3,12 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useAuth } from '../data/auth';
 import { useStore } from '../data/useStore';
 import { Text } from './Text';
+import { TextButton } from './TextButton';
 import { theme } from './theme';
 
 /** Shows nothing until the store has delivered, and an error screen if it could not load. */
 export function StoreGate({ children }: { children: React.ReactNode }) {
-  const { ready, error } = useStore();
+  const { ready, error, writeError, dismissWriteError } = useStore();
   const { signOut } = useAuth();
 
   if (error) {
@@ -23,10 +24,35 @@ export function StoreGate({ children }: { children: React.ReactNode }) {
       </View>
     );
   }
-  return ready ? <>{children}</> : null;
+  if (!ready) return null;
+  return (
+    <View style={styles.shell}>
+      {writeError ? (
+        <View accessibilityRole="alert" style={styles.banner}>
+          <Text style={styles.bannerText}>
+            A change didn’t sync because a newer version exists. Your app shows the latest.
+          </Text>
+          <TextButton label="Dismiss" onPress={dismissWriteError} />
+        </View>
+      ) : null}
+      <View style={styles.shell}>{children}</View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
+  shell: { flex: 1 },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.space(3),
+    paddingHorizontal: theme.space(4),
+    paddingVertical: theme.space(2),
+    backgroundColor: theme.color.paper,
+    borderBottomWidth: 2,
+    borderBottomColor: theme.color.ink,
+  },
+  bannerText: { flex: 1 },
   screen: {
     flex: 1,
     justifyContent: 'center',

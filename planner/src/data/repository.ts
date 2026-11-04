@@ -13,9 +13,14 @@ export interface Repository {
   /**
    * Calls cb with current data (immediately for in-memory stores, after the first server/cache
    * read for Firestore), then on every change. Tombstoned records are filtered out.
-   * onError is called if the data can no longer be loaded or a write is rejected.
+   * onError is called if the data can no longer be loaded (fatal). onWriteError is called when
+   * the server rejects a write (not fatal: the local copy is reverted to the newer version).
    */
-  subscribe(cb: (data: PlannerData) => void, onError?: (e: Error) => void): () => void;
+  subscribe(
+    cb: (data: PlannerData) => void,
+    onError?: (e: Error) => void,
+    onWriteError?: (e: Error) => void,
+  ): () => void;
   /**
    * Last write wins per record: ignored unless updatedAt is strictly newer than the stored one.
    * Write methods resolve once the write is queued locally, not when the server acknowledges it.

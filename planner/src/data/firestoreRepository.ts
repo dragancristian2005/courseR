@@ -31,8 +31,9 @@ type Known = Record<Collection, Map<string, Base>>;
  * semester at users/{uid}/meta/semester. Writes never wait for the server, so they work
  * offline; last write wins by comparing against the latest snapshot data held in memory
  * (no transactions, which fail offline). Firestore rules enforce the same ordering.
- * Write methods resolve once the write is queued locally; server rejections are reported
- * to subscribers through onError.
+ * Write methods resolve once the write is queued locally. Listener failures are fatal and go
+ * to onError; server rejections of a write (e.g. a lost last-write-wins race) are not fatal,
+ * since Firestore reverts the local copy, and go to onWriteError.
  */
 export function createFirestoreRepository(db: Firestore, uid: string): Repository {
   const known = Object.fromEntries(COLLECTIONS.map((c) => [c, new Map<string, Base>()])) as Known;
@@ -54,7 +55,7 @@ export function createFirestoreRepository(db: Firestore, uid: string): Repositor
     return out;
   };
 
-  // Active subscribers' error callbacks; write failures are reported to them.
+  // Active subscribers' write-error callbacks; rejected writes are reported to them.
   const errorSinks = new Set<(e: Error) => void>();
   const toError = (e: unknown) => (e instanceof Error ? e : new Error(String(e)));
   const reportWriteError = (e: unknown) => {
@@ -65,7 +66,7 @@ export function createFirestoreRepository(db: Firestore, uid: string): Repositor
   const tombstoneUpdatedAt = (stored: Base) => Math.max(Date.now(), stored.updatedAt + 1);
 
   return {
-    subscribe(cb, onError) {
+    subscribe(cb, onError, onWriteError) {
       const pending = new Set<string>([...COLLECTIONS, 'semester']);
       const deliver = () => {
         if (pending.size === 0) cb(assemble());
@@ -77,7 +78,8 @@ export function createFirestoreRepository(db: Firestore, uid: string): Repositor
         failed = true;
         onError?.(toError(e));
       };
-      if (onError) errorSinks.add(fail);
+      const writeFailed = (e: Error) => onWriteError?.(e);
+      if (onWriteError) errorSinks.add(writeFailed);
 
       for (const c of COLLECTIONS) {
         unsubs.push(
@@ -101,7 +103,7 @@ export function createFirestoreRepository(db: Firestore, uid: string): Repositor
       );
 
       return () => {
-        errorSinks.delete(fail);
+        errorSinks.delete(writeFailed);
         unsubs.forEach((u) => u());
       };
     },

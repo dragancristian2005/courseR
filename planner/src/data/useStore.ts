@@ -9,6 +9,9 @@ export interface StoreValue {
   ready: boolean;
   /** Set when the repository could not load or sync data. */
   error: Error | null;
+  /** Set when the server rejected a write; not fatal. Cleared by dismissWriteError. */
+  writeError: Error | null;
+  dismissWriteError: () => void;
 }
 
 export const StoreContext = createContext<StoreValue | null>(null);
