@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ScrollView, StyleSheet, Switch, View } from "react-native";
 import { newId } from "../../src/data/ids";
 import { useStore } from "../../src/data/useStore";
-import { todayISO } from "../../src/domain/dates";
+import { OPEN_START } from "../../src/domain/edits";
 import type {
   ClassPattern,
   ClassType,
@@ -92,7 +92,7 @@ export default function EditClass() {
       room: online ? "" : room.trim(),
       teacher: teacher.trim(),
       repeat,
-      validFrom: data.semester?.firstDay ?? todayISO(),
+      validFrom: OPEN_START,
       validTo: null,
       online,
       updatedAt: Date.now(),

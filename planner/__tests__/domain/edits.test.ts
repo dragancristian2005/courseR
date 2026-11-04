@@ -2,6 +2,7 @@ import {
   cancelThisWeek,
   changeEveryWeek,
   droppedByChange,
+  OPEN_START,
   moveThisWeek,
 } from "../../src/domain/edits";
 import { sessionsBetween, sessionById } from "../../src/domain/sessions";
@@ -151,6 +152,23 @@ describe("cancelThisWeek", () => {
 
 describe("changeEveryWeek", () => {
   const changes = { start: "13:00", end: "14:30" };
+
+  it("handles an open-start pattern: ends it the day before, never tombstones it", () => {
+    const open = { ...p1, validFrom: OPEN_START };
+    const { ended, created } = changeEveryWeek(open, "2026-11-09", changes, 9, () => "n");
+    expect(ended.deleted).toBeUndefined();
+    expect(ended.validFrom).toBe(OPEN_START);
+    expect(ended.validTo).toBe("2026-11-08");
+    expect(created.validFrom).toBe("2026-11-09");
+    expect(created.validTo).toBeNull();
+  });
+
+  it("droppedByChange does not depend on validFrom", () => {
+    const o = { id: "o", updatedAt: 1, sessionId: "p1:2026-11-16", kind: "cancelled" as const };
+    const d = make({ patterns: [{ ...p1, validFrom: OPEN_START }], overrides: [o] });
+    expect(droppedByChange(d, "p1", "2026-11-09").overrides).toEqual([o]);
+    expect(droppedByChange(d, "p1", "2026-11-23").overrides).toEqual([]);
+  });
 
   it("ends the old pattern and creates a new one", () => {
     const { ended, created } = changeEveryWeek(

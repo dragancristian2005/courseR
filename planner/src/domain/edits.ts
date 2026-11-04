@@ -1,6 +1,12 @@
 import { addDays, compareDates } from './dates';
 import type { ClassPattern, HHMM, ISODate, Note, PlannerData, Session, SessionOverride } from './types';
 
+/**
+ * validFrom for a newly created class: open-ended on the left, so the class also appears in
+ * weeks added later by moving the semester's first day earlier. generate() clips to the semester.
+ */
+export const OPEN_START: ISODate = '0000-01-01';
+
 function overrideId(session: Session): string {
   return `ov_${session.id.replace(':', '_')}`;
 }

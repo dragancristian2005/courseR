@@ -10,7 +10,9 @@ import { router } from "expo-router";
 import ClassScreen from "../../app/class/[sessionId]";
 import EditClass from "../../app/class/edit";
 import { createMemoryRepository } from "../../src/data/memoryRepository";
+import { OPEN_START } from "../../src/domain/edits";
 import { sessionsBetween } from "../../src/domain/sessions";
+import { emptyPlannerData } from "../../src/data/repository";
 import { StoreProvider } from "../../src/data/StoreProvider";
 import type {
   ClassPattern,
@@ -607,13 +609,33 @@ describe("Add a class", () => {
         end: "12:50",
         room: "048",
         repeat: "every",
-        validFrom: "2026-09-28",
+        validFrom: OPEN_START,
         validTo: null,
         online: false,
       }),
     );
     expect(pattern.id).not.toContain(":");
     expect(router.replace).toHaveBeenCalledWith("/");
+  });
+
+  it("appears in weeks added by moving the semester's first day earlier", async () => {
+    const { upsert } = await addClass({ semester, subjects: [tss] });
+    await choose("Teoria Sistemelor");
+    await choose("Mon");
+    await press("Save class");
+    const pattern = upsert.mock.calls.find(
+      (c) => c[0] === "patterns",
+    )![1] as ClassPattern;
+    const earlier: Semester = { ...semester, firstDay: "2026-09-14" };
+    const data = {
+      ...emptyPlannerData(),
+      semester: earlier,
+      subjects: [tss],
+      patterns: [pattern],
+    };
+    expect(
+      sessionsBetween(data, "2026-09-14", "2026-09-20").map((s) => s.id),
+    ).toEqual([`${pattern.id}:2026-09-14`]);
   });
 
   it("uses an existing subject and today when there is no semester", async () => {
@@ -630,7 +652,7 @@ describe("Add a class", () => {
       (c) => c[0] === "patterns",
     )![1] as ClassPattern;
     expect(pattern.subjectId).toBe("tss");
-    expect(pattern.validFrom).toBe("2026-11-02");
+    expect(pattern.validFrom).toBe(OPEN_START);
   });
 
   it("shows validation messages and hides Room when online", async () => {
