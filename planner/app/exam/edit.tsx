@@ -13,18 +13,14 @@ import {
   MSG_DATE,
   MSG_TIME,
 } from "../../src/ui/FormBits";
-import {
-  DeleteBlock,
-  FormScreen,
-  MissingRecord,
-} from "../../src/ui/FormScreen";
+import { DeleteBlock, FormScreen, RecordGate } from "../../src/ui/FormScreen";
 
 function ExamForm() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { data, repo } = useStore();
-  const existing = id
-    ? data.exams.find((e) => e.id === id && !e.deleted)
-    : undefined;
+  const [existing] = useState(() =>
+    id ? data.exams.find((e) => e.id === id && !e.deleted) : undefined,
+  );
   const subjects = data.subjects.filter(
     (s) => !s.deleted && (s.attending || s.id === existing?.subjectId),
   );
@@ -120,7 +116,12 @@ export default function EditExam() {
   const { ready, data } = useStore();
   const { id } = useLocalSearchParams<{ id?: string }>();
   if (!ready) return null;
-  if (id && !data.exams.some((r) => r.id === id && !r.deleted))
-    return <MissingRecord />;
-  return <ExamForm />;
+  return (
+    <RecordGate
+      id={id}
+      exists={data.exams.some((r) => r.id === id && !r.deleted)}
+    >
+      <ExamForm />
+    </RecordGate>
+  );
 }

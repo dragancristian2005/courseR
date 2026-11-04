@@ -7,11 +7,7 @@ import type { Link } from "../../src/domain/types";
 import { goBack } from "../../src/ui/BackLink";
 import { Button } from "../../src/ui/Button";
 import { Chips, Field } from "../../src/ui/FormBits";
-import {
-  DeleteBlock,
-  FormScreen,
-  MissingRecord,
-} from "../../src/ui/FormScreen";
+import { DeleteBlock, FormScreen, RecordGate } from "../../src/ui/FormScreen";
 
 const MSG_UNSAFE = "Use a web address that starts with https://.";
 
@@ -21,9 +17,9 @@ function LinkForm() {
     subjectId?: string;
   }>();
   const { data, repo } = useStore();
-  const existing = id
-    ? data.links.find((l) => l.id === id && !l.deleted)
-    : undefined;
+  const [existing] = useState(() =>
+    id ? data.links.find((l) => l.id === id && !l.deleted) : undefined,
+  );
   const subjects = data.subjects.filter(
     (s) => !s.deleted && (s.attending || s.id === existing?.subjectId),
   );
@@ -114,7 +110,12 @@ export default function EditLink() {
   const { ready, data } = useStore();
   const { id } = useLocalSearchParams<{ id?: string }>();
   if (!ready) return null;
-  if (id && !data.links.some((r) => r.id === id && !r.deleted))
-    return <MissingRecord />;
-  return <LinkForm />;
+  return (
+    <RecordGate
+      id={id}
+      exists={data.links.some((r) => r.id === id && !r.deleted)}
+    >
+      <LinkForm />
+    </RecordGate>
+  );
 }

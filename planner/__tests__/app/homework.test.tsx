@@ -212,6 +212,15 @@ describe("Homework form", () => {
 });
 
 describe("Missing record", () => {
+  it("does not flash the missing screen after Delete", async () => {
+    mockParams = { id: "h1" };
+    await setup(EditHomework);
+    await press("Delete homework");
+    await press("Delete");
+    expect(screen.queryByText("This item no longer exists.")).toBeNull();
+    expect(router.back).toHaveBeenCalled();
+  });
+
   it("shows a dead end instead of a create form", async () => {
     mockParams = { id: "gone" };
     const { upsert } = await setup(EditHomework);

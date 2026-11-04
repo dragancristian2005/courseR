@@ -230,6 +230,15 @@ describe("Exam form", () => {
 });
 
 describe("Missing record", () => {
+  it("does not flash the missing screen after Delete", async () => {
+    mockParams = { id: "e1" };
+    await setup(EditExam, { ...base, exams: [ex({})] });
+    await press("Delete exam");
+    await press("Delete");
+    expect(screen.queryByText("This item no longer exists.")).toBeNull();
+    expect(router.back).toHaveBeenCalled();
+  });
+
   it("shows a dead end instead of a create form", async () => {
     mockParams = { id: "gone" };
     const { upsert } = await setup(EditExam);

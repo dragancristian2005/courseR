@@ -13,11 +13,7 @@ import {
   MSG_DATE,
   MSG_TIME,
 } from "../../src/ui/FormBits";
-import {
-  DeleteBlock,
-  FormScreen,
-  MissingRecord,
-} from "../../src/ui/FormScreen";
+import { DeleteBlock, FormScreen, RecordGate } from "../../src/ui/FormScreen";
 
 function HomeworkForm() {
   const { id, subjectId } = useLocalSearchParams<{
@@ -25,9 +21,9 @@ function HomeworkForm() {
     subjectId?: string;
   }>();
   const { data, repo } = useStore();
-  const existing = id
-    ? data.homework.find((h) => h.id === id && !h.deleted)
-    : undefined;
+  const [existing] = useState(() =>
+    id ? data.homework.find((h) => h.id === id && !h.deleted) : undefined,
+  );
   const subjects = data.subjects.filter(
     (s) => !s.deleted && (s.attending || s.id === existing?.subjectId),
   );
@@ -125,7 +121,12 @@ export default function EditHomework() {
   const { ready, data } = useStore();
   const { id } = useLocalSearchParams<{ id?: string }>();
   if (!ready) return null;
-  if (id && !data.homework.some((r) => r.id === id && !r.deleted))
-    return <MissingRecord />;
-  return <HomeworkForm />;
+  return (
+    <RecordGate
+      id={id}
+      exists={data.homework.some((r) => r.id === id && !r.deleted)}
+    >
+      <HomeworkForm />
+    </RecordGate>
+  );
 }

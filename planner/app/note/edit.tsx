@@ -7,11 +7,7 @@ import type { Note } from "../../src/domain/types";
 import { goBack } from "../../src/ui/BackLink";
 import { Button } from "../../src/ui/Button";
 import { Chips, styles as formStyles } from "../../src/ui/FormBits";
-import {
-  DeleteBlock,
-  FormScreen,
-  MissingRecord,
-} from "../../src/ui/FormScreen";
+import { DeleteBlock, FormScreen, RecordGate } from "../../src/ui/FormScreen";
 import { sessionRef, shortDate } from "../../src/ui/format";
 import { Text } from "../../src/ui/Text";
 import { theme } from "../../src/ui/theme";
@@ -26,9 +22,11 @@ function NoteForm() {
     subjectId?: string;
   }>();
   const { data, repo } = useStore();
-  const existing = params.id
-    ? data.notes.find((n) => n.id === params.id && !n.deleted)
-    : undefined;
+  const [existing] = useState(() =>
+    params.id
+      ? data.notes.find((n) => n.id === params.id && !n.deleted)
+      : undefined,
+  );
   const sessionId = existing ? existing.sessionId : (params.sessionId ?? null);
   const ref = sessionRef(data, sessionId);
   const subjects = data.subjects.filter(
@@ -141,9 +139,14 @@ export default function EditNote() {
   const { ready, data } = useStore();
   const { id } = useLocalSearchParams<{ id?: string }>();
   if (!ready) return null;
-  if (id && !data.notes.some((r) => r.id === id && !r.deleted))
-    return <MissingRecord />;
-  return <NoteForm />;
+  return (
+    <RecordGate
+      id={id}
+      exists={data.notes.some((r) => r.id === id && !r.deleted)}
+    >
+      <NoteForm />
+    </RecordGate>
+  );
 }
 
 const styles = StyleSheet.create({

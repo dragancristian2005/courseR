@@ -10,14 +10,16 @@ import { theme } from "./theme";
 export function FormScreen({
   title,
   children,
+  back = true,
 }: {
   title: string;
   children: ReactNode;
+  back?: boolean;
 }) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.inner}>
-        <BackLink />
+        {back ? <BackLink /> : null}
         <Text accessibilityRole="header" style={styles.title}>
           {title}
         </Text>
@@ -82,8 +84,25 @@ const styles = StyleSheet.create({
 /** Shown when an edit screen is opened for a record that no longer exists. */
 export function MissingRecord() {
   return (
-    <FormScreen title="This item no longer exists.">
+    <FormScreen title="This item no longer exists." back={false}>
       <Button label="Go back" onPress={goBack} />
     </FormScreen>
   );
+}
+
+/**
+ * Decides once, when it mounts, whether the record being edited exists. Later changes (such as
+ * this screen deleting the record) do not swap the form for the missing-item screen.
+ */
+export function RecordGate({
+  id,
+  exists,
+  children,
+}: {
+  id: string | undefined;
+  exists: boolean;
+  children: ReactNode;
+}) {
+  const [missing] = useState(() => Boolean(id) && !exists);
+  return missing ? <MissingRecord /> : <>{children}</>;
 }
