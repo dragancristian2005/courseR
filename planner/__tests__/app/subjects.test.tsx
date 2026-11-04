@@ -80,8 +80,12 @@ const press = async (name: string) =>
   await fireEvent.press(screen.getByRole("button", { name }));
 const type = async (label: string, value: string) =>
   await fireEvent.changeText(screen.getByLabelText(label), value);
-const toggle = async (name: string, value: boolean) =>
-  await fireEvent(screen.getByRole("switch", { name }), "valueChange", value);
+const toggle = async (name: string, value: boolean) => {
+  expect(
+    screen.getByRole("switch", { name }).props.accessibilityState.checked,
+  ).toBe(!value);
+  await fireEvent.press(screen.getByRole("switch", { name }));
+};
 
 beforeEach(() => {
   jest.useFakeTimers();

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { StyleSheet, Switch, View } from "react-native";
+import { Pressable, StyleSheet, Switch, View } from "react-native";
 import type { ClassPattern, ClassType, Subject } from "../domain/types";
 import { Button } from "./Button";
 import { Field } from "./FormBits";
@@ -59,13 +59,24 @@ export function SubjectRow({
           accessibilityLabel={`Edit ${subject.name}`}
           onPress={onEdit}
         />
-        <Switch
+        <Pressable
           accessibilityRole="switch"
           accessibilityLabel={subject.name}
-          value={subject.attending}
-          onValueChange={onToggle}
-          trackColor={{ true: theme.color.ink, false: theme.color.rule }}
-        />
+          accessibilityState={{ checked: subject.attending }}
+          onPress={() => onToggle(!subject.attending)}
+          style={styles.switchHit}
+        >
+          <View
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            <Switch
+              value={subject.attending}
+              trackColor={{ true: theme.color.ink, false: theme.color.rule }}
+            />
+          </View>
+        </Pressable>
       </View>
       <Rule weight="hair" />
     </View>
@@ -141,6 +152,12 @@ const styles = StyleSheet.create({
     paddingVertical: theme.space(1),
   },
   text: { flex: 1 },
+  switchHit: {
+    minHeight: 56,
+    minWidth: 64,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   name: { fontFamily: theme.font.appBold },
   form: { gap: theme.space(3), paddingVertical: theme.space(3) },
   buttons: { flexDirection: "row", gap: theme.space(3), flexWrap: "wrap" },
