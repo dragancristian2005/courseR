@@ -37,6 +37,7 @@ export function Field({
   label,
   value,
   onChangeText,
+  onBlur,
   error,
   placeholder,
   autoCapitalize = "none",
@@ -44,6 +45,7 @@ export function Field({
   label: string;
   value: string;
   onChangeText: (v: string) => void;
+  onBlur?: () => void;
   error?: string;
   placeholder?: string;
   autoCapitalize?: "none" | "sentences" | "words";
@@ -55,6 +57,7 @@ export function Field({
         accessibilityLabel={label}
         value={value}
         onChangeText={onChangeText}
+        onBlur={onBlur}
         placeholder={placeholder}
         placeholderTextColor={theme.color.muted}
         autoCapitalize={autoCapitalize}

@@ -1,3 +1,4 @@
+import { isSafeLinkUrl } from './links';
 import type { PlannerData } from './types';
 
 const NOT_BACKUP = 'This file is not a Study Planner backup.';
@@ -35,6 +36,10 @@ export function parseBackup(json: string): ParseResult {
   if (data.semester !== null && !isObject(data.semester)) return { ok: false, error: NOT_BACKUP };
   for (const key of LIST_KEYS) {
     if (!Array.isArray(data[key])) return { ok: false, error: NOT_BACKUP };
+  }
+  const links = data.links as unknown[];
+  if (!links.every((l) => isObject(l) && typeof l.url === 'string' && isSafeLinkUrl(l.url))) {
+    return { ok: false, error: NOT_BACKUP };
   }
   return { ok: true, data: data as unknown as PlannerData };
 }

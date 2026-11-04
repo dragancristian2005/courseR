@@ -93,6 +93,12 @@ export function ChangeForm({
   const [repeat, setRepeat] = useState<Repeat>(pattern.repeat);
   const [online, setOnline] = useState(pattern.online);
   const [warning, setWarning] = useState<string | null>(null);
+  const edit =
+    <T,>(set: (v: T) => void) =>
+    (v: T) => {
+      setWarning(null);
+      set(v);
+    };
   const [failure, setFailure] = useState<string | null>(null);
 
   const errors = timeErrors(start, end);
@@ -129,7 +135,7 @@ export function ChangeForm({
       <Field
         label="Starting from"
         value={from}
-        onChangeText={setFrom}
+        onChangeText={edit(setFrom)}
         error={fromError}
         placeholder="2026-11-09"
       />
@@ -137,49 +143,49 @@ export function ChangeForm({
         label="Type"
         options={TYPE_OPTIONS}
         value={type}
-        onChange={setType}
+        onChange={edit(setType)}
       />
       <Chips
         label="Weekday"
         options={WEEKDAY_OPTIONS}
         value={weekday}
-        onChange={setWeekday}
+        onChange={edit(setWeekday)}
       />
       <Field
         label="Start"
         value={start}
-        onChangeText={setStart}
+        onChangeText={edit(setStart)}
         error={errors.start}
         placeholder="09:40"
       />
       <Field
         label="End"
         value={end}
-        onChangeText={setEnd}
+        onChangeText={edit(setEnd)}
         error={errors.end}
         placeholder="11:10"
       />
       {online ? null : (
-        <Field label="Room" value={room} onChangeText={setRoom} />
+        <Field label="Room" value={room} onChangeText={edit(setRoom)} />
       )}
       <Field
         label="Teacher"
         value={teacher}
-        onChangeText={setTeacher}
+        onChangeText={edit(setTeacher)}
         autoCapitalize="words"
       />
       <Chips
         label="Repeats"
         options={REPEAT_OPTIONS}
         value={repeat}
-        onChange={setRepeat}
+        onChange={edit(setRepeat)}
       />
       <View style={styles.switchRow}>
         <Text style={styles.switchLabel}>Online</Text>
         <Switch
           accessibilityLabel="Online"
           value={online}
-          onValueChange={setOnline}
+          onValueChange={edit(setOnline)}
           trackColor={{ true: theme.color.ink, false: theme.color.rule }}
         />
       </View>

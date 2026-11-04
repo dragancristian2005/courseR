@@ -287,5 +287,21 @@ describe("Week screen", () => {
         screen.getByRole("button", { name: "Move this week" }),
       ).toBeTruthy();
     });
+
+    it("does not carry an open form over to another selected class", async () => {
+      await setup();
+      await fireEvent.press(
+        screen.getByRole("button", { name: /Teoria Sistemelor, course/ }),
+      );
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Move this week" }),
+      );
+      expect(screen.getByRole("button", { name: "Save move" })).toBeTruthy();
+      await fireEvent.press(
+        screen.getByRole("button", { name: /Algebră, seminar/ }),
+      );
+      expect(screen.queryByRole("button", { name: "Save move" })).toBeNull();
+      expect(screen.getByText("14:40 to 16:10")).toBeTruthy();
+    });
   });
 });

@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Linking, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { newId } from "../data/ids";
 import { useStore } from "../data/useStore";
 import { todayISO, weekdayOf } from "../domain/dates";
@@ -22,6 +22,7 @@ import { goBack } from "./BackLink";
 import { Button } from "./Button";
 import { ChangeForm, REPEAT_OPTIONS } from "./ChangeForm";
 import { MoveForm } from "./MoveForm";
+import { openLink } from "./openLink";
 import { Rule } from "./Rule";
 import { Text } from "./Text";
 import { theme, typeFill } from "./theme";
@@ -321,7 +322,7 @@ export function ClassDetail({
             <Pressable
               accessibilityRole="link"
               accessibilityLabel={l.title}
-              onPress={() => void Linking.openURL(l.url)}
+              onPress={() => openLink(l.url)}
               style={styles.row}
             >
               <Text style={styles.rowTitle}>{l.title}</Text>

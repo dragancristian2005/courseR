@@ -47,14 +47,28 @@ export default function EditClass() {
   const [teacher, setTeacher] = useState("");
   const [repeat, setRepeat] = useState<Repeat>("every");
   const [online, setOnline] = useState(false);
+  const [touched, setTouched] = useState<string[]>([]);
+  const touch = (k: string) =>
+    setTouched((t) => (t.includes(k) ? t : [...t, k]));
 
   const isNew = subjectId === NEW;
   const shortValue = short ?? initialsOf(name);
   const errors = timeErrors(start, end);
-  const subjectError = subjectId === null ? "Choose a subject." : undefined;
+  const subjectError =
+    touched.length === 0
+      ? undefined
+      : subjectId === null
+        ? "Choose a subject."
+        : undefined;
   const nameError =
-    isNew && name.trim() === "" ? "Enter the subject’s name." : undefined;
-  const valid = !subjectError && !nameError && !errors.start && !errors.end;
+    isNew && touched.includes("name") && name.trim() === ""
+      ? "Enter the subject’s name."
+      : undefined;
+  const valid =
+    subjectId !== null &&
+    !(isNew && name.trim() === "") &&
+    !errors.start &&
+    !errors.end;
 
   const save = () => {
     let sid = subjectId as string;
@@ -108,7 +122,11 @@ export default function EditClass() {
             <Field
               label="Name"
               value={name}
-              onChangeText={setName}
+              onChangeText={(v) => {
+                setName(v);
+                touch("name");
+              }}
+              onBlur={() => touch("name")}
               error={nameError}
               autoCapitalize="words"
             />
@@ -134,15 +152,21 @@ export default function EditClass() {
         <Field
           label="Start"
           value={start}
-          onChangeText={setStart}
-          error={errors.start}
+          onChangeText={(v) => {
+            setStart(v);
+            touch("start");
+          }}
+          error={touched.includes("start") ? errors.start : undefined}
           placeholder="09:40"
         />
         <Field
           label="End"
           value={end}
-          onChangeText={setEnd}
-          error={errors.end}
+          onChangeText={(v) => {
+            setEnd(v);
+            touch("end");
+          }}
+          error={touched.includes("end") ? errors.end : undefined}
           placeholder="11:10"
         />
         {online ? null : (

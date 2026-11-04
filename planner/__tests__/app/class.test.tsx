@@ -347,6 +347,49 @@ describe("Class detail", () => {
     });
   });
 
+  it("clears a stale warning when a field changes", async () => {
+    await detail({
+      ...base,
+      notes: [
+        {
+          id: "n1",
+          text: "a",
+          subjectId: null,
+          sessionId: "p1:2026-11-16",
+          createdAt: 5,
+          updatedAt: 1,
+        },
+      ],
+    });
+    await press("Change every week");
+    await type("Starting from", "2026-11-09");
+    await press("Save for every week");
+    expect(screen.getByText(/won’t carry over/)).toBeTruthy();
+    await type("Starting from", "2026-11-23");
+    expect(screen.queryByText(/won’t carry over/)).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Save for every week" }),
+    ).toBeTruthy();
+  });
+
+  it("does not open unsafe links", async () => {
+    const open = jest.spyOn(Linking, "openURL").mockResolvedValue();
+    await detail({
+      ...base,
+      links: [
+        {
+          id: "l1",
+          title: "Bad",
+          url: " JavaScript:alert(1)",
+          subjectId: "tss",
+          updatedAt: 1,
+        },
+      ],
+    });
+    await fireEvent.press(screen.getByRole("link", { name: "Bad" }));
+    expect(open).not.toHaveBeenCalled();
+  });
+
   it("shows the error when the change cannot be made", async () => {
     await detail({ ...base, patterns: [{ ...p1, validTo: "2026-11-02" }] });
     await press("Change every week");
@@ -486,6 +529,9 @@ describe("Add a class", () => {
 
   it("creates a new subject and the pattern", async () => {
     const { upsert } = await addClass({ semester });
+    expect(screen.queryByText("Enter the subject’s name.")).toBeNull();
+    await type("Name", "x");
+    await type("Name", "");
     expect(screen.getByText("Enter the subject’s name.")).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Save class" }).props
@@ -533,6 +579,9 @@ describe("Add a class", () => {
 
   it("uses an existing subject and today when there is no semester", async () => {
     const { upsert } = await addClass({ subjects: [tss] });
+    expect(screen.queryByText("Choose a subject.")).toBeNull();
+    await type("Teacher", "x");
+    await type("Start", "08:00");
     expect(screen.getByText("Choose a subject.")).toBeTruthy();
     await choose("Teoria Sistemelor");
     expect(screen.queryByText("Choose a subject.")).toBeNull();

@@ -144,6 +144,7 @@ export default function WeekScreen() {
           {selected ? (
             <ScrollView>
               <ClassDetail
+                key={selected.id}
                 sessionId={selected.id}
                 onClose={() => setSelectedId(undefined)}
                 onOpenSession={setSelectedId}
