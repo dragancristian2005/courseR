@@ -4,8 +4,8 @@ import { useStore } from '../../src/data/useStore';
 import { timeToMinutes, todayISO, weekdayOf } from '../../src/domain/dates';
 import { dueLabel, homeworkGroups, nextExam, todayAgenda } from '../../src/domain/selectors';
 import type { ClassType, Homework, ISODate, PlannerData, Session } from '../../src/domain/types';
-import { EmptyState } from '../../src/ui/EmptyState';
 import { Rule } from '../../src/ui/Rule';
+import { SetupPrompt } from '../../src/ui/SetupPrompt';
 import { SlotRow } from '../../src/ui/SlotRow';
 import { Text } from '../../src/ui/Text';
 import { theme } from '../../src/ui/theme';
@@ -110,24 +110,9 @@ export default function Today() {
     ) : null;
 
   let body: React.ReactNode;
-  if (!data.semester) {
-    body = (
-      <EmptyState
-        title="Set up your semester"
-        body="Add your semester dates, then your classes, to see your day here."
-        actionLabel="Set up semester"
-        onAction={() => router.push('/settings/semester')}
-      />
-    );
-  } else if (data.patterns.length === 0) {
-    body = (
-      <EmptyState
-        title="Add your classes"
-        body="Add each class once and it repeats every week."
-        actionLabel="Add a class"
-        onAction={() => router.push('/class/edit')}
-      />
-    );
+  const prompt = <SetupPrompt data={data} />;
+  if (!data.semester || data.patterns.length === 0) {
+    body = prompt;
   } else {
     const { sessions, currentSessionId, freeAfter, week } = agenda;
     const lastEnd = sessions.reduce((m, s) => Math.max(m, timeToMinutes(s.end)), 0);
