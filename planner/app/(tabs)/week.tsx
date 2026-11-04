@@ -1,35 +1,55 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useStore } from '../../src/data/useStore';
-import { addDays, mondayOf, todayISO, weekdayOf } from '../../src/domain/dates';
-import { sessionsBetween } from '../../src/domain/sessions';
-import type { ISODate, Session } from '../../src/domain/types';
-import { weekFor } from '../../src/domain/weeks';
-import { Button } from '../../src/ui/Button';
-import { Rule } from '../../src/ui/Rule';
-import { SetupPrompt } from '../../src/ui/SetupPrompt';
-import { Text } from '../../src/ui/Text';
-import { theme, typeFill } from '../../src/ui/theme';
-import { useLayout } from '../../src/ui/useLayout';
-import { useNow } from '../../src/ui/useNow';
-import { lastShownDay, TYPE_LABEL, WeekGrid } from '../../src/ui/WeekGrid';
+import { router } from "expo-router";
+import { useState } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useStore } from "../../src/data/useStore";
+import { addDays, mondayOf, todayISO, weekdayOf } from "../../src/domain/dates";
+import { sessionsBetween } from "../../src/domain/sessions";
+import type { ISODate, Session } from "../../src/domain/types";
+import { weekFor } from "../../src/domain/weeks";
+import { Button } from "../../src/ui/Button";
+import { Rule } from "../../src/ui/Rule";
+import { SetupPrompt } from "../../src/ui/SetupPrompt";
+import { Text } from "../../src/ui/Text";
+import { theme, typeFill } from "../../src/ui/theme";
+import { useLayout } from "../../src/ui/useLayout";
+import { useNow } from "../../src/ui/useNow";
+import { lastShownDay, TYPE_LABEL, WeekGrid } from "../../src/ui/WeekGrid";
 
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
-const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const WEEKDAYS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
 
 const dayMonth = (d: ISODate) => {
-  const [, m, day] = d.split('-').map(Number);
+  const [, m, day] = d.split("-").map(Number);
   return { day, month: MONTHS[m - 1] };
 };
 
 function rangeLabel(from: ISODate, to: ISODate): string {
   const a = dayMonth(from);
   const b = dayMonth(to);
-  return a.month === b.month ? `${a.day} to ${b.day} ${b.month}` : `${a.day} ${a.month} to ${b.day} ${b.month}`;
+  return a.month === b.month
+    ? `${a.day} to ${b.day} ${b.month}`
+    : `${a.day} ${a.month} to ${b.day} ${b.month}`;
 }
 
 export default function WeekScreen() {
@@ -45,20 +65,30 @@ export default function WeekScreen() {
   const week = data.semester ? weekFor(data.semester, monday) : null;
   const sessions = sessionsBetween(data, monday, addDays(monday, 6));
   const end = addDays(monday, lastShownDay(sessions, monday) - 1);
-  const wide = layout === 'wide';
+  const wide = layout === "wide";
 
-  const title = !week ? 'Week' : week.isBreak ? 'Break' : `Week ${week.number}`;
-  const kind = !week ? 'outside the semester' : week.isBreak ? 'break' : `${week.parity} week`;
+  const title = !week ? "Week" : week.isBreak ? "Break" : `Week ${week.number}`;
+  const kind = !week
+    ? "outside the semester"
+    : week.isBreak
+      ? "break"
+      : `${week.parity} week`;
   const needsSetup = !data.semester || data.patterns.length === 0;
 
   const open = (s: Session) =>
-    router.push({ pathname: '/class/[sessionId]', params: { sessionId: s.id } });
+    router.push({
+      pathname: "/class/[sessionId]",
+      params: { sessionId: s.id },
+    });
   const onPressSession = (s: Session) => (wide ? setSelectedId(s.id) : open(s));
   const selected = sessions.find((s) => s.id === selectedId);
 
   let body: React.ReactNode;
   if (needsSetup) body = <SetupPrompt data={data} />;
-  else if (week?.isBreak) body = <Text style={styles.plain}>No classes this week, it’s a break.</Text>;
+  else if (week?.isBreak)
+    body = (
+      <Text style={styles.plain}>No classes this week, it’s a break.</Text>
+    );
   else
     body = (
       <WeekGrid
@@ -68,7 +98,7 @@ export default function WeekScreen() {
         today={today}
         nowMinutes={nowMinutes}
         onPressSession={onPressSession}
-        density={wide ? 'full' : 'compact'}
+        density={wide ? "full" : "compact"}
         selectedSessionId={wide ? selectedId : undefined}
       />
     );
@@ -78,43 +108,43 @@ export default function WeekScreen() {
       <ScrollView style={styles.main} contentContainerStyle={styles.content}>
         <View style={styles.inner}>
           {needsSetup ? null : (
-          <>
-          <View style={styles.headerRow}>
-            <View style={styles.titles}>
-              <Text style={styles.title}>{title}</Text>
-              <Text variant="meta">{`${rangeLabel(monday, end)}, ${kind}`}</Text>
-              {offset !== 0 ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="This week"
-                  onPress={() => setOffset(0)}
-                  style={styles.thisWeek}
-                >
-                  <Text style={styles.thisWeekText}>This week</Text>
-                </Pressable>
-              ) : null}
-            </View>
-            <View style={styles.nav}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Previous week"
-                onPress={() => setOffset((o) => o - 1)}
-                style={styles.navButton}
-              >
-                <Text style={styles.navText}>‹</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Next week"
-                onPress={() => setOffset((o) => o + 1)}
-                style={styles.navButton}
-              >
-                <Text style={styles.navText}>›</Text>
-              </Pressable>
-            </View>
-          </View>
-          <Rule weight="heavy" />
-          </>
+            <>
+              <View style={styles.headerRow}>
+                <View style={styles.titles}>
+                  <Text style={styles.title}>{title}</Text>
+                  <Text variant="meta">{`${rangeLabel(monday, end)}, ${kind}`}</Text>
+                  {offset !== 0 ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="This week"
+                      onPress={() => setOffset(0)}
+                      style={styles.thisWeek}
+                    >
+                      <Text style={styles.thisWeekText}>This week</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+                <View style={styles.nav}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Previous week"
+                    onPress={() => setOffset((o) => o - 1)}
+                    style={styles.navButton}
+                  >
+                    <Text style={styles.navText}>‹</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Next week"
+                    onPress={() => setOffset((o) => o + 1)}
+                    style={styles.navButton}
+                  >
+                    <Text style={styles.navText}>›</Text>
+                  </Pressable>
+                </View>
+              </View>
+              <Rule weight="heavy" />
+            </>
           )}
           {body}
         </View>
@@ -122,9 +152,18 @@ export default function WeekScreen() {
       {wide && !needsSetup ? (
         <View style={styles.panel}>
           {selected ? (
-            <Panel session={selected} subjectName={data.subjects.find((x) => x.id === selected.subjectId)?.name ?? 'Class'} onOpen={() => open(selected)} />
+            <Panel
+              session={selected}
+              subjectName={
+                data.subjects.find((x) => x.id === selected.subjectId)?.name ??
+                "Class"
+              }
+              onOpen={() => open(selected)}
+            />
           ) : (
-            <Text style={styles.panelEmpty}>Select a class to see its details.</Text>
+            <Text style={styles.panelEmpty}>
+              Select a class to see its details.
+            </Text>
           )}
         </View>
       ) : null}
@@ -132,8 +171,16 @@ export default function WeekScreen() {
   );
 }
 
-function Panel({ session: s, subjectName, onOpen }: { session: Session; subjectName: string; onOpen: () => void }) {
-  const where = s.online ? 'online' : `room ${s.room}`;
+function Panel({
+  session: s,
+  subjectName,
+  onOpen,
+}: {
+  session: Session;
+  subjectName: string;
+  onOpen: () => void;
+}) {
+  const where = s.online ? "online" : `room ${s.room}`;
   return (
     <View>
       <View style={[styles.panelHead, { backgroundColor: typeFill(s.type) }]}>
@@ -149,22 +196,54 @@ function Panel({ session: s, subjectName, onOpen }: { session: Session; subjectN
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, flexDirection: 'row', backgroundColor: theme.color.paper },
+  screen: { flex: 1, flexDirection: "row", backgroundColor: theme.color.paper },
   main: { flex: 1 },
-  content: { padding: theme.space(4), alignItems: 'center' },
-  inner: { width: '100%', maxWidth: 1100 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: theme.space(2) },
+  content: { padding: theme.space(4), alignItems: "center" },
+  inner: { width: "100%", maxWidth: 1100 },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingBottom: theme.space(2),
+  },
   titles: { flex: 1 },
-  title: { fontFamily: theme.font.appBold, fontSize: 30, color: theme.color.ink },
-  thisWeek: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
-  thisWeekText: { fontFamily: theme.font.appBold, textDecorationLine: 'underline' },
-  nav: { flexDirection: 'row', gap: theme.space(2) },
-  navButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: theme.color.ink },
+  title: {
+    fontFamily: theme.font.appBold,
+    fontSize: 30,
+    color: theme.color.ink,
+  },
+  thisWeek: {
+    minHeight: 44,
+    justifyContent: "center",
+    alignSelf: "flex-start",
+  },
+  thisWeekText: {
+    fontFamily: theme.font.appBold,
+    textDecorationLine: "underline",
+  },
+  nav: { flexDirection: "row", gap: theme.space(2) },
+  navButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: theme.color.ink,
+  },
   navText: { fontFamily: theme.font.appBold, fontSize: 24, lineHeight: 28 },
   plain: { paddingVertical: theme.space(4) },
-  panel: { width: 320, borderLeftWidth: 2, borderLeftColor: theme.color.ink, backgroundColor: theme.color.paper },
+  panel: {
+    width: 320,
+    borderLeftWidth: 2,
+    borderLeftColor: theme.color.ink,
+    backgroundColor: theme.color.paper,
+  },
   panelEmpty: { padding: theme.space(4) },
   panelHead: { padding: theme.space(4), gap: theme.space(1) },
-  panelName: { fontFamily: theme.font.appBold, fontSize: 22, color: theme.color.ink },
+  panelName: {
+    fontFamily: theme.font.appBold,
+    fontSize: 22,
+    color: theme.color.ink,
+  },
   panelBody: { padding: theme.space(4) },
 });
