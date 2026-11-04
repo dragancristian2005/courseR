@@ -2,18 +2,18 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useStore } from "../../src/data/useStore";
-import { addDays, mondayOf, todayISO, weekdayOf } from "../../src/domain/dates";
+import { addDays, mondayOf, todayISO } from "../../src/domain/dates";
 import { sessionsBetween } from "../../src/domain/sessions";
 import type { ISODate, Session } from "../../src/domain/types";
 import { weekFor } from "../../src/domain/weeks";
-import { Button } from "../../src/ui/Button";
+import { ClassDetail } from "../../src/ui/ClassDetail";
 import { Rule } from "../../src/ui/Rule";
 import { SetupPrompt } from "../../src/ui/SetupPrompt";
 import { Text } from "../../src/ui/Text";
-import { theme, typeFill } from "../../src/ui/theme";
+import { theme } from "../../src/ui/theme";
 import { useLayout } from "../../src/ui/useLayout";
 import { useNow } from "../../src/ui/useNow";
-import { lastShownDay, TYPE_LABEL, WeekGrid } from "../../src/ui/WeekGrid";
+import { lastShownDay, WeekGrid } from "../../src/ui/WeekGrid";
 
 const MONTHS = [
   "January",
@@ -29,16 +29,6 @@ const MONTHS = [
   "November",
   "December",
 ];
-const WEEKDAYS = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
-
 const dayMonth = (d: ISODate) => {
   const [, m, day] = d.split("-").map(Number);
   return { day, month: MONTHS[m - 1] };
@@ -152,14 +142,13 @@ export default function WeekScreen() {
       {wide && !needsSetup ? (
         <View style={styles.panel}>
           {selected ? (
-            <Panel
-              session={selected}
-              subjectName={
-                data.subjects.find((x) => x.id === selected.subjectId)?.name ??
-                "Class"
-              }
-              onOpen={() => open(selected)}
-            />
+            <ScrollView>
+              <ClassDetail
+                sessionId={selected.id}
+                onClose={() => setSelectedId(undefined)}
+                onOpenSession={setSelectedId}
+              />
+            </ScrollView>
           ) : (
             <Text style={styles.panelEmpty}>
               Select a class to see its details.
@@ -167,30 +156,6 @@ export default function WeekScreen() {
           )}
         </View>
       ) : null}
-    </View>
-  );
-}
-
-function Panel({
-  session: s,
-  subjectName,
-  onOpen,
-}: {
-  session: Session;
-  subjectName: string;
-  onOpen: () => void;
-}) {
-  const where = s.online ? "online" : `room ${s.room}`;
-  return (
-    <View>
-      <View style={[styles.panelHead, { backgroundColor: typeFill(s.type) }]}>
-        <Text style={styles.panelName}>{subjectName}</Text>
-        <Text>{`${TYPE_LABEL[s.type]}, ${WEEKDAYS[weekdayOf(s.date) - 1]} ${s.start} to ${s.end}, ${where}`}</Text>
-        {s.teacher ? <Text>{s.teacher}</Text> : null}
-      </View>
-      <View style={styles.panelBody}>
-        <Button label="Open class" kind="outline" onPress={onOpen} />
-      </View>
     </View>
   );
 }
@@ -239,11 +204,4 @@ const styles = StyleSheet.create({
     backgroundColor: theme.color.paper,
   },
   panelEmpty: { padding: theme.space(4) },
-  panelHead: { padding: theme.space(4), gap: theme.space(1) },
-  panelName: {
-    fontFamily: theme.font.appBold,
-    fontSize: 22,
-    color: theme.color.ink,
-  },
-  panelBody: { padding: theme.space(4) },
 });

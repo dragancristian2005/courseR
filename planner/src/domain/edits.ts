@@ -1,5 +1,5 @@
 import { addDays, compareDates } from './dates';
-import type { ClassPattern, HHMM, ISODate, Session, SessionOverride } from './types';
+import type { ClassPattern, HHMM, ISODate, Note, PlannerData, Session, SessionOverride } from './types';
 
 function overrideId(session: Session): string {
   return `ov_${session.id.replace(':', '_')}`;
@@ -60,4 +60,23 @@ export function changeEveryWeek(
   created.validTo = pattern.validTo;
   created.updatedAt = now;
   return { ended, created };
+}
+
+function belongsOnOrAfter(sessionId: string | null, patternId: string, from: ISODate): boolean {
+  if (sessionId === null) return false;
+  const i = sessionId.lastIndexOf(':');
+  if (i <= 0) return false;
+  return sessionId.slice(0, i) === patternId && compareDates(sessionId.slice(i + 1), from) >= 0;
+}
+
+/** Live one-off changes and notes that a change from `from` would no longer attach to. */
+export function droppedByChange(
+  data: PlannerData,
+  patternId: string,
+  from: ISODate,
+): { overrides: SessionOverride[]; notes: Note[] } {
+  return {
+    overrides: data.overrides.filter((o) => !o.deleted && belongsOnOrAfter(o.sessionId, patternId, from)),
+    notes: data.notes.filter((n) => !n.deleted && belongsOnOrAfter(n.sessionId, patternId, from)),
+  };
 }

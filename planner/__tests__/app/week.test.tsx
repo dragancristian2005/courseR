@@ -280,15 +280,12 @@ describe("Week screen", () => {
       expect(
         screen.queryByText("Select a class to see its details."),
       ).toBeNull();
-      expect(
-        screen.getByText("Course, Monday 10:00 to 11:30, room 048"),
-      ).toBeTruthy();
+      expect(screen.getByText("Course, Monday 2 November")).toBeTruthy();
+      expect(screen.getByText("10:00 to 11:30")).toBeTruthy();
       expect(screen.getByText("Mutescul A.")).toBeTruthy();
-      await fireEvent.press(screen.getByRole("button", { name: "Open class" }));
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: "/class/[sessionId]",
-        params: { sessionId: "p1:2026-11-02" },
-      });
+      expect(
+        screen.getByRole("button", { name: "Move this week" }),
+      ).toBeTruthy();
     });
   });
 });
