@@ -1,20 +1,20 @@
-import { stamp } from "../../src/domain/edits";
-import { useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
-import { newId } from "../../src/data/ids";
-import { useStore } from "../../src/data/useStore";
-import type { Note } from "../../src/domain/types";
-import { goBack } from "../../src/ui/BackLink";
-import { Button } from "../../src/ui/Button";
-import { Chips, styles as formStyles } from "../../src/ui/FormBits";
-import { DeleteBlock, FormScreen, RecordGate } from "../../src/ui/FormScreen";
-import { sessionRef, shortDate } from "../../src/ui/format";
-import { Text } from "../../src/ui/Text";
-import { theme } from "../../src/ui/theme";
+import { stamp } from '../../src/domain/edits';
+import { useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
+import { StyleSheet, TextInput, View } from 'react-native';
+import { newId } from '../../src/data/ids';
+import { useStore } from '../../src/data/useStore';
+import type { Note } from '../../src/domain/types';
+import { goBack } from '../../src/ui/BackLink';
+import { Button } from '../../src/ui/Button';
+import { Chips, styles as formStyles } from '../../src/ui/FormBits';
+import { DeleteBlock, FormScreen, RecordGate } from '../../src/ui/FormScreen';
+import { sessionRef, shortDate } from '../../src/ui/format';
+import { Text } from '../../src/ui/Text';
+import { theme } from '../../src/ui/theme';
 
-const NONE = "none";
-const SESSION = "session";
+const NONE = 'none';
+const SESSION = 'session';
 
 function NoteForm() {
   const params = useLocalSearchParams<{
@@ -24,9 +24,7 @@ function NoteForm() {
   }>();
   const { data, repo } = useStore();
   const [existing] = useState(() =>
-    params.id
-      ? data.notes.find((n) => n.id === params.id && !n.deleted)
-      : undefined,
+    params.id ? data.notes.find((n) => n.id === params.id && !n.deleted) : undefined,
   );
   const sessionId = existing ? existing.sessionId : (params.sessionId ?? null);
   const ref = sessionRef(data, sessionId);
@@ -41,14 +39,14 @@ function NoteForm() {
       : !existing && params.subjectId
         ? params.subjectId
         : NONE;
-  const [text, setText] = useState(existing?.text ?? "");
+  const [text, setText] = useState(existing?.text ?? '');
   const [link, setLink] = useState(initialLink);
   const [touched, setTouched] = useState(false);
 
-  const error = text.trim() === "" ? "Write something first." : undefined;
+  const error = text.trim() === '' ? 'Write something first.' : undefined;
 
   const options = [
-    { value: NONE, label: "Not linked" },
+    { value: NONE, label: 'Not linked' },
     ...(sessionId
       ? [
           {
@@ -57,12 +55,12 @@ function NoteForm() {
               ? `This class: ${[
                   ref.subject?.abbreviation,
                   ref.pattern.type,
-                  "on",
+                  'on',
                   shortDate(ref.date),
                 ]
                   .filter(Boolean)
-                  .join(" ")}`
-              : "This class (no longer in your timetable)",
+                  .join(' ')}`
+              : 'This class (no longer in your timetable)',
           },
         ]
       : []),
@@ -86,12 +84,12 @@ function NoteForm() {
       createdAt: existing?.createdAt ?? Date.now(),
       updatedAt: stamp(existing),
     };
-    void repo.upsert("notes", note);
+    void repo.upsert('notes', note);
     goBack();
   };
 
   return (
-    <FormScreen title={existing ? "Edit note" : "New note"}>
+    <FormScreen title={existing ? 'Edit note' : 'New note'}>
       <View style={formStyles.field}>
         <Text variant="meta">Text</Text>
         <TextInput
@@ -105,28 +103,17 @@ function NoteForm() {
           multiline
           textAlignVertical="top"
           placeholderTextColor={theme.color.muted}
-          style={[
-            formStyles.input,
-            styles.text,
-            touched && error ? formStyles.inputError : null,
-          ]}
+          style={[formStyles.input, styles.text, touched && error ? formStyles.inputError : null]}
         />
-        {touched && error ? (
-          <Text style={formStyles.error}>{error}</Text>
-        ) : null}
+        {touched && error ? <Text style={formStyles.error}>{error}</Text> : null}
       </View>
-      <Chips
-        label="Linked to"
-        options={options}
-        value={link}
-        onChange={setLink}
-      />
+      <Chips label="Linked to" options={options} value={link} onChange={setLink} />
       <Button label="Save note" disabled={!!error} onPress={save} />
       {existing ? (
         <DeleteBlock
           what="note"
           onConfirm={() => {
-            void repo.remove("notes", existing.id);
+            void repo.remove('notes', existing.id);
             goBack();
           }}
         />
@@ -141,10 +128,7 @@ export default function EditNote() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   if (!ready) return null;
   return (
-    <RecordGate
-      id={id}
-      exists={data.notes.some((r) => r.id === id && !r.deleted)}
-    >
+    <RecordGate id={id} exists={data.notes.some((r) => r.id === id && !r.deleted)}>
       <NoteForm />
     </RecordGate>
   );

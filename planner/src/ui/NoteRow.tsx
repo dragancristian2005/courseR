@@ -1,8 +1,8 @@
-import { router } from "expo-router";
-import { Pressable, StyleSheet, View } from "react-native";
-import { Rule } from "./Rule";
-import { Text } from "./Text";
-import { theme } from "./theme";
+import { router } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Rule } from './Rule';
+import { Text } from './Text';
+import { theme } from './theme';
 
 /** `lead` is the bold part of the link line (the abbreviation), `rest` the muted remainder. */
 export function NoteRow({
@@ -49,8 +49,8 @@ export function NoteRow({
 const styles = StyleSheet.create({
   row: { minHeight: 56, paddingVertical: theme.space(3), gap: theme.space(1) },
   head: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     gap: theme.space(3),
   },
   line: { flex: 1 },

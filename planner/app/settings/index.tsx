@@ -18,7 +18,9 @@ export default function Settings() {
   return (
     <View style={styles.screen}>
       <View style={styles.column}>
-        <Text variant="title" accessibilityRole="header">Settings</Text>
+        <Text variant="title" accessibilityRole="header">
+          Settings
+        </Text>
         <View>
           <Rule weight="hair" />
           {ROWS.map(({ label, href }) => (

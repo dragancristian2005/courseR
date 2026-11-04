@@ -1,10 +1,5 @@
 import { resolveSession, sessionById, sessionsBetween } from '../../src/domain/sessions';
-import type {
-  ClassPattern,
-  PlannerData,
-  SessionOverride,
-  Subject,
-} from '../../src/domain/types';
+import type { ClassPattern, PlannerData, SessionOverride, Subject } from '../../src/domain/types';
 
 const subject: Subject = {
   id: 'sub1',
@@ -168,10 +163,16 @@ describe('sessionsBetween', () => {
   });
 
   it('ignores deleted patterns and patterns of missing or deleted subjects', () => {
-    expect(sessionsBetween(make({ patterns: [{ ...p1, deleted: true }] }), '2026-11-02', '2026-11-08')).toEqual([]);
+    expect(
+      sessionsBetween(make({ patterns: [{ ...p1, deleted: true }] }), '2026-11-02', '2026-11-08'),
+    ).toEqual([]);
     expect(sessionsBetween(make({ subjects: [] }), '2026-11-02', '2026-11-08')).toEqual([]);
     expect(
-      sessionsBetween(make({ subjects: [{ ...subject, deleted: true }] }), '2026-11-02', '2026-11-08'),
+      sessionsBetween(
+        make({ subjects: [{ ...subject, deleted: true }] }),
+        '2026-11-02',
+        '2026-11-08',
+      ),
     ).toEqual([]);
   });
 
@@ -199,7 +200,10 @@ describe('sessionsBetween', () => {
 
 describe('sessionById', () => {
   it('finds a plain session', () => {
-    expect(sessionById(make(), 'p1:2026-11-02')).toMatchObject({ id: 'p1:2026-11-02', moved: false });
+    expect(sessionById(make(), 'p1:2026-11-02')).toMatchObject({
+      id: 'p1:2026-11-02',
+      moved: false,
+    });
   });
 
   it('returns the moved session', () => {

@@ -1,23 +1,18 @@
-import { stamp } from "../../src/domain/edits";
-import { useState } from "react";
-import { StyleSheet, View } from "react-native";
-import { useStore } from "../../src/data/useStore";
-import { addDays, compareDates } from "../../src/domain/dates";
-import type { ISODate, Parity, Semester } from "../../src/domain/types";
-import { buildWeeks } from "../../src/domain/weeks";
-import { Button } from "../../src/ui/Button";
-import { Field, isDate } from "../../src/ui/FormBits";
-import { FormScreen } from "../../src/ui/FormScreen";
-import { dayRange } from "../../src/ui/format";
-import { Rule } from "../../src/ui/Rule";
-import { Text } from "../../src/ui/Text";
-import { theme } from "../../src/ui/theme";
-import {
-  BreakForm,
-  BreakRow,
-  MSG_SEM_DATE,
-  WeekRow,
-} from "../../src/ui/WeekRows";
+import { stamp } from '../../src/domain/edits';
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useStore } from '../../src/data/useStore';
+import { addDays, compareDates } from '../../src/domain/dates';
+import type { ISODate, Parity, Semester } from '../../src/domain/types';
+import { buildWeeks } from '../../src/domain/weeks';
+import { Button } from '../../src/ui/Button';
+import { Field, isDate } from '../../src/ui/FormBits';
+import { FormScreen } from '../../src/ui/FormScreen';
+import { dayRange } from '../../src/ui/format';
+import { Rule } from '../../src/ui/Rule';
+import { Text } from '../../src/ui/Text';
+import { theme } from '../../src/ui/theme';
+import { BreakForm, BreakRow, MSG_SEM_DATE, WeekRow } from '../../src/ui/WeekRows';
 
 type Break = { from: ISODate; to: ISODate };
 
@@ -29,9 +24,9 @@ export default function SemesterScreen() {
 function SemesterSetup() {
   const { data, repo } = useStore();
   const existing = data.semester;
-  const [name, setName] = useState(existing?.name ?? "This semester");
-  const [firstDay, setFirstDay] = useState(existing?.firstDay ?? "");
-  const [lastDay, setLastDay] = useState(existing?.lastDay ?? "");
+  const [name, setName] = useState(existing?.name ?? 'This semester');
+  const [firstDay, setFirstDay] = useState(existing?.firstDay ?? '');
+  const [lastDay, setLastDay] = useState(existing?.lastDay ?? '');
   const [breaks, setBreaks] = useState<Break[]>(existing?.breaks ?? []);
   const [overrides, setOverrides] = useState<Record<number, Parity>>(
     existing?.parityOverrides ?? {},
@@ -39,8 +34,7 @@ function SemesterSetup() {
   const [touched, setTouched] = useState<string[]>([]);
   const [adding, setAdding] = useState(false);
   const [saved, setSaved] = useState(false);
-  const touch = (k: string) =>
-    setTouched((t) => (t.includes(k) ? t : [...t, k]));
+  const touch = (k: string) => setTouched((t) => (t.includes(k) ? t : [...t, k]));
   const edit =
     <T,>(set: (v: T) => void) =>
     (v: T) => {
@@ -52,15 +46,13 @@ function SemesterSetup() {
   const lastOk = isDate(lastDay);
   const ordered = firstOk && lastOk && compareDates(lastDay, firstDay) >= 0;
   const orderError =
-    firstOk && lastOk && !ordered
-      ? "The last day must be after the first day."
-      : undefined;
+    firstOk && lastOk && !ordered ? 'The last day must be after the first day.' : undefined;
 
   const sortedBreaks = [...breaks].sort((a, b) => compareDates(a.from, b.from));
   const draft: Semester = {
-    id: existing?.id ?? "semester",
+    id: existing?.id ?? 'semester',
     updatedAt: 0,
-    name: name.trim() || "This semester",
+    name: name.trim() || 'This semester',
     firstDay,
     lastDay,
     breaks: sortedBreaks,
@@ -74,7 +66,7 @@ function SemesterSetup() {
     if (Number(k) <= weekCount) keptOverrides[Number(k)] = v;
 
   const setParity = (n: number, p: Parity) => {
-    const natural: Parity = n % 2 === 1 ? "odd" : "even";
+    const natural: Parity = n % 2 === 1 ? 'odd' : 'even';
     const next = { ...keptOverrides };
     if (p === natural) delete next[n];
     else next[n] = p;
@@ -98,17 +90,14 @@ function SemesterSetup() {
       continue;
     }
     const b = sortedBreaks.find(
-      (x) =>
-        compareDates(w.monday, x.from) >= 0 &&
-        compareDates(w.monday, x.to) <= 0,
+      (x) => compareDates(w.monday, x.from) >= 0 && compareDates(w.monday, x.to) <= 0,
     );
     if (b && !shown.has(b)) {
       shown.add(b);
       rows.push(breakRow(b));
     }
   }
-  for (const b of sortedBreaks)
-    if (ordered && !shown.has(b)) rows.push(breakRow(b));
+  for (const b of sortedBreaks) if (ordered && !shown.has(b)) rows.push(breakRow(b));
 
   function breakRow(b: Break) {
     return (
@@ -135,12 +124,7 @@ function SemesterSetup() {
   return (
     <FormScreen title={draft.name}>
       <Rule weight="heavy" />
-      <Field
-        label="Name"
-        value={name}
-        onChangeText={edit(setName)}
-        autoCapitalize="words"
-      />
+      <Field label="Name" value={name} onChangeText={edit(setName)} autoCapitalize="words" />
       <View style={styles.pair}>
         <View style={styles.half}>
           <Field
@@ -148,11 +132,9 @@ function SemesterSetup() {
             value={firstDay}
             onChangeText={(v) => {
               edit(setFirstDay)(v);
-              touch("first");
+              touch('first');
             }}
-            error={
-              touched.includes("first") && !firstOk ? MSG_SEM_DATE : undefined
-            }
+            error={touched.includes('first') && !firstOk ? MSG_SEM_DATE : undefined}
             placeholder="2026-09-28"
           />
         </View>
@@ -162,18 +144,16 @@ function SemesterSetup() {
             value={lastDay}
             onChangeText={(v) => {
               edit(setLastDay)(v);
-              touch("last");
+              touch('last');
             }}
-            error={
-              touched.includes("last") && !lastOk ? MSG_SEM_DATE : orderError
-            }
+            error={touched.includes('last') && !lastOk ? MSG_SEM_DATE : orderError}
             placeholder="2027-01-15"
           />
         </View>
       </View>
       <Text variant="meta">
-        Holidays don’t count as weeks. If your faculty numbers a week
-        differently, change its odd/even here.
+        Holidays don’t count as weeks. If your faculty numbers a week differently, change its
+        odd/even here.
       </Text>
       {rows.length > 0 ? (
         <View>
@@ -192,11 +172,7 @@ function SemesterSetup() {
           onCancel={() => setAdding(false)}
         />
       ) : (
-        <Button
-          kind="outline"
-          label="Add a break"
-          onPress={() => setAdding(true)}
-        />
+        <Button kind="outline" label="Add a break" onPress={() => setAdding(true)} />
       )}
       <Button label="Save semester" disabled={!ordered} onPress={save} />
       {saved ? <Text accessibilityRole="alert">Semester saved.</Text> : null}
@@ -205,6 +181,6 @@ function SemesterSetup() {
 }
 
 const styles = StyleSheet.create({
-  pair: { flexDirection: "row", gap: theme.space(3) },
+  pair: { flexDirection: 'row', gap: theme.space(3) },
   half: { flex: 1 },
 });

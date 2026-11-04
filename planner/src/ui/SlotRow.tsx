@@ -28,7 +28,17 @@ function nowFraction(start: HHMM, end: HHMM, nowTime?: HHMM): number {
   return Math.min(1, Math.max(0, (minutes(nowTime) - minutes(start)) / span));
 }
 
-export function SlotRow({ start, end, title, subtitle, room, type, onPress, now, nowTime }: SlotRowProps) {
+export function SlotRow({
+  start,
+  end,
+  title,
+  subtitle,
+  room,
+  type,
+  onPress,
+  now,
+  nowTime,
+}: SlotRowProps) {
   const label = `${title}, ${type}, ${start} to ${end}${room ? `, room ${room}` : ''}`;
   const top = `${nowFraction(start, end, nowTime) * 100}%` as const;
   const cellStyle = [styles.cell, { backgroundColor: typeFill(type) }];
@@ -37,7 +47,11 @@ export function SlotRow({ start, end, title, subtitle, room, type, onPress, now,
       <Text variant="body" style={styles.title}>
         {title}
       </Text>
-      {subtitle ? <Text variant="meta" style={styles.subtitle}>{subtitle}</Text> : null}
+      {subtitle ? (
+        <Text variant="meta" style={styles.subtitle}>
+          {subtitle}
+        </Text>
+      ) : null}
     </>
   );
 
@@ -46,10 +60,17 @@ export function SlotRow({ start, end, title, subtitle, room, type, onPress, now,
       <View style={styles.row}>
         <View style={styles.times}>
           <Text variant="time">{start}</Text>
-          <Text variant="meta" style={styles.end}>{end}</Text>
+          <Text variant="meta" style={styles.end}>
+            {end}
+          </Text>
         </View>
         {onPress ? (
-          <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={cellStyle}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={label}
+            onPress={onPress}
+            style={cellStyle}
+          >
             {content}
           </Pressable>
         ) : (
@@ -61,7 +82,9 @@ export function SlotRow({ start, end, title, subtitle, room, type, onPress, now,
           <>
             <View pointerEvents="none" testID="slot-now-line" style={[styles.nowLine, { top }]} />
             <View pointerEvents="none" style={[styles.nowTag, { top }]}>
-              <Text variant="time" style={styles.nowTime}>{nowTime ?? ''}</Text>
+              <Text variant="time" style={styles.nowTime}>
+                {nowTime ?? ''}
+              </Text>
             </View>
           </>
         ) : null}

@@ -6,7 +6,15 @@ const NOT_BACKUP = 'This file is not a Study Planner backup.';
 const NEWER = 'This backup was made by a newer version of the app.';
 const UNREADABLE = 'This file could not be read.';
 
-const LIST_KEYS = ['subjects', 'patterns', 'overrides', 'exams', 'homework', 'notes', 'links'] as const;
+const LIST_KEYS = [
+  'subjects',
+  'patterns',
+  'overrides',
+  'exams',
+  'homework',
+  'notes',
+  'links',
+] as const;
 
 export type ParseResult = { ok: true; data: PlannerData } | { ok: false; error: string };
 

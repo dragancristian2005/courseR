@@ -1,40 +1,34 @@
-import { router } from "expo-router";
-import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
-import { newId } from "../data/ids";
-import { useStore } from "../data/useStore";
-import { todayISO } from "../domain/dates";
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { newId } from '../data/ids';
+import { useStore } from '../data/useStore';
+import { todayISO } from '../domain/dates';
 import {
   cancelThisWeek,
   changeEveryWeek,
   droppedByChange,
   moveThisWeek,
   stamp,
-} from "../domain/edits";
-import {
-  dueLabel,
-  homeworkGroups,
-  linksBySubject,
-  notesFor,
-} from "../domain/selectors";
-import { resolveSession, sessionsBetween } from "../domain/sessions";
-import type { ISODate, Repeat } from "../domain/types";
-import { weekFor } from "../domain/weeks";
-import { goBack } from "./BackLink";
-import { Button } from "./Button";
-import { ChangeForm, REPEAT_OPTIONS } from "./ChangeForm";
-import { longDate, shortDate, TYPE_LABEL } from "./format";
-import { MoveForm } from "./MoveForm";
-import { openLink } from "./openLink";
-import { Rule } from "./Rule";
-import { Text } from "./Text";
-import { theme, typeFill } from "./theme";
-import { useNow } from "./useNow";
+} from '../domain/edits';
+import { dueLabel, homeworkGroups, linksBySubject, notesFor } from '../domain/selectors';
+import { resolveSession, sessionsBetween } from '../domain/sessions';
+import type { ISODate, Repeat } from '../domain/types';
+import { weekFor } from '../domain/weeks';
+import { goBack } from './BackLink';
+import { Button } from './Button';
+import { ChangeForm, REPEAT_OPTIONS } from './ChangeForm';
+import { longDate, shortDate, TYPE_LABEL } from './format';
+import { MoveForm } from './MoveForm';
+import { openLink } from './openLink';
+import { Rule } from './Rule';
+import { Text } from './Text';
+import { theme, typeFill } from './theme';
+import { useNow } from './useNow';
 
-const repeatLabel = (r: Repeat) =>
-  REPEAT_OPTIONS.find((o) => o.value === r)!.label;
+const repeatLabel = (r: Repeat) => REPEAT_OPTIONS.find((o) => o.value === r)!.label;
 
-type Mode = "none" | "move" | "change" | "cancel" | "delete";
+type Mode = 'none' | 'move' | 'change' | 'cancel' | 'delete';
 
 function TextButton({
   label,
@@ -52,11 +46,7 @@ function TextButton({
       onPress={onPress}
       style={styles.textButton}
     >
-      <Text
-        style={[styles.textButtonLabel, urgent && { color: theme.color.now }]}
-      >
-        {label}
-      </Text>
+      <Text style={[styles.textButtonLabel, urgent && { color: theme.color.now }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -95,19 +85,15 @@ export function ClassDetail({
 }) {
   const { data, repo } = useStore();
   const now = useNow();
-  const [mode, setMode] = useState<Mode>("none");
+  const [mode, setMode] = useState<Mode>('none');
   const today = todayISO(now);
   const resolved = resolveSession(data, sessionId);
   const session = resolved?.session;
   const cancelled = resolved?.cancelled ?? false;
-  const pattern = session
-    ? data.patterns.find((p) => p.id === session.patternId)
-    : undefined;
-  const subject = session
-    ? data.subjects.find((s) => s.id === session.subjectId)
-    : undefined;
+  const pattern = session ? data.patterns.find((p) => p.id === session.patternId) : undefined;
+  const subject = session ? data.subjects.find((s) => s.id === session.subjectId) : undefined;
   const leave = () => (onClose ? onClose() : goBack());
-  const home = () => (onClose ? onClose() : router.replace("/"));
+  const home = () => (onClose ? onClose() : router.replace('/'));
 
   if (!session || !pattern || !subject) {
     return (
@@ -118,18 +104,15 @@ export function ClassDetail({
     );
   }
 
-  const originalDate = session.id.slice(session.id.lastIndexOf(":") + 1);
+  const originalDate = session.id.slice(session.id.lastIndexOf(':') + 1);
   const override = data.overrides
     .filter((o) => !o.deleted && o.sessionId === session.id)
     .sort((a, b) => b.updatedAt - a.updatedAt)[0];
   const type = TYPE_LABEL[session.type];
   const links =
-    linksBySubject(data).bySubject.find((x) => x.subject.id === subject.id)
-      ?.links ?? [];
+    linksBySubject(data).bySubject.find((x) => x.subject.id === subject.id)?.links ?? [];
   const groups = homeworkGroups(data, today);
-  const homework = [...groups.thisWeek, ...groups.later].filter(
-    (h) => h.subjectId === subject.id,
-  );
+  const homework = [...groups.thisWeek, ...groups.later].filter((h) => h.subjectId === subject.id);
   const notes = notesFor(data, { sessionId: session.id });
   const q = `subjectId=${encodeURIComponent(subject.id)}`;
 
@@ -137,49 +120,32 @@ export function ClassDetail({
   const weekRow = !week
     ? null
     : week.isBreak
-      ? "Break"
+      ? 'Break'
       : `Week ${week.number}, ${week.parity} week`;
 
   const rows: [string, string][] = [
-    ["Time", `${session.start} to ${session.end}`],
-    ["Room", session.online ? "Online" : session.room],
-    ...(session.teacher
-      ? ([["Teacher", session.teacher]] as [string, string][])
-      : []),
-    ["Repeats", repeatLabel(pattern.repeat)],
-    ...(weekRow ? ([["Week", weekRow]] as [string, string][]) : []),
+    ['Time', `${session.start} to ${session.end}`],
+    ['Room', session.online ? 'Online' : session.room],
+    ...(session.teacher ? ([['Teacher', session.teacher]] as [string, string][]) : []),
+    ['Repeats', repeatLabel(pattern.repeat)],
+    ...(weekRow ? ([['Week', weekRow]] as [string, string][]) : []),
   ];
 
-  const saveChange = (
-    from: ISODate,
-    changes: Parameters<typeof changeEveryWeek>[2],
-  ) => {
-    const { ended, created } = changeEveryWeek(
-      pattern,
-      from,
-      changes,
-      stamp(pattern),
-      newId,
-    );
-    void repo.upsert("patterns", ended);
-    void repo.upsert("patterns", created);
+  const saveChange = (from: ISODate, changes: Parameters<typeof changeEveryWeek>[2]) => {
+    const { ended, created } = changeEveryWeek(pattern, from, changes, stamp(pattern), newId);
+    void repo.upsert('patterns', ended);
+    void repo.upsert('patterns', created);
     const next = {
       ...data,
-      patterns: [
-        ...data.patterns.filter((p) => p.id !== ended.id),
-        ended,
-        created,
-      ],
+      patterns: [...data.patterns.filter((p) => p.id !== ended.id), ended, created],
     };
-    const target = sessionsBetween(next, from, from).find(
-      (s) => s.patternId === created.id,
-    );
-    setMode("none");
+    const target = sessionsBetween(next, from, from).find((s) => s.patternId === created.id);
+    setMode('none');
     if (!target) return leave();
     if (onOpenSession) onOpenSession(target.id);
     else
       router.replace({
-        pathname: "/class/[sessionId]",
+        pathname: '/class/[sessionId]',
         params: { sessionId: target.id },
       });
   };
@@ -198,10 +164,7 @@ export function ClassDetail({
               <Text variant="meta" style={styles.defLabel}>
                 {label}
               </Text>
-              <Text
-                variant={label === "Time" ? "time" : "body"}
-                style={styles.defValue}
-              >
+              <Text variant={label === 'Time' ? 'time' : 'body'} style={styles.defValue}>
                 {value}
               </Text>
             </View>
@@ -217,7 +180,7 @@ export function ClassDetail({
             <Button
               label="Undo cancellation"
               kind="outline"
-              onPress={() => void repo.remove("overrides", override.id)}
+              onPress={() => void repo.remove('overrides', override.id)}
             />
           ) : null}
         </View>
@@ -230,7 +193,7 @@ export function ClassDetail({
             <Button
               label="Undo this week’s change"
               kind="outline"
-              onPress={() => void repo.remove("overrides", override.id)}
+              onPress={() => void repo.remove('overrides', override.id)}
             />
           ) : null}
         </View>
@@ -242,7 +205,7 @@ export function ClassDetail({
             <Button
               label="Move this week"
               kind="outline"
-              onPress={() => setMode(mode === "move" ? "none" : "move")}
+              onPress={() => setMode(mode === 'move' ? 'none' : 'move')}
             />
           </View>
         )}
@@ -250,70 +213,52 @@ export function ClassDetail({
           <Button
             label="Change every week"
             kind="outline"
-            onPress={() => setMode(mode === "change" ? "none" : "change")}
+            onPress={() => setMode(mode === 'change' ? 'none' : 'change')}
           />
         </View>
       </View>
 
-      {mode === "move" ? (
+      {mode === 'move' ? (
         <MoveForm
           session={session}
-          onCancel={() => setMode("none")}
+          onCancel={() => setMode('none')}
           onSave={(to) => {
-            void repo.upsert(
-              "overrides",
-              moveThisWeek(session, to, stamp(override)),
-            );
-            setMode("none");
+            void repo.upsert('overrides', moveThisWeek(session, to, stamp(override)));
+            setMode('none');
           }}
         />
       ) : null}
-      {mode === "change" ? (
+      {mode === 'change' ? (
         <ChangeForm
           pattern={pattern}
           defaultFrom={originalDate}
           dropFor={(from) => droppedByChange(data, pattern.id, from)}
-          onCancel={() => setMode("none")}
+          onCancel={() => setMode('none')}
           onSave={saveChange}
         />
       ) : null}
 
-      {cancelled ? null : mode === "cancel" ? (
+      {cancelled ? null : mode === 'cancel' ? (
         <View style={styles.confirm}>
           <Text>{`Cancel this class on ${longDate(session.date)}?`}</Text>
           <View style={styles.buttons}>
             <Button
               label="Cancel class"
               onPress={() => {
-                void repo.upsert(
-                  "overrides",
-                  cancelThisWeek(session, stamp(override)),
-                );
+                void repo.upsert('overrides', cancelThisWeek(session, stamp(override)));
                 leave();
               }}
             />
-            <Button
-              label="Keep it"
-              kind="outline"
-              onPress={() => setMode("none")}
-            />
+            <Button label="Keep it" kind="outline" onPress={() => setMode('none')} />
           </View>
         </View>
       ) : (
-        <TextButton
-          label="Cancel this week’s class"
-          onPress={() => setMode("cancel")}
-        />
+        <TextButton label="Cancel this week’s class" onPress={() => setMode('cancel')} />
       )}
 
       <Section
         title="Links"
-        right={
-          <TextButton
-            label="Add link"
-            onPress={() => router.push(`/link/edit?${q}`)}
-          />
-        }
+        right={<TextButton label="Add link" onPress={() => router.push(`/link/edit?${q}`)} />}
       >
         {links.length === 0 ? <Text variant="meta">No links yet.</Text> : null}
         {links.map((l) => (
@@ -335,19 +280,13 @@ export function ClassDetail({
       <Section
         title="Homework"
         right={
-          <TextButton
-            label="Add homework"
-            onPress={() => router.push(`/homework/edit?${q}`)}
-          />
+          <TextButton label="Add homework" onPress={() => router.push(`/homework/edit?${q}`)} />
         }
       >
-        {homework.length === 0 ? (
-          <Text variant="meta">No homework for this subject.</Text>
-        ) : null}
+        {homework.length === 0 ? <Text variant="meta">No homework for this subject.</Text> : null}
         {homework.map((h) => {
           const label = dueLabel(h.due, today);
-          const urgent =
-            label === "Overdue" || label === "Today" || label === "Tomorrow";
+          const urgent = label === 'Overdue' || label === 'Today' || label === 'Tomorrow';
           return (
             <View key={h.id}>
               <View style={styles.row}>
@@ -356,7 +295,7 @@ export function ClassDetail({
                   accessibilityState={{ checked: h.done }}
                   accessibilityLabel={h.title}
                   onPress={() =>
-                    void repo.upsert("homework", {
+                    void repo.upsert('homework', {
                       ...h,
                       done: true,
                       updatedAt: stamp(h),
@@ -394,44 +333,32 @@ export function ClassDetail({
         ))}
         <TextButton
           label="Add a note"
-          onPress={() =>
-            router.push(
-              `/note/edit?sessionId=${encodeURIComponent(session.id)}&${q}`,
-            )
-          }
+          onPress={() => router.push(`/note/edit?sessionId=${encodeURIComponent(session.id)}&${q}`)}
         />
       </Section>
 
       <View style={styles.section}>
         <Rule weight="hair" />
-        {mode === "delete" ? (
+        {mode === 'delete' ? (
           <View style={styles.confirm}>
             <Text>
-              This removes the class from every week, including past weeks. Your
-              notes stay in Notes.
+              This removes the class from every week, including past weeks. Your notes stay in
+              Notes.
             </Text>
             <View style={styles.buttons}>
               <Button
                 label="Delete class"
                 onPress={() => {
-                  void repo.remove("patterns", pattern.id);
+                  void repo.remove('patterns', pattern.id);
                   if (onClose) onClose();
-                  else router.replace("/");
+                  else router.replace('/');
                 }}
               />
-              <Button
-                label="Keep it"
-                kind="outline"
-                onPress={() => setMode("none")}
-              />
+              <Button label="Keep it" kind="outline" onPress={() => setMode('none')} />
             </View>
           </View>
         ) : (
-          <TextButton
-            label="Delete class"
-            urgent
-            onPress={() => setMode("delete")}
-          />
+          <TextButton label="Delete class" urgent onPress={() => setMode('delete')} />
         )}
       </View>
     </View>
@@ -442,7 +369,7 @@ const styles = StyleSheet.create({
   missing: {
     padding: theme.space(4),
     gap: theme.space(3),
-    alignItems: "flex-start",
+    alignItems: 'flex-start',
   },
   head: { padding: theme.space(4), gap: theme.space(1) },
   name: {
@@ -451,8 +378,8 @@ const styles = StyleSheet.create({
     color: theme.color.ink,
   },
   defRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     minHeight: 44,
     paddingHorizontal: theme.space(4),
   },
@@ -462,30 +389,30 @@ const styles = StyleSheet.create({
   moved: {
     padding: theme.space(4),
     gap: theme.space(2),
-    alignItems: "flex-start",
+    alignItems: 'flex-start',
   },
   actions: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: theme.space(3),
     padding: theme.space(4),
   },
   flex: { flex: 1 },
-  buttons: { flexDirection: "row", gap: theme.space(3), flexWrap: "wrap" },
+  buttons: { flexDirection: 'row', gap: theme.space(3), flexWrap: 'wrap' },
   confirm: { gap: theme.space(3), padding: theme.space(4) },
   textButton: {
     minHeight: 44,
-    justifyContent: "center",
+    justifyContent: 'center',
     paddingHorizontal: theme.space(4),
   },
   textButtonLabel: {
     fontFamily: theme.font.appBold,
-    textDecorationLine: "underline",
+    textDecorationLine: 'underline',
   },
   section: { paddingHorizontal: 0, marginTop: theme.space(3) },
   sectionHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingLeft: theme.space(4),
   },
   sectionTitle: {
@@ -494,8 +421,8 @@ const styles = StyleSheet.create({
     color: theme.color.ink,
   },
   row: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     minHeight: 48,
     paddingHorizontal: theme.space(4),
     gap: theme.space(2),
@@ -504,8 +431,8 @@ const styles = StyleSheet.create({
   checkHit: {
     width: 44,
     height: 44,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginLeft: -theme.space(3),
   },
   checkbox: {

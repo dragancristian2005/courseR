@@ -1,20 +1,13 @@
-import { stamp } from "../../src/domain/edits";
-import { useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { newId } from "../../src/data/ids";
-import { useStore } from "../../src/data/useStore";
-import type { Homework } from "../../src/domain/types";
-import { goBack } from "../../src/ui/BackLink";
-import { Button } from "../../src/ui/Button";
-import {
-  Chips,
-  Field,
-  isDate,
-  isTime,
-  MSG_DATE,
-  MSG_TIME,
-} from "../../src/ui/FormBits";
-import { DeleteBlock, FormScreen, RecordGate } from "../../src/ui/FormScreen";
+import { stamp } from '../../src/domain/edits';
+import { useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
+import { newId } from '../../src/data/ids';
+import { useStore } from '../../src/data/useStore';
+import type { Homework } from '../../src/domain/types';
+import { goBack } from '../../src/ui/BackLink';
+import { Button } from '../../src/ui/Button';
+import { Chips, Field, isDate, isTime, MSG_DATE, MSG_TIME } from '../../src/ui/FormBits';
+import { DeleteBlock, FormScreen, RecordGate } from '../../src/ui/FormScreen';
 
 function HomeworkForm() {
   const { id, subjectId } = useLocalSearchParams<{
@@ -29,59 +22,54 @@ function HomeworkForm() {
     (s) => !s.deleted && (s.attending || s.id === existing?.subjectId),
   );
 
-  const [title, setTitle] = useState(existing?.title ?? "");
-  const [subject, setSubject] = useState(
-    existing?.subjectId ?? subjectId ?? "",
-  );
-  const [due, setDue] = useState(existing?.due ?? "");
-  const [dueTime, setDueTime] = useState(existing?.dueTime ?? "");
+  const [title, setTitle] = useState(existing?.title ?? '');
+  const [subject, setSubject] = useState(existing?.subjectId ?? subjectId ?? '');
+  const [due, setDue] = useState(existing?.due ?? '');
+  const [dueTime, setDueTime] = useState(existing?.dueTime ?? '');
   const [touched, setTouched] = useState<string[]>([]);
-  const touch = (k: string) =>
-    setTouched((t) => (t.includes(k) ? t : [...t, k]));
+  const touch = (k: string) => setTouched((t) => (t.includes(k) ? t : [...t, k]));
 
   const errors = {
-    title: title.trim() === "" ? "Give the homework a title." : undefined,
+    title: title.trim() === '' ? 'Give the homework a title.' : undefined,
     due: isDate(due) ? undefined : MSG_DATE,
-    dueTime: dueTime === "" || isTime(dueTime) ? undefined : MSG_TIME,
+    dueTime: dueTime === '' || isTime(dueTime) ? undefined : MSG_TIME,
   };
-  const shown = (k: keyof typeof errors) =>
-    touched.includes(k) ? errors[k] : undefined;
+  const shown = (k: keyof typeof errors) => (touched.includes(k) ? errors[k] : undefined);
   const valid = !errors.title && !errors.due && !errors.dueTime;
 
   const save = () => {
     const hw: Homework = {
       id: existing?.id ?? newId(),
       title: title.trim(),
-      subjectId: subject === "" ? null : subject,
+      subjectId: subject === '' ? null : subject,
       due,
-      dueTime: dueTime === "" ? null : dueTime,
+      dueTime: dueTime === '' ? null : dueTime,
       done: existing?.done ?? false,
       updatedAt: stamp(existing),
     };
-    void repo.upsert("homework", hw);
+    void repo.upsert('homework', hw);
     goBack();
   };
 
-  const field =
-    (k: keyof typeof errors, set: (v: string) => void) => (v: string) => {
-      set(v);
-      touch(k);
-    };
+  const field = (k: keyof typeof errors, set: (v: string) => void) => (v: string) => {
+    set(v);
+    touch(k);
+  };
 
   return (
-    <FormScreen title={existing ? "Edit homework" : "Add homework"}>
+    <FormScreen title={existing ? 'Edit homework' : 'Add homework'}>
       <Field
         label="Title"
         value={title}
-        onChangeText={field("title", setTitle)}
-        onBlur={() => touch("title")}
-        error={shown("title")}
+        onChangeText={field('title', setTitle)}
+        onBlur={() => touch('title')}
+        error={shown('title')}
         autoCapitalize="sentences"
       />
       <Chips
         label="Subject"
         options={[
-          { value: "", label: "No subject" },
+          { value: '', label: 'No subject' },
           ...subjects.map((s) => ({ value: s.id, label: s.name })),
         ]}
         value={subject}
@@ -90,17 +78,17 @@ function HomeworkForm() {
       <Field
         label="Due date"
         value={due}
-        onChangeText={field("due", setDue)}
-        onBlur={() => touch("due")}
-        error={shown("due")}
+        onChangeText={field('due', setDue)}
+        onBlur={() => touch('due')}
+        error={shown('due')}
         placeholder="2026-11-09"
       />
       <Field
         label="Due time"
         value={dueTime}
-        onChangeText={field("dueTime", setDueTime)}
-        onBlur={() => touch("dueTime")}
-        error={shown("dueTime")}
+        onChangeText={field('dueTime', setDueTime)}
+        onBlur={() => touch('dueTime')}
+        error={shown('dueTime')}
         placeholder="09:40"
       />
       <Button label="Save homework" disabled={!valid} onPress={save} />
@@ -108,7 +96,7 @@ function HomeworkForm() {
         <DeleteBlock
           what="homework"
           onConfirm={() => {
-            void repo.remove("homework", existing.id);
+            void repo.remove('homework', existing.id);
             goBack();
           }}
         />
@@ -123,10 +111,7 @@ export default function EditHomework() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   if (!ready) return null;
   return (
-    <RecordGate
-      id={id}
-      exists={data.homework.some((r) => r.id === id && !r.deleted)}
-    >
+    <RecordGate id={id} exists={data.homework.some((r) => r.id === id && !r.deleted)}>
       <HomeworkForm />
     </RecordGate>
   );

@@ -1,11 +1,11 @@
-import { router } from "expo-router";
-import { Pressable, StyleSheet, View } from "react-native";
-import type { Link } from "../domain/types";
-import { openLink } from "./openLink";
-import { Rule } from "./Rule";
-import { Text } from "./Text";
-import { TextButton } from "./TextButton";
-import { theme } from "./theme";
+import { router } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
+import type { Link } from '../domain/types';
+import { openLink } from './openLink';
+import { Rule } from './Rule';
+import { Text } from './Text';
+import { TextButton } from './TextButton';
+import { theme } from './theme';
 
 export function LinkRow({ link }: { link: Link }) {
   return (
@@ -34,16 +34,16 @@ export function LinkRow({ link }: { link: Link }) {
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: theme.space(3),
     minHeight: 48,
   },
   open: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     minHeight: 48,
   },
   title: { flex: 1 },

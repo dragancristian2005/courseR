@@ -17,8 +17,20 @@ import type {
 } from '../../src/domain/types';
 
 const TSS: Subject = { id: 'tss', updatedAt: 0, name: 'TSS', abbreviation: 'TSS', attending: true };
-const ALG: Subject = { id: 'alg', updatedAt: 0, name: 'Algebra', abbreviation: 'ALG', attending: true };
-const OFF: Subject = { id: 'off', updatedAt: 0, name: 'Off', abbreviation: 'OFF', attending: false };
+const ALG: Subject = {
+  id: 'alg',
+  updatedAt: 0,
+  name: 'Algebra',
+  abbreviation: 'ALG',
+  attending: true,
+};
+const OFF: Subject = {
+  id: 'off',
+  updatedAt: 0,
+  name: 'Off',
+  abbreviation: 'OFF',
+  attending: false,
+};
 
 const pat = (over: Partial<ClassPattern>): ClassPattern => ({
   id: 'p1',
@@ -141,7 +153,10 @@ describe('nextExam', () => {
   it('null when none; ignores past and deleted', () => {
     expect(nextExam(make(), TODAY)).toBeNull();
     const d = make({
-      exams: [ex({ id: 'a', date: '2026-11-01' }), ex({ id: 'b', date: '2026-11-05', deleted: true })],
+      exams: [
+        ex({ id: 'a', date: '2026-11-01' }),
+        ex({ id: 'b', date: '2026-11-05', deleted: true }),
+      ],
     });
     expect(nextExam(d, TODAY)).toBeNull();
   });
@@ -161,7 +176,10 @@ describe('nextExam', () => {
     });
     expect(nextExam(d, TODAY)?.exam.id).toBe('a');
     const d2 = make({
-      exams: [ex({ id: 'a', date: '2026-11-10', start: '09:00' }), ex({ id: 'n', date: '2026-11-10', start: null })],
+      exams: [
+        ex({ id: 'a', date: '2026-11-10', start: '09:00' }),
+        ex({ id: 'n', date: '2026-11-10', start: null }),
+      ],
     });
     expect(nextExam(d2, TODAY)?.exam.id).toBe('n');
   });
@@ -258,7 +276,9 @@ describe('notesFor', () => {
       ],
     });
     expect(notesFor(d, { sessionId: 'p1:2026-11-02' }).map((n) => n.id)).toEqual(['a']);
-    expect(notesFor(d, { sessionId: 'p1:2026-11-09', subjectId: 'tss' }).map((n) => n.id)).toEqual(['b']);
+    expect(notesFor(d, { sessionId: 'p1:2026-11-09', subjectId: 'tss' }).map((n) => n.id)).toEqual([
+      'b',
+    ]);
     expect(notesFor(d, { sessionId: 'p1:2026-11-09', subjectId: 'alg' })).toEqual([]);
   });
 
@@ -268,7 +288,11 @@ describe('notesFor', () => {
       patterns: [p1, offPat],
       notes: [note({ id: 'o', sessionId: 'po:2026-10-05' }), note({ id: 'p', subjectId: 'off' })],
     });
-    expect(notesFor(d, { subjectId: 'off' }).map((n) => n.id).sort()).toEqual(['o', 'p']);
+    expect(
+      notesFor(d, { subjectId: 'off' })
+        .map((n) => n.id)
+        .sort(),
+    ).toEqual(['o', 'p']);
   });
 
   it('splits the session id on the last colon', () => {

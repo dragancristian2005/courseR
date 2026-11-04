@@ -1,11 +1,5 @@
 import { addDays, compareDates, timeToMinutes } from './dates';
-import type {
-  ClassPattern,
-  ISODate,
-  PlannerData,
-  Session,
-  SessionOverride,
-} from './types';
+import type { ClassPattern, ISODate, PlannerData, Session, SessionOverride } from './types';
 import { buildWeeks } from './weeks';
 
 /** Highest `updatedAt` wins among non-deleted overrides for one sessionId. */

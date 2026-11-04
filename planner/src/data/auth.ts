@@ -5,10 +5,10 @@ import {
   signInWithPopup,
   signInWithRedirect,
   signOut as fbSignOut,
-} from "firebase/auth";
-import { useCallback, useEffect, useState } from "react";
-import { Platform } from "react-native";
-import { initFirebase } from "./firebase";
+} from 'firebase/auth';
+import { useCallback, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
+import { initFirebase } from './firebase';
 
 export interface AuthUser {
   uid: string;
@@ -35,11 +35,11 @@ export interface BrowserEnv {
  * Popups are unreliable in an iOS home-screen app, so an installed (standalone)
  * app signs in by redirect; a normal browser tab keeps the popup.
  */
-export function chooseSignInMethod(env: BrowserEnv): "popup" | "redirect" {
+export function chooseSignInMethod(env: BrowserEnv): 'popup' | 'redirect' {
   const standalone =
-    (env.matchMedia?.("(display-mode: standalone)").matches ?? false) ||
+    (env.matchMedia?.('(display-mode: standalone)').matches ?? false) ||
     env.navigator?.standalone === true;
-  return standalone ? "redirect" : "popup";
+  return standalone ? 'redirect' : 'popup';
 }
 
 export function useAuth(): AuthState {
@@ -57,20 +57,18 @@ export function useAuth(): AuthState {
       setLoading(false);
       return;
     }
-    if (Platform.OS === "web") {
+    if (Platform.OS === 'web') {
       getRedirectResult(auth).catch(() => setRedirectFailed(true));
     }
     return onAuthStateChanged(auth, (u) => {
-      setUser(
-        u ? { uid: u.uid, name: u.displayName ?? u.email ?? "Student" } : null,
-      );
+      setUser(u ? { uid: u.uid, name: u.displayName ?? u.email ?? 'Student' } : null);
       setLoading(false);
     });
   }, []);
 
   const signIn = useCallback(async () => {
-    if (Platform.OS !== "web") {
-      throw new Error("Sign-in on this device arrives with the native app.");
+    if (Platform.OS !== 'web') {
+      throw new Error('Sign-in on this device arrives with the native app.');
     }
     setRedirectFailed(false);
     const { auth } = initFirebase();
@@ -80,7 +78,7 @@ export function useAuth(): AuthState {
       chooseSignInMethod({
         matchMedia: env.matchMedia?.bind(env),
         navigator: (env as any).navigator,
-      }) === "redirect"
+      }) === 'redirect'
     ) {
       await signInWithRedirect(auth, provider);
     } else {

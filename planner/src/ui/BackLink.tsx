@@ -10,13 +10,23 @@ export function goBack(): void {
 
 export function BackLink() {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={goBack} style={styles.link}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Back"
+      onPress={goBack}
+      style={styles.link}
+    >
       <Text style={styles.label}>‹ Back</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  link: { minHeight: 44, minWidth: 44, justifyContent: 'center', paddingHorizontal: theme.space(2) },
+  link: {
+    minHeight: 44,
+    minWidth: 44,
+    justifyContent: 'center',
+    paddingHorizontal: theme.space(2),
+  },
   label: { fontFamily: theme.font.app, color: theme.color.ink },
 });

@@ -1,33 +1,23 @@
-import { stamp } from "../../src/domain/edits";
-import { router } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { useStore } from "../../src/data/useStore";
-import { timeToMinutes, todayISO } from "../../src/domain/dates";
-import {
-  dueLabel,
-  homeworkGroups,
-  nextExam,
-  todayAgenda,
-} from "../../src/domain/selectors";
-import type {
-  Homework,
-  ISODate,
-  PlannerData,
-  Session,
-} from "../../src/domain/types";
-import { daysCount, longDate, shortDate, STANDARD_SLOTS, TYPE_LABEL } from "../../src/ui/format";
-import { Rule } from "../../src/ui/Rule";
-import { SetupPrompt } from "../../src/ui/SetupPrompt";
-import { SlotRow } from "../../src/ui/SlotRow";
-import { Text } from "../../src/ui/Text";
-import { theme } from "../../src/ui/theme";
-import { useLayout } from "../../src/ui/useLayout";
-import { useNow } from "../../src/ui/useNow";
+import { stamp } from '../../src/domain/edits';
+import { router } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useStore } from '../../src/data/useStore';
+import { timeToMinutes, todayISO } from '../../src/domain/dates';
+import { dueLabel, homeworkGroups, nextExam, todayAgenda } from '../../src/domain/selectors';
+import type { Homework, ISODate, PlannerData, Session } from '../../src/domain/types';
+import { daysCount, longDate, shortDate, STANDARD_SLOTS, TYPE_LABEL } from '../../src/ui/format';
+import { Rule } from '../../src/ui/Rule';
+import { SetupPrompt } from '../../src/ui/SetupPrompt';
+import { SlotRow } from '../../src/ui/SlotRow';
+import { Text } from '../../src/ui/Text';
+import { theme } from '../../src/ui/theme';
+import { useLayout } from '../../src/ui/useLayout';
+import { useNow } from '../../src/ui/useNow';
 
 const hhmm = (now: Date) =>
-  `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 const isUrgent = (label: string) =>
-  label === "Overdue" || label === "Today" || label === "Tomorrow";
+  label === 'Overdue' || label === 'Today' || label === 'Tomorrow';
 
 function subtitleOf(s: Session): string {
   const type = TYPE_LABEL[s.type];
@@ -44,9 +34,9 @@ function Header({ today, weekLine }: { today: ISODate; weekLine: string }) {
   );
 }
 
-function weekLineOf(week: ReturnType<typeof todayAgenda>["week"]): string {
-  if (!week) return "Outside the semester";
-  if (week.isBreak) return "Break";
+function weekLineOf(week: ReturnType<typeof todayAgenda>['week']): string {
+  if (!week) return 'Outside the semester';
+  if (week.isBreak) return 'Break';
   return `Week ${week.number}, ${week.parity} week`;
 }
 
@@ -64,9 +54,7 @@ function Homeworks({
   return (
     <View>
       {items.map((hw) => {
-        const subject = hw.subjectId
-          ? data.subjects.find((s) => s.id === hw.subjectId)
-          : undefined;
+        const subject = hw.subjectId ? data.subjects.find((s) => s.id === hw.subjectId) : undefined;
         const label = dueLabel(hw.due, today);
         return (
           <View key={hw.id}>
@@ -76,7 +64,7 @@ function Homeworks({
                 accessibilityState={{ checked: hw.done }}
                 accessibilityLabel={hw.title}
                 onPress={() =>
-                  void repo.upsert("homework", {
+                  void repo.upsert('homework', {
                     ...hw,
                     done: true,
                     updatedAt: stamp(hw),
@@ -89,10 +77,7 @@ function Homeworks({
               <Text style={styles.hwTitle}>
                 {subject ? `${hw.title} for ${subject.abbreviation}` : hw.title}
               </Text>
-              <Text
-                variant="meta"
-                style={isUrgent(label) ? styles.urgent : undefined}
-              >
+              <Text variant="meta" style={isUrgent(label) ? styles.urgent : undefined}>
                 {label}
               </Text>
             </View>
@@ -116,11 +101,11 @@ export default function Today() {
   const hw = homeworkGroups(data, today).thisWeek;
 
   const settings =
-    layout === "phone" ? (
+    layout === 'phone' ? (
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Settings"
-        onPress={() => router.push("/settings")}
+        onPress={() => router.push('/settings')}
         style={styles.settings}
       >
         <Text style={{ fontFamily: theme.font.appBold }}>Settings</Text>
@@ -133,10 +118,7 @@ export default function Today() {
     body = prompt;
   } else {
     const { sessions, currentSessionId, freeAfter, week } = agenda;
-    const lastEnd = sessions.reduce(
-      (m, s) => Math.max(m, timeToMinutes(s.end)),
-      0,
-    );
+    const lastEnd = sessions.reduce((m, s) => Math.max(m, timeToMinutes(s.end)), 0);
     const thin = STANDARD_SLOTS.filter((t) => timeToMinutes(t) >= lastEnd);
     body = (
       <View>
@@ -155,7 +137,7 @@ export default function Today() {
                   key={s.id}
                   start={s.start}
                   end={s.end}
-                  title={subject?.name ?? "Class"}
+                  title={subject?.name ?? 'Class'}
                   subtitle={subtitleOf(s)}
                   room={s.online ? undefined : s.room}
                   type={s.type}
@@ -163,7 +145,7 @@ export default function Today() {
                   nowTime={nowTime}
                   onPress={() =>
                     router.push({
-                      pathname: "/class/[sessionId]",
+                      pathname: '/class/[sessionId]',
                       params: { sessionId: s.id },
                     })
                   }
@@ -180,7 +162,7 @@ export default function Today() {
                     <Text variant="meta">{`Free after ${freeAfter}`}</Text>
                   ) : null}
                 </View>
-                <Rule weight={i === thin.length - 1 ? "heavy" : "hair"} />
+                <Rule weight={i === thin.length - 1 ? 'heavy' : 'hair'} />
               </View>
             ))}
             {thin.length === 0 ? <Rule weight="heavy" /> : null}
@@ -192,15 +174,13 @@ export default function Today() {
             <Rule weight="hair" />
             <Pressable
               accessibilityRole="button"
-              onPress={() => router.push("/exams")}
+              onPress={() => router.push('/exams')}
               style={styles.exam}
             >
               <Text style={styles.examTitle}>
                 {`Next exam: ${exam.exam.title}, ${shortDate(exam.exam.date)}`}
               </Text>
-              <Text style={styles.examCount}>
-                {daysCount(exam.daysAway)}
-              </Text>
+              <Text style={styles.examCount}>{daysCount(exam.daysAway)}</Text>
             </Pressable>
           </>
         ) : null}
@@ -224,12 +204,12 @@ export default function Today() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.color.paper },
-  content: { padding: theme.space(4), alignItems: "center" },
-  inner: { width: "100%", maxWidth: 720 },
+  content: { padding: theme.space(4), alignItems: 'center' },
+  inner: { width: '100%', maxWidth: 720 },
   headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     paddingBottom: theme.space(2),
   },
   date: {
@@ -240,29 +220,29 @@ const styles = StyleSheet.create({
   settings: {
     minHeight: 44,
     minWidth: 44,
-    justifyContent: "center",
-    alignItems: "flex-end",
+    justifyContent: 'center',
+    alignItems: 'flex-end',
   },
   plain: { paddingVertical: theme.space(4) },
   thin: {
     minHeight: 26,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: theme.space(3),
     paddingHorizontal: theme.space(2),
   },
   thinTime: { fontSize: 12, color: theme.color.muted, width: 48 },
   hwRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     minHeight: 48,
     gap: theme.space(2),
   },
   checkHit: {
     width: 44,
     height: 44,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   checkbox: {
     width: 22,
@@ -274,9 +254,9 @@ const styles = StyleSheet.create({
   urgent: { color: theme.color.now, fontFamily: theme.font.appBold },
   exam: {
     minHeight: 56,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: theme.space(3),
   },
   examTitle: { flex: 1 },

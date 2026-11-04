@@ -11,8 +11,7 @@ const s: Semester = {
   parityOverrides: {},
 } as Semester;
 
-const find = (sem: Semester, monday: string) =>
-  buildWeeks(sem).find((w) => w.monday === monday)!;
+const find = (sem: Semester, monday: string) => buildWeeks(sem).find((w) => w.monday === monday)!;
 
 describe('buildWeeks', () => {
   it('builds one entry per calendar week', () => {

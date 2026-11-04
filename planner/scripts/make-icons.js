@@ -1,8 +1,8 @@
 /* Generates the Orar app icons into public/icons. Pure Node, no dependencies.
  * Run with: npm run icons */
-const fs = require("fs");
-const path = require("path");
-const zlib = require("zlib");
+const fs = require('fs');
+const path = require('path');
+const zlib = require('zlib');
 
 const INK = [0x17, 0x21, 0x3a];
 const PAPER = [0xf4, 0xf6, 0xf8];
@@ -23,7 +23,7 @@ function crc32(buf) {
 function chunk(type, data) {
   const len = Buffer.alloc(4);
   len.writeUInt32BE(data.length);
-  const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
+  const body = Buffer.concat([Buffer.from(type, 'ascii'), data]);
   const crc = Buffer.alloc(4);
   crc.writeUInt32BE(crc32(body));
   return Buffer.concat([len, body, crc]);
@@ -43,9 +43,9 @@ function encodePng(size, rgb) {
   ihdr[9] = 2; // truecolour
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    chunk("IHDR", ihdr),
-    chunk("IDAT", zlib.deflateSync(raw, { level: 9 })),
-    chunk("IEND", Buffer.alloc(0)),
+    chunk('IHDR', ihdr),
+    chunk('IDAT', zlib.deflateSync(raw, { level: 9 })),
+    chunk('IEND', Buffer.alloc(0)),
   ]);
 }
 
@@ -53,16 +53,8 @@ function encodePng(size, rgb) {
 function draw(size, margin) {
   const px = Buffer.alloc(size * size * 3);
   const rect = (x0, y0, x1, y1, c) => {
-    for (
-      let y = Math.max(0, Math.round(y0));
-      y < Math.min(size, Math.round(y1));
-      y++
-    ) {
-      for (
-        let x = Math.max(0, Math.round(x0));
-        x < Math.min(size, Math.round(x1));
-        x++
-      ) {
+    for (let y = Math.max(0, Math.round(y0)); y < Math.min(size, Math.round(y1)); y++) {
+      for (let x = Math.max(0, Math.round(x0)); x < Math.min(size, Math.round(x1)); x++) {
         const i = (y * size + x) * 3;
         px[i] = c[0];
         px[i + 1] = c[1];
@@ -95,20 +87,17 @@ function draw(size, margin) {
   return px;
 }
 
-const outDir = path.join(__dirname, "..", "public", "icons");
+const outDir = path.join(__dirname, '..', 'public', 'icons');
 fs.mkdirSync(outDir, { recursive: true });
 
 const targets = [
-  ["icon-192.png", 192, 0.2],
-  ["icon-512.png", 512, 0.2],
-  ["apple-touch-icon.png", 180, 0.2],
+  ['icon-192.png', 192, 0.2],
+  ['icon-512.png', 512, 0.2],
+  ['apple-touch-icon.png', 180, 0.2],
   // Maskable: keep the mark inside the central 60% so any mask shape leaves it intact.
-  ["icon-maskable-512.png", 512, 0.3],
+  ['icon-maskable-512.png', 512, 0.3],
 ];
 for (const [name, size, margin] of targets) {
-  fs.writeFileSync(
-    path.join(outDir, name),
-    encodePng(size, draw(size, margin)),
-  );
-  console.log("wrote", name);
+  fs.writeFileSync(path.join(outDir, name), encodePng(size, draw(size, margin)));
+  console.log('wrote', name);
 }

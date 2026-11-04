@@ -23,7 +23,10 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const { user, loading } = useAuth();
   const uid = user?.uid;
-  const repository = useMemo(() => (uid ? createFirestoreRepository(initFirebase().db, uid) : null), [uid]);
+  const repository = useMemo(
+    () => (uid ? createFirestoreRepository(initFirebase().db, uid) : null),
+    [uid],
+  );
 
   const [loaded, error] = useFonts({
     SchibstedGrotesk_400Regular,

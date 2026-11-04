@@ -24,7 +24,13 @@ export function Button({ label, onPress, kind = 'primary', disabled = false }: B
         disabled && (primary ? styles.primaryDisabled : styles.outlineDisabled),
       ]}
     >
-      <Text style={[styles.label, { color: primary ? theme.color.paper : theme.color.ink }, disabled && !primary && styles.mutedLabel]}>
+      <Text
+        style={[
+          styles.label,
+          { color: primary ? theme.color.paper : theme.color.ink },
+          disabled && !primary && styles.mutedLabel,
+        ]}
+      >
         {label}
       </Text>
     </Pressable>

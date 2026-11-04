@@ -1,17 +1,17 @@
 /* Service worker for the installed web app. Plain JS, no build step.
  * Firestore keeps its own offline data; this only caches the app shell. */
-var CACHE_NAME = "planner-v1";
-var CACHE_PREFIX = "planner-";
-var PRECACHE = ["/", "/manifest.json"];
-var STATIC_PREFIXES = ["/_expo/static/", "/assets/"];
+var CACHE_NAME = 'planner-v1';
+var CACHE_PREFIX = 'planner-';
+var PRECACHE = ['/', '/manifest.json'];
+var STATIC_PREFIXES = ['/_expo/static/', '/assets/'];
 
 var OFFLINE_MESSAGE =
-  "You\u2019re offline and the app hasn\u2019t been saved yet. Open it once while online.";
+  'You\u2019re offline and the app hasn\u2019t been saved yet. Open it once while online.';
 
 function offlineResponse() {
   return new Response(OFFLINE_MESSAGE, {
     status: 503,
-    headers: { "Content-Type": "text/plain; charset=utf-8" },
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   });
 }
 
@@ -20,25 +20,25 @@ function offlineResponse() {
  * 'network-first' | 'cache-first' | 'stale-while-revalidate' | 'bypass'.
  */
 function strategyFor(url, request, origin) {
-  if (request.method !== "GET") return "bypass";
-  if (url.origin !== origin) return "bypass";
+  if (request.method !== 'GET') return 'bypass';
+  if (url.origin !== origin) return 'bypass';
   var path = url.pathname;
   // Firebase Auth's handler must always reach the network untouched.
-  if (path.indexOf("/__/") === 0) return "bypass";
-  if (request.mode === "navigate") return "network-first";
+  if (path.indexOf('/__/') === 0) return 'bypass';
+  if (request.mode === 'navigate') return 'network-first';
   // Not content-hashed, so edits must reach existing installs.
-  if (path === "/manifest.json" || path.indexOf("/icons/") === 0) {
-    return "stale-while-revalidate";
+  if (path === '/manifest.json' || path.indexOf('/icons/') === 0) {
+    return 'stale-while-revalidate';
   }
   // Content-hashed build output never changes under the same URL.
   for (var i = 0; i < STATIC_PREFIXES.length; i++) {
-    if (path.indexOf(STATIC_PREFIXES[i]) === 0) return "cache-first";
+    if (path.indexOf(STATIC_PREFIXES[i]) === 0) return 'cache-first';
   }
-  return "bypass";
+  return 'bypass';
 }
 
-if (typeof self !== "undefined" && self.registration) {
-  self.addEventListener("install", function (event) {
+if (typeof self !== 'undefined' && self.registration) {
+  self.addEventListener('install', function (event) {
     event.waitUntil(
       caches
         .open(CACHE_NAME)
@@ -51,7 +51,7 @@ if (typeof self !== "undefined" && self.registration) {
     );
   });
 
-  self.addEventListener("activate", function (event) {
+  self.addEventListener('activate', function (event) {
     event.waitUntil(
       caches
         .keys()
@@ -72,13 +72,13 @@ if (typeof self !== "undefined" && self.registration) {
     );
   });
 
-  self.addEventListener("fetch", function (event) {
+  self.addEventListener('fetch', function (event) {
     var request = event.request;
     var url = new URL(request.url);
     var strategy = strategyFor(url, request, self.location.origin);
-    if (strategy === "bypass") return;
+    if (strategy === 'bypass') return;
 
-    if (strategy === "network-first") {
+    if (strategy === 'network-first') {
       event.respondWith(
         fetch(request)
           .then(function (response) {
@@ -86,14 +86,14 @@ if (typeof self !== "undefined" && self.registration) {
               var copy = response.clone();
               event.waitUntil(
                 caches.open(CACHE_NAME).then(function (cache) {
-                  return cache.put("/", copy);
+                  return cache.put('/', copy);
                 }),
               );
             }
             return response;
           })
           .catch(function () {
-            return caches.match("/").then(function (cached) {
+            return caches.match('/').then(function (cached) {
               return cached || offlineResponse();
             });
           }),
@@ -101,7 +101,7 @@ if (typeof self !== "undefined" && self.registration) {
       return;
     }
 
-    if (strategy === "stale-while-revalidate") {
+    if (strategy === 'stale-while-revalidate') {
       event.respondWith(
         caches.match(request).then(function (cached) {
           var refresh = fetch(request).then(function (response) {

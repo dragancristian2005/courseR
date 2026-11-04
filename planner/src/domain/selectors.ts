@@ -126,7 +126,6 @@ export function linksBySubject(data: PlannerData): {
   };
 }
 
-
 export function dueLabel(due: ISODate, today: ISODate): string {
   const diff = daysBetween(today, due);
   if (diff < 0) return 'Overdue';

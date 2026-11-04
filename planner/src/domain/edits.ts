@@ -1,5 +1,13 @@
 import { addDays, compareDates } from './dates';
-import type { ClassPattern, HHMM, ISODate, Note, PlannerData, Session, SessionOverride } from './types';
+import type {
+  ClassPattern,
+  HHMM,
+  ISODate,
+  Note,
+  PlannerData,
+  Session,
+  SessionOverride,
+} from './types';
 
 /**
  * validFrom for a newly created class: open-ended on the left, so the class also appears in
@@ -42,7 +50,10 @@ export function cancelThisWeek(session: Session, now: number): SessionOverride {
 }
 
 type PatternChanges = Partial<
-  Pick<ClassPattern, 'type' | 'weekday' | 'start' | 'end' | 'room' | 'teacher' | 'repeat' | 'online'>
+  Pick<
+    ClassPattern,
+    'type' | 'weekday' | 'start' | 'end' | 'room' | 'teacher' | 'repeat' | 'online'
+  >
 >;
 
 export function changeEveryWeek(
@@ -90,7 +101,9 @@ export function droppedByChange(
   from: ISODate,
 ): { overrides: SessionOverride[]; notes: Note[] } {
   return {
-    overrides: data.overrides.filter((o) => !o.deleted && belongsOnOrAfter(o.sessionId, patternId, from)),
+    overrides: data.overrides.filter(
+      (o) => !o.deleted && belongsOnOrAfter(o.sessionId, patternId, from),
+    ),
     notes: data.notes.filter((n) => !n.deleted && belongsOnOrAfter(n.sessionId, patternId, from)),
   };
 }

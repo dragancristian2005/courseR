@@ -24,8 +24,7 @@ export function buildWeeks(s: Semester): Week[] {
       continue;
     }
     teaching += 1;
-    const parity: Parity =
-      s.parityOverrides[teaching] ?? (teaching % 2 === 1 ? 'odd' : 'even');
+    const parity: Parity = s.parityOverrides[teaching] ?? (teaching % 2 === 1 ? 'odd' : 'even');
     weeks.push({ monday, number: teaching, parity, isBreak: false });
   }
   return weeks;

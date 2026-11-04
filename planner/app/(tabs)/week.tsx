@@ -1,23 +1,23 @@
-import { router } from "expo-router";
-import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { useStore } from "../../src/data/useStore";
-import { addDays, mondayOf, todayISO } from "../../src/domain/dates";
-import { sessionsBetween } from "../../src/domain/sessions";
-import type { ISODate, Session } from "../../src/domain/types";
-import { weekFor } from "../../src/domain/weeks";
-import { ClassDetail } from "../../src/ui/ClassDetail";
-import { Rule } from "../../src/ui/Rule";
-import { SetupPrompt } from "../../src/ui/SetupPrompt";
-import { Text } from "../../src/ui/Text";
-import { theme } from "../../src/ui/theme";
-import { useLayout } from "../../src/ui/useLayout";
-import { useNow } from "../../src/ui/useNow";
-import { MONTHS_LONG } from "../../src/ui/format";
-import { lastShownDay, WeekGrid } from "../../src/ui/WeekGrid";
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useStore } from '../../src/data/useStore';
+import { addDays, mondayOf, todayISO } from '../../src/domain/dates';
+import { sessionsBetween } from '../../src/domain/sessions';
+import type { ISODate, Session } from '../../src/domain/types';
+import { weekFor } from '../../src/domain/weeks';
+import { ClassDetail } from '../../src/ui/ClassDetail';
+import { Rule } from '../../src/ui/Rule';
+import { SetupPrompt } from '../../src/ui/SetupPrompt';
+import { Text } from '../../src/ui/Text';
+import { theme } from '../../src/ui/theme';
+import { useLayout } from '../../src/ui/useLayout';
+import { useNow } from '../../src/ui/useNow';
+import { MONTHS_LONG } from '../../src/ui/format';
+import { lastShownDay, WeekGrid } from '../../src/ui/WeekGrid';
 
 const dayMonth = (d: ISODate) => {
-  const [, m, day] = d.split("-").map(Number);
+  const [, m, day] = d.split('-').map(Number);
   return { day, month: MONTHS_LONG[m - 1] };
 };
 
@@ -42,19 +42,15 @@ export default function WeekScreen() {
   const week = data.semester ? weekFor(data.semester, monday) : null;
   const sessions = sessionsBetween(data, monday, addDays(monday, 6));
   const end = addDays(monday, lastShownDay(sessions, monday) - 1);
-  const wide = layout === "wide";
+  const wide = layout === 'wide';
 
-  const title = !week ? "Week" : week.isBreak ? "Break" : `Week ${week.number}`;
-  const kind = !week
-    ? "outside the semester"
-    : week.isBreak
-      ? "break"
-      : `${week.parity} week`;
+  const title = !week ? 'Week' : week.isBreak ? 'Break' : `Week ${week.number}`;
+  const kind = !week ? 'outside the semester' : week.isBreak ? 'break' : `${week.parity} week`;
   const needsSetup = !data.semester || data.patterns.length === 0;
 
   const open = (s: Session) =>
     router.push({
-      pathname: "/class/[sessionId]",
+      pathname: '/class/[sessionId]',
       params: { sessionId: s.id },
     });
   const onPressSession = (s: Session) => (wide ? setSelectedId(s.id) : open(s));
@@ -63,9 +59,7 @@ export default function WeekScreen() {
   let body: React.ReactNode;
   if (needsSetup) body = <SetupPrompt data={data} />;
   else if (week?.isBreak)
-    body = (
-      <Text style={styles.plain}>No classes this week, it’s a break.</Text>
-    );
+    body = <Text style={styles.plain}>No classes this week, it’s a break.</Text>;
   else
     body = (
       <WeekGrid
@@ -75,7 +69,7 @@ export default function WeekScreen() {
         today={today}
         nowMinutes={nowMinutes}
         onPressSession={onPressSession}
-        density={wide ? "full" : "compact"}
+        density={wide ? 'full' : 'compact'}
         selectedSessionId={wide ? selectedId : undefined}
       />
     );
@@ -138,9 +132,7 @@ export default function WeekScreen() {
               />
             </ScrollView>
           ) : (
-            <Text style={styles.panelEmpty}>
-              Select a class to see its details.
-            </Text>
+            <Text style={styles.panelEmpty}>Select a class to see its details.</Text>
           )}
         </View>
       ) : null}
@@ -149,14 +141,14 @@ export default function WeekScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, flexDirection: "row", backgroundColor: theme.color.paper },
+  screen: { flex: 1, flexDirection: 'row', backgroundColor: theme.color.paper },
   main: { flex: 1 },
-  content: { padding: theme.space(4), alignItems: "center" },
-  inner: { width: "100%", maxWidth: 1100 },
+  content: { padding: theme.space(4), alignItems: 'center' },
+  inner: { width: '100%', maxWidth: 1100 },
   headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     paddingBottom: theme.space(2),
   },
   titles: { flex: 1 },
@@ -167,19 +159,19 @@ const styles = StyleSheet.create({
   },
   thisWeek: {
     minHeight: 44,
-    justifyContent: "center",
-    alignSelf: "flex-start",
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
   },
   thisWeekText: {
     fontFamily: theme.font.appBold,
-    textDecorationLine: "underline",
+    textDecorationLine: 'underline',
   },
-  nav: { flexDirection: "row", gap: theme.space(2) },
+  nav: { flexDirection: 'row', gap: theme.space(2) },
   navButton: {
     width: 44,
     height: 44,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
     borderColor: theme.color.ink,
   },

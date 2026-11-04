@@ -1,16 +1,16 @@
-import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
-import { useStore } from "../../src/data/useStore";
-import { notesFor } from "../../src/domain/selectors";
-import type { Note, PlannerData } from "../../src/domain/types";
-import { ageLabel, fold, sessionRef, shortDate } from "../../src/ui/format";
-import { NoteRow } from "../../src/ui/NoteRow";
-import { Page, PageHeader } from "../../src/ui/Page";
-import { Text } from "../../src/ui/Text";
-import { TextButton } from "../../src/ui/TextButton";
-import { theme } from "../../src/ui/theme";
-import { useNow } from "../../src/ui/useNow";
+import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
+import { StyleSheet, TextInput, View } from 'react-native';
+import { useStore } from '../../src/data/useStore';
+import { notesFor } from '../../src/domain/selectors';
+import type { Note, PlannerData } from '../../src/domain/types';
+import { ageLabel, fold, sessionRef, shortDate } from '../../src/ui/format';
+import { NoteRow } from '../../src/ui/NoteRow';
+import { Page, PageHeader } from '../../src/ui/Page';
+import { Text } from '../../src/ui/Text';
+import { TextButton } from '../../src/ui/TextButton';
+import { theme } from '../../src/ui/theme';
+import { useNow } from '../../src/ui/useNow';
 
 /** The link line split into a bold lead (abbreviation) and the muted rest. */
 function linkLine(
@@ -18,9 +18,7 @@ function linkLine(
   n: Note,
 ): { lead?: string; rest: string; subjectText: string } {
   const ref = sessionRef(data, n.sessionId);
-  const subject =
-    ref?.subject ??
-    data.subjects.find((s) => s.id === n.subjectId && !s.deleted);
+  const subject = ref?.subject ?? data.subjects.find((s) => s.id === n.subjectId && !s.deleted);
   if (ref?.subject) {
     return {
       lead: ref.subject.abbreviation,
@@ -34,18 +32,16 @@ function linkLine(
       subjectText: `${subject.name} ${subject.abbreviation}`,
     };
   }
-  return { rest: "Not linked", subjectText: "" };
+  return { rest: 'Not linked', subjectText: '' };
 }
 
 export default function Notes() {
   const { data } = useStore();
   const now = useNow();
   const { subjectId } = useLocalSearchParams<{ subjectId?: string }>();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
 
-  const filterSubject = subjectId
-    ? data.subjects.find((s) => s.id === subjectId)
-    : undefined;
+  const filterSubject = subjectId ? data.subjects.find((s) => s.id === subjectId) : undefined;
   const all = notesFor(data, subjectId ? { subjectId } : {});
   const q = fold(query.trim());
   const rows = all
@@ -55,27 +51,18 @@ export default function Notes() {
       age: ageLabel(n.createdAt, now),
     }))
     .filter(({ n, line, age }) =>
-      q === ""
+      q === ''
         ? true
-        : fold(
-            `${n.text} ${line.subjectText} ${line.lead ?? ""}${line.rest} ${age}`,
-          ).includes(q),
+        : fold(`${n.text} ${line.subjectText} ${line.lead ?? ''}${line.rest} ${age}`).includes(q),
     );
 
   return (
     <Page>
-      <PageHeader
-        title="Notes"
-        actionLabel="New note"
-        onAction={() => router.push("/note/edit")}
-      />
+      <PageHeader title="Notes" actionLabel="New note" onAction={() => router.push('/note/edit')} />
       {filterSubject ? (
         <View style={styles.filter}>
           <Text variant="meta">{`Showing ${filterSubject.abbreviation} notes`}</Text>
-          <TextButton
-            label="Show all"
-            onPress={() => router.replace("/notes")}
-          />
+          <TextButton label="Show all" onPress={() => router.replace('/notes')} />
         </View>
       ) : null}
       <TextInput
@@ -93,14 +80,7 @@ export default function Notes() {
         <Text style={styles.empty}>{`No notes match “${query.trim()}”.`}</Text>
       ) : (
         rows.map(({ n, line, age }) => (
-          <NoteRow
-            key={n.id}
-            id={n.id}
-            lead={line.lead}
-            rest={line.rest}
-            age={age}
-            text={n.text}
-          />
+          <NoteRow key={n.id} id={n.id} lead={line.lead} rest={line.rest} age={age} text={n.text} />
         ))
       )}
     </Page>
@@ -109,9 +89,9 @@ export default function Notes() {
 
 const styles = StyleSheet.create({
   filter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   search: {
     minHeight: 44,

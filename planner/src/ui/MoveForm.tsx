@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { StyleSheet, View } from "react-native";
-import type { ISODate, Session } from "../domain/types";
-import { Button } from "./Button";
-import { Field, isDate, MSG_DATE, timeErrors } from "./FormBits";
-import { theme } from "./theme";
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import type { ISODate, Session } from '../domain/types';
+import { Button } from './Button';
+import { Field, isDate, MSG_DATE, timeErrors } from './FormBits';
+import { theme } from './theme';
 
 export interface MoveValues {
   date: ISODate;
@@ -44,16 +44,8 @@ export function MoveForm({
         error={errors.start}
         placeholder="09:40"
       />
-      <Field
-        label="End"
-        value={end}
-        onChangeText={setEnd}
-        error={errors.end}
-        placeholder="11:10"
-      />
-      {session.online ? null : (
-        <Field label="Room" value={room} onChangeText={setRoom} />
-      )}
+      <Field label="End" value={end} onChangeText={setEnd} error={errors.end} placeholder="11:10" />
+      {session.online ? null : <Field label="Room" value={room} onChangeText={setRoom} />}
       <View style={styles.buttons}>
         <Button
           label="Save move"
@@ -75,5 +67,5 @@ export function MoveForm({
 
 const styles = StyleSheet.create({
   form: { gap: theme.space(3), paddingVertical: theme.space(3) },
-  buttons: { flexDirection: "row", gap: theme.space(3), flexWrap: "wrap" },
+  buttons: { flexDirection: 'row', gap: theme.space(3), flexWrap: 'wrap' },
 });

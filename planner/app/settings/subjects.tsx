@@ -1,21 +1,17 @@
-import { stamp } from "../../src/domain/edits";
-import { useState } from "react";
-import { View } from "react-native";
-import { newId } from "../../src/data/ids";
-import { useStore } from "../../src/data/useStore";
-import type { Subject } from "../../src/domain/types";
-import { Button } from "../../src/ui/Button";
-import { FormScreen } from "../../src/ui/FormScreen";
-import { Rule } from "../../src/ui/Rule";
-import { SectionHeading } from "../../src/ui/Page";
-import {
-  SubjectForm,
-  SubjectRow,
-  subjectDetail,
-} from "../../src/ui/SubjectRows";
-import { Text } from "../../src/ui/Text";
+import { stamp } from '../../src/domain/edits';
+import { useState } from 'react';
+import { View } from 'react-native';
+import { newId } from '../../src/data/ids';
+import { useStore } from '../../src/data/useStore';
+import type { Subject } from '../../src/domain/types';
+import { Button } from '../../src/ui/Button';
+import { FormScreen } from '../../src/ui/FormScreen';
+import { Rule } from '../../src/ui/Rule';
+import { SectionHeading } from '../../src/ui/Page';
+import { SubjectForm, SubjectRow, subjectDetail } from '../../src/ui/SubjectRows';
+import { Text } from '../../src/ui/Text';
 
-const NEW = "__new__";
+const NEW = '__new__';
 
 export default function Subjects() {
   const { data, repo, ready } = useStore();
@@ -24,11 +20,8 @@ export default function Subjects() {
     .filter((s) => !s.deleted)
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const write = (s: Subject) => void repo.upsert("subjects", s);
-  const saveForm = (
-    existing: Subject | undefined,
-    v: { name: string; abbreviation: string },
-  ) => {
+  const write = (s: Subject) => void repo.upsert('subjects', s);
+  const saveForm = (existing: Subject | undefined, v: { name: string; abbreviation: string }) => {
     write(
       existing
         ? { ...existing, ...v, updatedAt: stamp(existing) }
@@ -43,9 +36,7 @@ export default function Subjects() {
         <SubjectRow
           subject={s}
           detail={subjectDetail(s, data.patterns)}
-          onToggle={(on) =>
-            write({ ...s, attending: on, updatedAt: stamp(s) })
-          }
+          onToggle={(on) => write({ ...s, attending: on, updatedAt: stamp(s) })}
           onEdit={() => setEditing(s.id)}
         />
         {editing === s.id ? (
@@ -66,14 +57,11 @@ export default function Subjects() {
     <FormScreen title="Subjects">
       <Rule weight="heavy" />
       <Text variant="meta">
-        Switch off what you don’t attend. It disappears from your calendar,
-        reminders and widgets, and you can switch it back on anytime.
+        Switch off what you don’t attend. It disappears from your calendar, reminders and widgets,
+        and you can switch it back on anytime.
       </Text>
       {subjects.length === 0 ? (
-        <Text>
-          No subjects yet. Add one, or add a class and its subject is created
-          for you.
-        </Text>
+        <Text>No subjects yet. Add one, or add a class and its subject is created for you.</Text>
       ) : null}
       {attending.length > 0 ? (
         <View>
@@ -90,16 +78,9 @@ export default function Subjects() {
         </View>
       ) : null}
       {editing === NEW ? (
-        <SubjectForm
-          onSave={(v) => saveForm(undefined, v)}
-          onCancel={() => setEditing(null)}
-        />
+        <SubjectForm onSave={(v) => saveForm(undefined, v)} onCancel={() => setEditing(null)} />
       ) : (
-        <Button
-          kind="outline"
-          label="Add a subject by hand"
-          onPress={() => setEditing(NEW)}
-        />
+        <Button kind="outline" label="Add a subject by hand" onPress={() => setEditing(NEW)} />
       )}
     </FormScreen>
   );

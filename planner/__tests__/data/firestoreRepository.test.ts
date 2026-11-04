@@ -25,7 +25,8 @@ const colSnap = (docs: Record<string, object>) => ({
   forEach: (fn: (d: { id: string; data: () => object }) => void) =>
     Object.entries(docs).forEach(([id, d]) => fn({ id, data: () => d })),
 });
-const emit = (c: string, docs: Record<string, object> = {}) => listeners[`users/u1/${c}`](colSnap(docs));
+const emit = (c: string, docs: Record<string, object> = {}) =>
+  listeners[`users/u1/${c}`](colSnap(docs));
 const emitSemester = (data?: object) =>
   listeners['users/u1/meta/semester']({ exists: () => !!data, data: () => data });
 

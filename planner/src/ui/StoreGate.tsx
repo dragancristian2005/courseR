@@ -17,7 +17,11 @@ export function StoreGate({ children }: { children: React.ReactNode }) {
         <View style={styles.card}>
           <Text variant="title">Your data couldn’t load</Text>
           <Text>Check your connection, then sign out and sign in again.</Text>
-          <Pressable accessibilityRole="button" onPress={() => void signOut()} style={styles.button}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void signOut()}
+            style={styles.button}
+          >
             <Text style={styles.label}>Sign out</Text>
           </Pressable>
         </View>

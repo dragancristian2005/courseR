@@ -1,6 +1,6 @@
-import { router } from "expo-router";
-import type { PlannerData } from "../domain/types";
-import { EmptyState } from "./EmptyState";
+import { router } from 'expo-router';
+import type { PlannerData } from '../domain/types';
+import { EmptyState } from './EmptyState';
 
 /** The first-run prompt for a missing semester or missing classes; null once both exist. */
 export function SetupPrompt({ data }: { data: PlannerData }) {
@@ -10,7 +10,7 @@ export function SetupPrompt({ data }: { data: PlannerData }) {
         title="Set up your semester"
         body="Add your semester dates, then your classes, to see your day here."
         actionLabel="Set up semester"
-        onAction={() => router.push("/settings/semester")}
+        onAction={() => router.push('/settings/semester')}
       />
     );
   }
@@ -20,7 +20,7 @@ export function SetupPrompt({ data }: { data: PlannerData }) {
         title="Add your classes"
         body="Add each class once and it repeats every week."
         actionLabel="Add a class"
-        onAction={() => router.push("/class/edit")}
+        onAction={() => router.push('/class/edit')}
       />
     );
   }

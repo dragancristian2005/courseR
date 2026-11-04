@@ -2,7 +2,13 @@ import { fromDoc, toDoc } from '../../src/data/firestoreMapping';
 import type { Base } from '../../src/domain/types';
 
 const records: Record<string, Base> = {
-  subjects: { id: 's1', updatedAt: 5, name: 'Algebra', abbreviation: 'ALG', attending: true } as Base,
+  subjects: {
+    id: 's1',
+    updatedAt: 5,
+    name: 'Algebra',
+    abbreviation: 'ALG',
+    attending: true,
+  } as Base,
   patterns: {
     id: 'p1',
     updatedAt: 5,

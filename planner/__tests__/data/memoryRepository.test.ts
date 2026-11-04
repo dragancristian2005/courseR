@@ -166,7 +166,10 @@ describe('memory repository', () => {
   it('replaceAll data with tombstones are filtered from delivery', async () => {
     const repo = createMemoryRepository();
     const s = latest(repo);
-    await repo.replaceAll({ ...emptyPlannerData(), subjects: [{ ...subj('z', 1), deleted: true }] });
+    await repo.replaceAll({
+      ...emptyPlannerData(),
+      subjects: [{ ...subj('z', 1), deleted: true }],
+    });
     expect(s.get().subjects).toEqual([]);
   });
 

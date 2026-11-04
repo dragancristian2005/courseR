@@ -83,23 +83,31 @@ export function createFirestoreRepository(db: Firestore, uid: string): Repositor
 
       for (const c of COLLECTIONS) {
         unsubs.push(
-          onSnapshot(collection(db, 'users', uid, c), (snap: QuerySnapshot<DocumentData>) => {
-            const map = known[c];
-            map.clear();
-            snap.forEach((d) => map.set(d.id, fromDoc(d.id, d.data())));
-            pending.delete(c);
-            deliver();
-          }, fail),
+          onSnapshot(
+            collection(db, 'users', uid, c),
+            (snap: QuerySnapshot<DocumentData>) => {
+              const map = known[c];
+              map.clear();
+              snap.forEach((d) => map.set(d.id, fromDoc(d.id, d.data())));
+              pending.delete(c);
+              deliver();
+            },
+            fail,
+          ),
         );
       }
       unsubs.push(
-        onSnapshot(semesterRef(), (snap) => {
-          knownSemester = snap.exists()
-            ? fromDoc<Semester>(snap.data().id ?? 'semester', snap.data())
-            : null;
-          pending.delete('semester');
-          deliver();
-        }, fail),
+        onSnapshot(
+          semesterRef(),
+          (snap) => {
+            knownSemester = snap.exists()
+              ? fromDoc<Semester>(snap.data().id ?? 'semester', snap.data())
+              : null;
+            pending.delete('semester');
+            deliver();
+          },
+          fail,
+        ),
       );
 
       return () => {

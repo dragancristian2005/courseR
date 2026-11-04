@@ -37,7 +37,10 @@ describe('Button', () => {
     await render(<Button label="Save" disabled onPress={onPress} />);
     fireEvent.press(screen.getByRole('button'));
     expect(onPress).not.toHaveBeenCalled();
-    expect(screen.getByRole('button').props.accessibilityState?.disabled ?? screen.getByRole('button').props['aria-disabled']).toBeTruthy();
+    expect(
+      screen.getByRole('button').props.accessibilityState?.disabled ??
+        screen.getByRole('button').props['aria-disabled'],
+    ).toBeTruthy();
   });
 });
 
@@ -59,7 +62,14 @@ describe('Rule', () => {
 describe('EmptyState', () => {
   it('shows title, body and an action', async () => {
     const onAction = jest.fn();
-    await render(<EmptyState title="No homework" body="Nothing due." actionLabel="Add homework" onAction={onAction} />);
+    await render(
+      <EmptyState
+        title="No homework"
+        body="Nothing due."
+        actionLabel="Add homework"
+        onAction={onAction}
+      />,
+    );
     expect(screen.getByText('No homework')).toBeTruthy();
     expect(screen.getByText('Nothing due.')).toBeTruthy();
     fireEvent.press(screen.getByRole('button', { name: 'Add homework' }));
@@ -68,7 +78,13 @@ describe('EmptyState', () => {
 });
 
 describe('useLayout', () => {
-  const at = (width: number) => (useWindowDimensions as jest.Mock).mockReturnValue({ width, height: 800, scale: 1, fontScale: 1 });
+  const at = (width: number) =>
+    (useWindowDimensions as jest.Mock).mockReturnValue({
+      width,
+      height: 800,
+      scale: 1,
+      fontScale: 1,
+    });
   it('is phone at 899 and wide at 900', async () => {
     at(899);
     expect((await renderHook(() => useLayout())).result.current).toBe('phone');

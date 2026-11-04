@@ -1,11 +1,11 @@
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
-import { isDate } from "../domain/dates";
-import { Text } from "./Text";
-import { theme } from "./theme";
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { isDate } from '../domain/dates';
+import { Text } from './Text';
+import { theme } from './theme';
 
-export const MSG_TIME = "Enter a time like 09:40.";
-export const MSG_ORDER = "The class must end after it starts.";
-export const MSG_DATE = "Enter a date like 2026-11-09.";
+export const MSG_TIME = 'Enter a time like 09:40.';
+export const MSG_ORDER = 'The class must end after it starts.';
+export const MSG_DATE = 'Enter a date like 2026-11-09.';
 
 export function isTime(t: string): boolean {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(t);
@@ -13,10 +13,7 @@ export function isTime(t: string): boolean {
 
 export { isDate };
 
-export function timeErrors(
-  start: string,
-  end: string,
-): { start?: string; end?: string } {
+export function timeErrors(start: string, end: string): { start?: string; end?: string } {
   const out: { start?: string; end?: string } = {};
   if (!isTime(start)) out.start = MSG_TIME;
   if (!isTime(end)) out.end = MSG_TIME;
@@ -31,7 +28,7 @@ export function Field({
   onBlur,
   error,
   placeholder,
-  autoCapitalize = "none",
+  autoCapitalize = 'none',
 }: {
   label: string;
   value: string;
@@ -39,7 +36,7 @@ export function Field({
   onBlur?: () => void;
   error?: string;
   placeholder?: string;
-  autoCapitalize?: "none" | "sentences" | "words";
+  autoCapitalize?: 'none' | 'sentences' | 'words';
 }) {
   return (
     <View style={styles.field}>
@@ -74,11 +71,7 @@ export function Chips<T extends string | number>({
   return (
     <View style={styles.field}>
       <Text variant="meta">{label}</Text>
-      <View
-        style={styles.chips}
-        accessibilityRole="radiogroup"
-        accessibilityLabel={label}
-      >
+      <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel={label}>
         {options.map((o) => {
           const selected = o.value === value;
           return (
@@ -90,9 +83,7 @@ export function Chips<T extends string | number>({
               onPress={() => onChange(o.value)}
               style={[styles.chip, selected && styles.chipOn]}
             >
-              <Text style={[styles.chipText, selected && styles.chipTextOn]}>
-                {o.label}
-              </Text>
+              <Text style={[styles.chipText, selected && styles.chipTextOn]}>{o.label}</Text>
             </Pressable>
           );
         })}
@@ -119,13 +110,13 @@ export const styles = StyleSheet.create({
     fontFamily: theme.font.appBold,
     fontSize: 14,
   },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: theme.space(2) },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.space(2) },
   chip: {
     minHeight: 44,
     minWidth: 44,
     paddingHorizontal: theme.space(3),
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
     borderColor: theme.color.ink,
   },

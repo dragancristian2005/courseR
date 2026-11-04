@@ -1,6 +1,6 @@
-import { Pressable, StyleSheet } from "react-native";
-import { Text } from "./Text";
-import { theme } from "./theme";
+import { Pressable, StyleSheet } from 'react-native';
+import { Text } from './Text';
+import { theme } from './theme';
 
 export function TextButton({
   label,
@@ -29,7 +29,7 @@ export function TextButton({
 }
 
 const styles = StyleSheet.create({
-  hit: { minHeight: 44, minWidth: 44, justifyContent: "center" },
+  hit: { minHeight: 44, minWidth: 44, justifyContent: 'center' },
   label: { fontFamily: theme.font.appBold, color: theme.color.ink },
   urgent: { color: theme.color.now },
 });

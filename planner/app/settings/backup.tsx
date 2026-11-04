@@ -58,7 +58,9 @@ export default function Backup() {
     <View style={styles.screen}>
       <View style={styles.card}>
         <Text variant="title">Backup</Text>
-        <Text>Download a copy of everything in your account, or restore one you saved earlier.</Text>
+        <Text>
+          Download a copy of everything in your account, or restore one you saved earlier.
+        </Text>
         {loadError ? (
           <Text style={styles.error}>Backups need your data to load first.</Text>
         ) : !ready ? (
@@ -87,10 +89,18 @@ export default function Backup() {
         {pending ? (
           <View style={styles.confirm}>
             <Text>This replaces everything in your account with the backup. Continue?</Text>
-            <Pressable accessibilityRole="button" onPress={() => void replace()} style={styles.primary}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void replace()}
+              style={styles.primary}
+            >
               <Text style={styles.primaryLabel}>Replace everything</Text>
             </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => setPending(null)} style={styles.secondary}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setPending(null)}
+              style={styles.secondary}
+            >
               <Text style={styles.secondaryLabel}>Cancel</Text>
             </Pressable>
           </View>

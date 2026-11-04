@@ -41,7 +41,9 @@ describe('StoreGate', () => {
     );
     expect(screen.queryByText('content')).toBeNull();
     expect(screen.getByText('Your data couldn’t load')).toBeTruthy();
-    expect(screen.getByText('Check your connection, then sign out and sign in again.')).toBeTruthy();
+    expect(
+      screen.getByText('Check your connection, then sign out and sign in again.'),
+    ).toBeTruthy();
     await fireEvent.press(screen.getByText('Sign out'));
     expect(signOut).toHaveBeenCalled();
   });
@@ -71,7 +73,9 @@ describe('StoreGate', () => {
     expect(screen.getByText('content')).toBeTruthy();
     expect(screen.queryByText('Your data couldn’t load')).toBeNull();
     expect(
-      screen.getByText('A change didn’t sync because a newer version exists. Your app shows the latest.'),
+      screen.getByText(
+        'A change didn’t sync because a newer version exists. Your app shows the latest.',
+      ),
     ).toBeTruthy();
     await fireEvent.press(screen.getByText('Dismiss'));
     expect(screen.queryByText('Dismiss')).toBeNull();

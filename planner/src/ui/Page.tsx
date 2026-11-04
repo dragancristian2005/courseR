@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
-import { Button } from "./Button";
-import { Rule } from "./Rule";
-import { Text } from "./Text";
-import { theme } from "./theme";
+import type { ReactNode } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Button } from './Button';
+import { Rule } from './Rule';
+import { Text } from './Text';
+import { theme } from './theme';
 
 /** Scrolling page body with the standard width limit. */
 export function Page({ children }: { children: ReactNode }) {
@@ -49,14 +49,14 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.color.paper },
   content: {
     padding: theme.space(4),
-    alignItems: "center",
+    alignItems: 'center',
     paddingBottom: theme.space(8),
   },
-  inner: { width: "100%", maxWidth: 720, gap: theme.space(2) },
+  inner: { width: '100%', maxWidth: 720, gap: theme.space(2) },
   row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     gap: theme.space(3),
     paddingBottom: theme.space(2),
   },

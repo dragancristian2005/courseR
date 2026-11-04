@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { StyleSheet, Switch, View } from "react-native";
+import { useState } from 'react';
+import { StyleSheet, Switch, View } from 'react-native';
 import type {
   ClassPattern,
   ClassType,
@@ -7,31 +7,31 @@ import type {
   Note,
   Repeat,
   SessionOverride,
-} from "../domain/types";
-import { Button } from "./Button";
-import { Chips, Field, isDate, MSG_DATE, timeErrors } from "./FormBits";
-import { Text } from "./Text";
-import { theme } from "./theme";
-import { shortDate, TYPE_LABEL, WEEKDAYS_SHORT } from "./format";
+} from '../domain/types';
+import { Button } from './Button';
+import { Chips, Field, isDate, MSG_DATE, timeErrors } from './FormBits';
+import { Text } from './Text';
+import { theme } from './theme';
+import { shortDate, TYPE_LABEL, WEEKDAYS_SHORT } from './format';
 
 export const TYPE_OPTIONS: { value: ClassType; label: string }[] = [
-  { value: "course", label: TYPE_LABEL.course },
-  { value: "seminar", label: TYPE_LABEL.seminar },
-  { value: "lab", label: TYPE_LABEL.lab },
+  { value: 'course', label: TYPE_LABEL.course },
+  { value: 'seminar', label: TYPE_LABEL.seminar },
+  { value: 'lab', label: TYPE_LABEL.lab },
 ];
 export const WEEKDAY_OPTIONS = WEEKDAYS_SHORT.map((label, i) => ({
   value: i + 1,
   label,
 }));
 export const REPEAT_OPTIONS: { value: Repeat; label: string }[] = [
-  { value: "every", label: "Every week" },
-  { value: "odd", label: "Odd weeks" },
-  { value: "even", label: "Even weeks" },
+  { value: 'every', label: 'Every week' },
+  { value: 'odd', label: 'Odd weeks' },
+  { value: 'even', label: 'Even weeks' },
 ];
 
 export interface ChangeValues {
   type: ClassType;
-  weekday: ClassPattern["weekday"];
+  weekday: ClassPattern['weekday'];
   start: string;
   end: string;
   room: string;
@@ -47,11 +47,11 @@ export function droppedWarning(
   const n = dropped.overrides.length;
   const m = dropped.notes.length;
   const parts = [
-    n > 0 ? `${n} one-off ${n === 1 ? "change" : "changes"}` : null,
-    m > 0 ? `${m} ${m === 1 ? "note" : "notes"}` : null,
+    n > 0 ? `${n} one-off ${n === 1 ? 'change' : 'changes'}` : null,
+    m > 0 ? `${m} ${m === 1 ? 'note' : 'notes'}` : null,
   ].filter((x): x is string => x !== null);
   const date = shortDate(from);
-  return `${parts.join(" and ")} on or after ${date} won’t carry over to the new schedule. Your notes stay in Notes.`;
+  return `${parts.join(' and ')} on or after ${date} won’t carry over to the new schedule. Your notes stay in Notes.`;
 }
 
 export function ChangeForm({
@@ -94,7 +94,7 @@ export function ChangeForm({
     try {
       onSave(from, {
         type,
-        weekday: weekday as ClassPattern["weekday"],
+        weekday: weekday as ClassPattern['weekday'],
         start,
         end,
         room: online ? pattern.room : room.trim(),
@@ -104,7 +104,7 @@ export function ChangeForm({
       });
     } catch (e) {
       setWarning(null);
-      setFailure(e instanceof Error ? e.message : "Could not save the change.");
+      setFailure(e instanceof Error ? e.message : 'Could not save the change.');
     }
   };
   const submit = () => {
@@ -123,12 +123,7 @@ export function ChangeForm({
         error={fromError}
         placeholder="2026-11-09"
       />
-      <Chips
-        label="Type"
-        options={TYPE_OPTIONS}
-        value={type}
-        onChange={edit(setType)}
-      />
+      <Chips label="Type" options={TYPE_OPTIONS} value={type} onChange={edit(setType)} />
       <Chips
         label="Weekday"
         options={WEEKDAY_OPTIONS}
@@ -149,21 +144,14 @@ export function ChangeForm({
         error={errors.end}
         placeholder="11:10"
       />
-      {online ? null : (
-        <Field label="Room" value={room} onChangeText={edit(setRoom)} />
-      )}
+      {online ? null : <Field label="Room" value={room} onChangeText={edit(setRoom)} />}
       <Field
         label="Teacher"
         value={teacher}
         onChangeText={edit(setTeacher)}
         autoCapitalize="words"
       />
-      <Chips
-        label="Repeats"
-        options={REPEAT_OPTIONS}
-        value={repeat}
-        onChange={edit(setRepeat)}
-      />
+      <Chips label="Repeats" options={REPEAT_OPTIONS} value={repeat} onChange={edit(setRepeat)} />
       <View style={styles.switchRow}>
         <Text style={styles.switchLabel}>Online</Text>
         <Switch
@@ -179,20 +167,12 @@ export function ChangeForm({
           <Text>{warning}</Text>
           <View style={styles.buttons}>
             <Button label="Save anyway" onPress={save} />
-            <Button
-              label="Go back"
-              kind="outline"
-              onPress={() => setWarning(null)}
-            />
+            <Button label="Go back" kind="outline" onPress={() => setWarning(null)} />
           </View>
         </View>
       ) : (
         <View style={styles.buttons}>
-          <Button
-            label="Save for every week"
-            disabled={!valid}
-            onPress={submit}
-          />
+          <Button label="Save for every week" disabled={!valid} onPress={submit} />
           <Button label="Cancel" kind="outline" onPress={onCancel} />
         </View>
       )}
@@ -202,11 +182,11 @@ export function ChangeForm({
 
 const styles = StyleSheet.create({
   form: { gap: theme.space(3), paddingVertical: theme.space(3) },
-  buttons: { flexDirection: "row", gap: theme.space(3), flexWrap: "wrap" },
+  buttons: { flexDirection: 'row', gap: theme.space(3), flexWrap: 'wrap' },
   switchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     minHeight: 44,
   },
   switchLabel: { fontFamily: theme.font.appBold },

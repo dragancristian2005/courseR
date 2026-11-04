@@ -1,13 +1,7 @@
 import type { Base, PlannerData, Semester } from '../domain/types';
 
 export type Collection =
-  | 'subjects'
-  | 'patterns'
-  | 'overrides'
-  | 'exams'
-  | 'homework'
-  | 'notes'
-  | 'links';
+  'subjects' | 'patterns' | 'overrides' | 'exams' | 'homework' | 'notes' | 'links';
 
 export interface Repository {
   /**

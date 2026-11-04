@@ -44,7 +44,9 @@ function NavBar({ state, layout }: BarProps & { layout: Layout }) {
     return (
       <View style={[styles.tabBar, { paddingBottom: insets.bottom }]}>
         <Rule weight="heavy" />
-        <View accessibilityRole="tablist" style={styles.tabRow}>{items}</View>
+        <View accessibilityRole="tablist" style={styles.tabRow}>
+          {items}
+        </View>
       </View>
     );
   }
