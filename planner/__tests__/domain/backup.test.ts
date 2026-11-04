@@ -143,4 +143,53 @@ describe("backup", () => {
       });
     }
   });
+
+  describe("record shapes", () => {
+    const semester = () => ({
+      id: "sem",
+      updatedAt: 1,
+      name: "Autumn",
+      firstDay: "2026-10-05",
+      lastDay: "2027-01-29",
+      breaks: [{ from: "2026-12-21", to: "2027-01-03" }],
+      parityOverrides: { 3: "even" },
+    });
+    const withData = (over: Record<string, unknown>) =>
+      parseBackup(wrap({ data: { ...emptyPlannerData(), ...over } }));
+    const rejected = { ok: false, error: NOT_BACKUP };
+
+    it("accepts a well-formed semester", () => {
+      expect(withData({ semester: semester() }).ok).toBe(true);
+    });
+
+    it.each([
+      ["a non-object record", [5]],
+      ["a missing id", [{ updatedAt: 1 }]],
+      ["a non-string id", [{ id: 4, updatedAt: 1 }]],
+      ["an id with a slash", [{ id: "a/b", updatedAt: 1 }]],
+      ["an empty id", [{ id: "", updatedAt: 1 }]],
+      ["a missing updatedAt", [{ id: "a" }]],
+      ["a string updatedAt", [{ id: "a", updatedAt: "1" }]],
+      ["a non-finite updatedAt", [{ id: "a", updatedAt: null }]],
+    ])("rejects %s in any collection", (_n, list) => {
+      for (const key of ["subjects", "patterns", "overrides", "exams", "homework", "notes", "links"]) {
+        expect(withData({ [key]: list })).toEqual(rejected);
+      }
+    });
+
+    it.each([
+      ["a missing id", { id: undefined }],
+      ["a bad id", { id: "x y" }],
+      ["a non-numeric updatedAt", { updatedAt: "now" }],
+      ["an invalid firstDay", { firstDay: "2026-02-30" }],
+      ["a non-string lastDay", { lastDay: 20270129 }],
+      ["non-array breaks", { breaks: {} }],
+      ["a break with a bad date", { breaks: [{ from: "2026-12-21", to: "soon" }] }],
+      ["a break that is not an object", { breaks: ["x"] }],
+      ["non-object parityOverrides", { parityOverrides: [] }],
+      ["a bad parity value", { parityOverrides: { 3: "both" } }],
+    ])("rejects a semester with %s", (_n, over) => {
+      expect(withData({ semester: { ...semester(), ...over } })).toEqual(rejected);
+    });
+  });
 });

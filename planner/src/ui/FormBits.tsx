@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { isDate } from "../domain/dates";
 import { Text } from "./Text";
 import { theme } from "./theme";
 
@@ -10,17 +11,7 @@ export function isTime(t: string): boolean {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(t);
 }
 
-export function isDate(d: string): boolean {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
-  if (!m) return false;
-  const [y, mo, day] = [Number(m[1]), Number(m[2]), Number(m[3])];
-  const dt = new Date(Date.UTC(y, mo - 1, day));
-  return (
-    dt.getUTCFullYear() === y &&
-    dt.getUTCMonth() === mo - 1 &&
-    dt.getUTCDate() === day
-  );
-}
+export { isDate };
 
 export function timeErrors(
   start: string,

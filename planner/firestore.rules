@@ -4,8 +4,11 @@ service cloud.firestore {
     // Each account can only reach its own data. Records are never hard-deleted
     // (deletions are tombstones), and an update must be strictly newer than the stored one.
     match /users/{uid}/{document=**} {
-      allow read, create: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.updatedAt is number;
       allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.updatedAt is number
         && request.resource.data.updatedAt > resource.data.updatedAt;
     }
     match /{document=**} {

@@ -1,3 +1,4 @@
+import { isDate } from './dates';
 import { isSafeLinkUrl } from './links';
 import type { PlannerData } from './types';
 
@@ -21,6 +22,35 @@ function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
+const ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return (
+    isObject(v) &&
+    typeof v.id === 'string' &&
+    ID_PATTERN.test(v.id) &&
+    typeof v.updatedAt === 'number' &&
+    Number.isFinite(v.updatedAt)
+  );
+}
+
+function isDateString(v: unknown): boolean {
+  return typeof v === 'string' && isDate(v);
+}
+
+function isSemester(v: unknown): boolean {
+  if (!isRecord(v)) return false;
+  if (!isDateString(v.firstDay) || !isDateString(v.lastDay)) return false;
+  if (!Array.isArray(v.breaks)) return false;
+  if (!v.breaks.every((b) => isObject(b) && isDateString(b.from) && isDateString(b.to))) {
+    return false;
+  }
+  return (
+    isObject(v.parityOverrides) &&
+    Object.values(v.parityOverrides).every((p) => p === 'odd' || p === 'even')
+  );
+}
+
 export function parseBackup(json: string): ParseResult {
   let parsed: unknown;
   try {
@@ -33,9 +63,10 @@ export function parseBackup(json: string): ParseResult {
   if (typeof version === 'number' && version > 1) return { ok: false, error: NEWER };
   if (version !== 1) return { ok: false, error: NOT_BACKUP };
   if (!isObject(data)) return { ok: false, error: NOT_BACKUP };
-  if (data.semester !== null && !isObject(data.semester)) return { ok: false, error: NOT_BACKUP };
+  if (data.semester !== null && !isSemester(data.semester)) return { ok: false, error: NOT_BACKUP };
   for (const key of LIST_KEYS) {
-    if (!Array.isArray(data[key])) return { ok: false, error: NOT_BACKUP };
+    const list = data[key];
+    if (!Array.isArray(list) || !list.every(isRecord)) return { ok: false, error: NOT_BACKUP };
   }
   const links = data.links as unknown[];
   if (!links.every((l) => isObject(l) && typeof l.url === 'string' && isSafeLinkUrl(l.url))) {
