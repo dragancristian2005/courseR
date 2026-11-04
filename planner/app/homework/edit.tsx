@@ -13,7 +13,11 @@ import {
   MSG_DATE,
   MSG_TIME,
 } from "../../src/ui/FormBits";
-import { DeleteBlock, FormScreen } from "../../src/ui/FormScreen";
+import {
+  DeleteBlock,
+  FormScreen,
+  MissingRecord,
+} from "../../src/ui/FormScreen";
 
 function HomeworkForm() {
   const { id, subjectId } = useLocalSearchParams<{
@@ -118,6 +122,10 @@ function HomeworkForm() {
 
 /** The form reads its initial values once, so it mounts only after the data has loaded. */
 export default function EditHomework() {
-  const { ready } = useStore();
-  return ready ? <HomeworkForm /> : null;
+  const { ready, data } = useStore();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  if (!ready) return null;
+  if (id && !data.homework.some((r) => r.id === id && !r.deleted))
+    return <MissingRecord />;
+  return <HomeworkForm />;
 }

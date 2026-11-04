@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { BackLink } from "./BackLink";
+import { BackLink, goBack } from "./BackLink";
 import { Button } from "./Button";
 import { Text } from "./Text";
 import { TextButton } from "./TextButton";
@@ -78,3 +78,12 @@ const styles = StyleSheet.create({
   ask: { fontFamily: theme.font.appBold, color: theme.color.now },
   buttons: { flexDirection: "row", gap: theme.space(3), flexWrap: "wrap" },
 });
+
+/** Shown when an edit screen is opened for a record that no longer exists. */
+export function MissingRecord() {
+  return (
+    <FormScreen title="This item no longer exists.">
+      <Button label="Go back" onPress={goBack} />
+    </FormScreen>
+  );
+}

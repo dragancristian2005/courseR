@@ -261,3 +261,57 @@ describe("Note editor", () => {
     expect(remove).toHaveBeenCalledWith("notes", "n1");
   });
 });
+
+describe("Missing record", () => {
+  it("shows a dead end instead of a create form", async () => {
+    mockParams = { id: "gone" };
+    const { upsert } = await setup(EditNote);
+    expect(screen.getByText("This item no longer exists.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Save/ })).toBeNull();
+    await press("Go back");
+    expect(router.back).toHaveBeenCalled();
+    expect(upsert).not.toHaveBeenCalled();
+  });
+});
+
+describe("Note editor, unresolved links", () => {
+  it("keeps sessionId and subjectId on a text-only edit when the class is gone", async () => {
+    mockParams = { id: "n1" };
+    const { upsert } = await setup(EditNote, {
+      ...base,
+      patterns: [],
+      notes: [note({})],
+    });
+    expect(
+      screen.getByRole("radio", {
+        name: "This class (no longer in your timetable)",
+        selected: true,
+      }),
+    ).toBeTruthy();
+    await type("Text", "Edited");
+    await press("Save note");
+    expect(upsert).toHaveBeenCalledWith(
+      "notes",
+      expect.objectContaining({
+        id: "n1",
+        text: "Edited",
+        sessionId: "p1:2026-11-02",
+        subjectId: "tss",
+      }),
+    );
+  });
+
+  it("lists the current subject even when it is switched off", async () => {
+    mockParams = { id: "n2" };
+    await setup(EditNote, {
+      ...base,
+      subjects: [tss, { ...web, attending: false }, net],
+    });
+    expect(
+      screen.getByRole("radio", {
+        name: "Tehnologii web, whole subject",
+        selected: true,
+      }),
+    ).toBeTruthy();
+  });
+});

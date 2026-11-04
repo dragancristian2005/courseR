@@ -228,3 +228,15 @@ describe("Exam form", () => {
     expect(remove).toHaveBeenCalledWith("exams", "e1");
   });
 });
+
+describe("Missing record", () => {
+  it("shows a dead end instead of a create form", async () => {
+    mockParams = { id: "gone" };
+    const { upsert } = await setup(EditExam);
+    expect(screen.getByText("This item no longer exists.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Save/ })).toBeNull();
+    await press("Go back");
+    expect(router.back).toHaveBeenCalled();
+    expect(upsert).not.toHaveBeenCalled();
+  });
+});

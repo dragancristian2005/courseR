@@ -7,7 +7,11 @@ import type { Note } from "../../src/domain/types";
 import { goBack } from "../../src/ui/BackLink";
 import { Button } from "../../src/ui/Button";
 import { Chips, styles as formStyles } from "../../src/ui/FormBits";
-import { DeleteBlock, FormScreen } from "../../src/ui/FormScreen";
+import {
+  DeleteBlock,
+  FormScreen,
+  MissingRecord,
+} from "../../src/ui/FormScreen";
 import { sessionRef, shortDate } from "../../src/ui/format";
 import { Text } from "../../src/ui/Text";
 import { theme } from "../../src/ui/theme";
@@ -27,9 +31,11 @@ function NoteForm() {
     : undefined;
   const sessionId = existing ? existing.sessionId : (params.sessionId ?? null);
   const ref = sessionRef(data, sessionId);
-  const subjects = data.subjects.filter((s) => !s.deleted && s.attending);
+  const subjects = data.subjects.filter(
+    (s) => !s.deleted && (s.attending || s.id === existing?.subjectId),
+  );
 
-  const initialLink = ref
+  const initialLink = sessionId
     ? SESSION
     : existing?.subjectId
       ? existing.subjectId
@@ -44,18 +50,20 @@ function NoteForm() {
 
   const options = [
     { value: NONE, label: "Not linked" },
-    ...(ref
+    ...(sessionId
       ? [
           {
             value: SESSION,
-            label: `This class: ${[
-              ref.subject?.abbreviation,
-              ref.pattern.type,
-              "on",
-              shortDate(ref.date),
-            ]
-              .filter(Boolean)
-              .join(" ")}`,
+            label: ref
+              ? `This class: ${[
+                  ref.subject?.abbreviation,
+                  ref.pattern.type,
+                  "on",
+                  shortDate(ref.date),
+                ]
+                  .filter(Boolean)
+                  .join(" ")}`
+              : "This class (no longer in your timetable)",
           },
         ]
       : []),
@@ -72,7 +80,7 @@ function NoteForm() {
       sessionId: link === SESSION ? sessionId : null,
       subjectId:
         link === SESSION
-          ? (ref?.pattern.subjectId ?? null)
+          ? (ref?.pattern.subjectId ?? existing?.subjectId ?? null)
           : link === NONE
             ? null
             : link,
@@ -130,8 +138,12 @@ function NoteForm() {
 
 /** The form reads its initial values once, so it mounts only after the data has loaded. */
 export default function EditNote() {
-  const { ready } = useStore();
-  return ready ? <NoteForm /> : null;
+  const { ready, data } = useStore();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  if (!ready) return null;
+  if (id && !data.notes.some((r) => r.id === id && !r.deleted))
+    return <MissingRecord />;
+  return <NoteForm />;
 }
 
 const styles = StyleSheet.create({

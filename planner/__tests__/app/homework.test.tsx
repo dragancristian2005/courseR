@@ -210,3 +210,15 @@ describe("Homework form", () => {
     ).toBeNull();
   });
 });
+
+describe("Missing record", () => {
+  it("shows a dead end instead of a create form", async () => {
+    mockParams = { id: "gone" };
+    const { upsert } = await setup(EditHomework);
+    expect(screen.getByText("This item no longer exists.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Save/ })).toBeNull();
+    await press("Go back");
+    expect(router.back).toHaveBeenCalled();
+    expect(upsert).not.toHaveBeenCalled();
+  });
+});

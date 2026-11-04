@@ -7,7 +7,11 @@ import type { Link } from "../../src/domain/types";
 import { goBack } from "../../src/ui/BackLink";
 import { Button } from "../../src/ui/Button";
 import { Chips, Field } from "../../src/ui/FormBits";
-import { DeleteBlock, FormScreen } from "../../src/ui/FormScreen";
+import {
+  DeleteBlock,
+  FormScreen,
+  MissingRecord,
+} from "../../src/ui/FormScreen";
 
 const MSG_UNSAFE = "Use a web address that starts with https://.";
 
@@ -107,6 +111,10 @@ function LinkForm() {
 
 /** The form reads its initial values once, so it mounts only after the data has loaded. */
 export default function EditLink() {
-  const { ready } = useStore();
-  return ready ? <LinkForm /> : null;
+  const { ready, data } = useStore();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  if (!ready) return null;
+  if (id && !data.links.some((r) => r.id === id && !r.deleted))
+    return <MissingRecord />;
+  return <LinkForm />;
 }

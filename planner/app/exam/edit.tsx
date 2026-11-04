@@ -13,7 +13,11 @@ import {
   MSG_DATE,
   MSG_TIME,
 } from "../../src/ui/FormBits";
-import { DeleteBlock, FormScreen } from "../../src/ui/FormScreen";
+import {
+  DeleteBlock,
+  FormScreen,
+  MissingRecord,
+} from "../../src/ui/FormScreen";
 
 function ExamForm() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -113,6 +117,10 @@ function ExamForm() {
 
 /** The form reads its initial values once, so it mounts only after the data has loaded. */
 export default function EditExam() {
-  const { ready } = useStore();
-  return ready ? <ExamForm /> : null;
+  const { ready, data } = useStore();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  if (!ready) return null;
+  if (id && !data.exams.some((r) => r.id === id && !r.deleted))
+    return <MissingRecord />;
+  return <ExamForm />;
 }
