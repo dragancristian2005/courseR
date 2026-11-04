@@ -117,6 +117,8 @@ describe("Class detail", () => {
     expect(screen.getByText("048")).toBeTruthy();
     expect(screen.getByText("Mutescul A.")).toBeTruthy();
     expect(screen.getByText("Every week")).toBeTruthy();
+    expect(screen.getByText("Week")).toBeTruthy();
+    expect(screen.getByText("Week 6, even week")).toBeTruthy();
     expect(screen.getByText("Notes from this seminar")).toBeTruthy();
     expect(screen.getByText("All TSS notes")).toBeTruthy();
     expect(screen.getByText("No links yet.")).toBeTruthy();
@@ -636,6 +638,14 @@ describe("Add a class", () => {
     expect(
       sessionsBetween(data, "2026-09-14", "2026-09-20").map((s) => s.id),
     ).toEqual([`${pattern.id}:2026-09-14`]);
+  });
+
+  it("lists only attending subjects, plus New subject", async () => {
+    const skipped: Subject = { ...tss, id: "skip", name: "Skipped", attending: false };
+    await addClass({ semester, subjects: [tss, skipped] });
+    expect(screen.getByRole("radio", { name: "Teoria Sistemelor" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "New subject" })).toBeTruthy();
+    expect(screen.queryByRole("radio", { name: "Skipped" })).toBeNull();
   });
 
   it("uses an existing subject and today when there is no semester", async () => {

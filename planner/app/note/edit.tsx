@@ -1,3 +1,4 @@
+import { stamp } from "../../src/domain/edits";
 import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
@@ -83,7 +84,7 @@ function NoteForm() {
             ? null
             : link,
       createdAt: existing?.createdAt ?? Date.now(),
-      updatedAt: Date.now(),
+      updatedAt: stamp(existing),
     };
     void repo.upsert("notes", note);
     goBack();

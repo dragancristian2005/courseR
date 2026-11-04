@@ -9,6 +9,7 @@ import {
   changeEveryWeek,
   droppedByChange,
   moveThisWeek,
+  stamp,
 } from "../domain/edits";
 import {
   dueLabel,
@@ -18,6 +19,7 @@ import {
 } from "../domain/selectors";
 import { resolveSession, sessionsBetween } from "../domain/sessions";
 import type { ISODate, Repeat } from "../domain/types";
+import { weekFor } from "../domain/weeks";
 import { goBack } from "./BackLink";
 import { Button } from "./Button";
 import { ChangeForm, REPEAT_OPTIONS } from "./ChangeForm";
@@ -131,6 +133,13 @@ export function ClassDetail({
   const notes = notesFor(data, { sessionId: session.id });
   const q = `subjectId=${encodeURIComponent(subject.id)}`;
 
+  const week = data.semester ? weekFor(data.semester, session.date) : null;
+  const weekRow = !week
+    ? null
+    : week.isBreak
+      ? "Break"
+      : `Week ${week.number}, ${week.parity} week`;
+
   const rows: [string, string][] = [
     ["Time", `${session.start} to ${session.end}`],
     ["Room", session.online ? "Online" : session.room],
@@ -138,6 +147,7 @@ export function ClassDetail({
       ? ([["Teacher", session.teacher]] as [string, string][])
       : []),
     ["Repeats", repeatLabel(pattern.repeat)],
+    ...(weekRow ? ([["Week", weekRow]] as [string, string][]) : []),
   ];
 
   const saveChange = (
@@ -148,7 +158,7 @@ export function ClassDetail({
       pattern,
       from,
       changes,
-      Date.now(),
+      stamp(pattern),
       newId,
     );
     void repo.upsert("patterns", ended);
@@ -252,7 +262,7 @@ export function ClassDetail({
           onSave={(to) => {
             void repo.upsert(
               "overrides",
-              moveThisWeek(session, to, Date.now()),
+              moveThisWeek(session, to, stamp(override)),
             );
             setMode("none");
           }}
@@ -277,7 +287,7 @@ export function ClassDetail({
               onPress={() => {
                 void repo.upsert(
                   "overrides",
-                  cancelThisWeek(session, Date.now()),
+                  cancelThisWeek(session, stamp(override)),
                 );
                 leave();
               }}
@@ -349,7 +359,7 @@ export function ClassDetail({
                     void repo.upsert("homework", {
                       ...h,
                       done: true,
-                      updatedAt: Date.now(),
+                      updatedAt: stamp(h),
                     })
                   }
                   style={styles.checkHit}

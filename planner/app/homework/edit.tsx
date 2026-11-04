@@ -1,3 +1,4 @@
+import { stamp } from "../../src/domain/edits";
 import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { newId } from "../../src/data/ids";
@@ -55,7 +56,7 @@ function HomeworkForm() {
       due,
       dueTime: dueTime === "" ? null : dueTime,
       done: existing?.done ?? false,
-      updatedAt: Date.now(),
+      updatedAt: stamp(existing),
     };
     void repo.upsert("homework", hw);
     goBack();

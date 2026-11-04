@@ -1,3 +1,4 @@
+import { stamp } from "../../src/domain/edits";
 import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useStore } from "../../src/data/useStore";
@@ -78,7 +79,7 @@ function Homeworks({
                   void repo.upsert("homework", {
                     ...hw,
                     done: true,
-                    updatedAt: Date.now(),
+                    updatedAt: stamp(hw),
                   })
                 }
                 style={styles.checkHit}

@@ -32,7 +32,7 @@ function initialsOf(name: string): string {
 
 export default function EditClass() {
   const { data, repo } = useStore();
-  const subjects = data.subjects.filter((s) => !s.deleted);
+  const subjects = data.subjects.filter((s) => !s.deleted && s.attending);
   const [chosen, setChosen] = useState<string | null>(null);
   const subjectId = chosen ?? (subjects.length === 0 ? NEW : null);
   const setSubjectId = setChosen;

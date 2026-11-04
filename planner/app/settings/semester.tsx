@@ -1,3 +1,4 @@
+import { stamp } from "../../src/domain/edits";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useStore } from "../../src/data/useStore";
@@ -126,7 +127,7 @@ function SemesterSetup() {
     void repo.saveSemester({
       ...draft,
       parityOverrides: keptOverrides,
-      updatedAt: Date.now(),
+      updatedAt: stamp(existing ?? undefined),
     });
     setSaved(true);
   };

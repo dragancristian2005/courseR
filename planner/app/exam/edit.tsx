@@ -1,3 +1,4 @@
+import { stamp } from "../../src/domain/edits";
 import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { newId } from "../../src/data/ids";
@@ -55,7 +56,7 @@ function ExamForm() {
       date,
       start: start === "" ? null : start,
       room: room.trim(),
-      updatedAt: Date.now(),
+      updatedAt: stamp(existing),
     };
     void repo.upsert("exams", exam);
     goBack();

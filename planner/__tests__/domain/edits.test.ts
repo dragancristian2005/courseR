@@ -3,6 +3,7 @@ import {
   changeEveryWeek,
   droppedByChange,
   OPEN_START,
+  stamp,
   moveThisWeek,
 } from "../../src/domain/edits";
 import { sessionsBetween, sessionById } from "../../src/domain/sessions";
@@ -331,5 +332,23 @@ describe("droppedByChange", () => {
   it("returns nothing when everything is earlier", () => {
     const r = droppedByChange(data, "p1", "2026-12-01");
     expect(r).toEqual({ overrides: [], notes: [] });
+  });
+});
+
+describe("stamp", () => {
+  afterEach(() => jest.useRealTimers());
+
+  it("is now for a new record or an older one", () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(1000);
+    expect(stamp()).toBe(1000);
+    expect(stamp({ updatedAt: 5 })).toBe(1000);
+  });
+
+  it("is strictly newer than the record it replaces", () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(1000);
+    expect(stamp({ updatedAt: 1000 })).toBe(1001);
+    expect(stamp({ updatedAt: 5000 })).toBe(5001);
   });
 });

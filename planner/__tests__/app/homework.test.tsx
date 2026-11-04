@@ -111,6 +111,18 @@ describe("Homework tab", () => {
     );
   });
 
+  it("an edit is stamped newer than a record written in the future", async () => {
+    const future = Date.now() + 60_000;
+    const { upsert } = await setup(HomeworkTab, {
+      ...base,
+      homework: [hw({ updatedAt: future })],
+    });
+    await fireEvent.press(
+      screen.getByRole("checkbox", { name: "Problem set 3, not done" }),
+    );
+    expect(upsert.mock.calls[0][1].updatedAt).toBe(future + 1);
+  });
+
   it("ticking a row upserts done:true", async () => {
     const { upsert } = await setup(HomeworkTab);
     await fireEvent.press(

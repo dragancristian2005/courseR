@@ -7,6 +7,14 @@ import type { ClassPattern, HHMM, ISODate, Note, PlannerData, Session, SessionOv
  */
 export const OPEN_START: ISODate = '0000-01-01';
 
+/**
+ * Timestamp for an edit: now, but always strictly newer than the record being replaced, so
+ * last-write-wins accepts the edit even when the clock is behind or two edits share a millisecond.
+ */
+export function stamp(prev?: { updatedAt: number }): number {
+  return Math.max(Date.now(), (prev?.updatedAt ?? 0) + 1);
+}
+
 function overrideId(session: Session): string {
   return `ov_${session.id.replace(':', '_')}`;
 }

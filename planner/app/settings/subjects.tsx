@@ -1,3 +1,4 @@
+import { stamp } from "../../src/domain/edits";
 import { useState } from "react";
 import { View } from "react-native";
 import { newId } from "../../src/data/ids";
@@ -30,7 +31,7 @@ export default function Subjects() {
   ) => {
     write(
       existing
-        ? { ...existing, ...v, updatedAt: Date.now() }
+        ? { ...existing, ...v, updatedAt: stamp(existing) }
         : { id: newId(), ...v, attending: true, updatedAt: Date.now() },
     );
     setEditing(null);
@@ -43,7 +44,7 @@ export default function Subjects() {
           subject={s}
           detail={subjectDetail(s, data.patterns)}
           onToggle={(on) =>
-            write({ ...s, attending: on, updatedAt: Date.now() })
+            write({ ...s, attending: on, updatedAt: stamp(s) })
           }
           onEdit={() => setEditing(s.id)}
         />

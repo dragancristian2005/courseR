@@ -1,3 +1,4 @@
+import { stamp } from "../../src/domain/edits";
 import { router } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -24,7 +25,7 @@ export default function HomeworkTab() {
     void repo.upsert("homework", {
       ...h,
       done: !h.done,
-      updatedAt: Date.now(),
+      updatedAt: stamp(h),
     });
   const list = (items: Homework[]) =>
     items.map((h) => (

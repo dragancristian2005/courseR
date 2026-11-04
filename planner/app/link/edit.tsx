@@ -1,3 +1,4 @@
+import { stamp } from "../../src/domain/edits";
 import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { newId } from "../../src/data/ids";
@@ -58,7 +59,7 @@ function LinkForm() {
       title: title.trim(),
       url: normalized,
       subjectId: owner === "" ? null : owner,
-      updatedAt: Date.now(),
+      updatedAt: stamp(existing),
     };
     void repo.upsert("links", link);
     goBack();
