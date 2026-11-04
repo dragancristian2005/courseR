@@ -167,13 +167,21 @@ describe('Week screen', () => {
 
   it('hides subjects that are switched off', async () => {
     await setup({ ...base, subjects: [tss, { ...alg, attending: false }] });
-    await fireEvent.press(screen.getByRole('button', { name: 'Next week' }));
+    expect(screen.getByText('TSS')).toBeTruthy();
     expect(screen.queryByText('ALG')).toBeNull();
+  });
+
+  it('shows the subject when it is switched on (control)', async () => {
+    await setup();
+    expect(screen.getByRole('button', { name: /Algebră, seminar, Wed 14:40 to 16:10/ })).toBeTruthy();
+    expect(screen.getByText('ALG')).toBeTruthy();
   });
 
   it('prompts when there is no semester', async () => {
     await setup({});
     expect(screen.getByText('Set up your semester')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Next week' })).toBeNull();
+    expect(screen.queryByText('Week')).toBeNull();
     await fireEvent.press(screen.getByText('Set up semester'));
     expect(router.push).toHaveBeenCalledWith('/settings/semester');
   });

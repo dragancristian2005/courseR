@@ -77,6 +77,8 @@ export default function WeekScreen() {
     <View style={styles.screen}>
       <ScrollView style={styles.main} contentContainerStyle={styles.content}>
         <View style={styles.inner}>
+          {needsSetup ? null : (
+          <>
           <View style={styles.headerRow}>
             <View style={styles.titles}>
               <Text style={styles.title}>{title}</Text>
@@ -112,6 +114,8 @@ export default function WeekScreen() {
             </View>
           </View>
           <Rule weight="heavy" />
+          </>
+          )}
           {body}
         </View>
       </ScrollView>

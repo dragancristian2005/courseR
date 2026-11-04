@@ -161,8 +161,8 @@ export function WeekGrid({
                       </>
                     ) : (
                       <>
-                        <Text style={styles.cellName}>{subject?.abbreviation ?? name}</Text>
-                        <Text style={styles.cellMeta}>{s.online ? 'Online' : s.room}</Text>
+                        <Text numberOfLines={1} ellipsizeMode="tail" style={styles.cellName}>{subject?.abbreviation ?? name}</Text>
+                        <Text numberOfLines={1} ellipsizeMode="tail" style={styles.cellMeta}>{s.online ? 'Online' : s.room}</Text>
                       </>
                     )}
                   </Pressable>
