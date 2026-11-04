@@ -76,3 +76,12 @@ export function sessionRef(
     date: sessionId.slice(i + 1),
   };
 }
+
+/** "2 – 6 Nov" or "30 Nov – 4 Dec" (same month names the month once). */
+export function dayRange(from: ISODate, to: ISODate): string {
+  const [, m1, d1] = from.split("-").map(Number);
+  const [, m2, d2] = to.split("-").map(Number);
+  return m1 === m2
+    ? `${d1} – ${d2} ${MONTHS[m2 - 1]}`
+    : `${d1} ${MONTHS[m1 - 1]} – ${d2} ${MONTHS[m2 - 1]}`;
+}
