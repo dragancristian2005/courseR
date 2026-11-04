@@ -9,7 +9,10 @@ A study planner for a university timetable, homework, exams and notes. Phase 1 r
 3. Under Firestore Database, create a database in production mode and pick a European location.
 4. Under Project settings, register a web app and copy its config.
 5. Copy `.env.example` to `.env` and fill in the six `EXPO_PUBLIC_FIREBASE_*` values.
-6. Once hosting is deployed (section 3), set `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN` to `<project-id>.web.app` and deploy again. The installed app signs in by redirect, and that only works when the auth domain is the same as the domain the app is served from. Otherwise iOS blocks the sign-in result.
+6. Do this only after the first deploy (section 3). Until then keep the default `<project-id>.firebaseapp.com` as the auth domain. The installed app signs in by redirect, which only works when the auth domain is the domain the app is served from, so then:
+   1. Set `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN` to `<project-id>.web.app` in `.env` and deploy again.
+   2. In the Google Cloud console, open APIs & Services, then Credentials, then the "Web client (auto created by Google Service)" entry. Add `https://<project-id>.web.app/__/auth/handler` under "Authorised redirect URIs". Without this, sign-in in the installed app fails with "redirect_uri_mismatch".
+   3. In the Firebase console, open Authentication, then Settings, then Authorised domains, and check that `<project-id>.web.app` is listed. It is by default.
 
 ## 2. Run locally
 
