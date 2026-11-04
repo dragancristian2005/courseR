@@ -1,0 +1,6 @@
+dist
+node_modules
+.expo
+package-lock.json
+public/icons
+public/index.html

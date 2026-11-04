@@ -11,6 +11,7 @@
     "expo-linking": "~58.0.15",
     "expo-router": "~58.0.29",
     "expo-splash-screen": "~58.0.12",
+    "firebase": "^13.2.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.1",
@@ -25,6 +26,7 @@
     "@types/react": "~19.3.0",
     "jest": "^30.5.2",
     "jest-expo": "^58.0.13",
+    "prettier": "^3.9.10",
     "react-test-renderer": "19.3.0",
     "typescript": "~6.0.3"
   },
@@ -34,7 +36,12 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "jest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:web": "expo export -p web",
+    "deploy": "expo export -p web && firebase deploy --only hosting,firestore:rules",
+    "icons": "node scripts/make-icons.js",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "private": true,
   "jest": {
