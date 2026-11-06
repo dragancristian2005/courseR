@@ -59,3 +59,8 @@ export function isDate(d: string): boolean {
   const dt = new Date(Date.UTC(y, mo - 1, day));
   return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === day;
 }
+
+/** True for a time written exactly HH:MM (00:00 to 23:59). */
+export function isTime(s: string): boolean {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
+}
