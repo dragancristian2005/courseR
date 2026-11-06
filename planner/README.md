@@ -28,9 +28,11 @@ Run the checks with `npx jest` and `npx tsc --noEmit`. Regenerate the app icons 
 ```
 npm install -g firebase-tools
 firebase login
-firebase use --add
+firebase use YOUR-PROJECT-ID --alias default
 npm run deploy
 ```
+
+Run these inside `planner/`. Replace `YOUR-PROJECT-ID` with the value of `EXPO_PUBLIC_FIREBASE_PROJECT_ID` from your `.env` (also shown in Firebase console → Project settings → General → Project ID). If `firebase login` can't open a browser, use `firebase login --no-localhost`. The `firebase use` command writes `.firebaserc`, which stays out of git.
 
 `npm run deploy` exports the web app to `dist/` and publishes it to Firebase Hosting together with the Firestore rules. The command prints the Hosting URL.
 
