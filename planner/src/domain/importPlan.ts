@@ -12,7 +12,7 @@ export function subjectKey(s: string): string {
   return fold(s).replace(/[^\p{L}\p{N}]/gu, '');
 }
 
-const RANGE = /(\d+)\s*[-–—]\s*(\d+)/;
+export const RANGE = /(\d+)\s*[-–—]\s*(\d+)/;
 
 function lastInteger(label: string): number | null {
   const m = label.match(/\d+/g);
@@ -40,7 +40,7 @@ export function matchesGroup(blockGroups: string[], group: string): boolean {
   return false;
 }
 
-function uniqueByFold(labels: string[]): string[] {
+export function uniqueByFold(labels: string[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const l of labels) {

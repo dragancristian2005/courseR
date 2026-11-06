@@ -1,5 +1,5 @@
 import type { ExamImport } from '../../src/domain/importFormat';
-import { planExamImport } from '../../src/domain/examImport';
+import { examGroupOptions, planExamImport } from '../../src/domain/examImport';
 import type { Exam, PlannerData, Subject } from '../../src/domain/types';
 
 const empty = (): PlannerData => ({
@@ -123,5 +123,13 @@ describe('planExamImport', () => {
     const r = planExamImport(f, empty(), 'x', 5, counter());
     expect(r.unsure).toEqual({ id1: ['room', 'date'] });
     expect(JSON.stringify(f)).toBe(copy);
+  });
+});
+
+describe('examGroupOptions', () => {
+  it("uses the file's groups, else labels seen in the exams without all or ranges", () => {
+    expect(examGroupOptions({ ...file([]), groups: ['A1', 'a1', 'B2'] })).toEqual(['A1', 'B2']);
+    const f = file([{ groups: ['all'] }, { groups: ['311', '1-3'] }, { groups: ['312', '311'] }]);
+    expect(examGroupOptions(f)).toEqual(['311', '312']);
   });
 });

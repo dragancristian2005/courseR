@@ -1,5 +1,5 @@
 import type { ExamImport } from './importFormat';
-import { matchesGroup, subjectKey } from './importPlan';
+import { fold, matchesGroup, RANGE, subjectKey, uniqueByFold } from './importPlan';
 import type { Exam, PlannerData, Subject } from './types';
 
 function findSubject(data: PlannerData, abbreviation: string, name: string): Subject | null {
@@ -58,4 +58,13 @@ export function planExamImport(
     if (e.unsure.length > 0) unsure[exam.id] = [...e.unsure];
   }
   return { exams, skipped, unsure };
+}
+
+/** Group labels to offer for an exams file: its list, else those seen in the exams. */
+export function examGroupOptions(file: ExamImport): string[] {
+  return file.groups.length > 0
+    ? uniqueByFold(file.groups)
+    : uniqueByFold(
+        file.exams.flatMap((e) => e.groups).filter((g) => fold(g) !== 'all' && !RANGE.test(g)),
+      );
 }
