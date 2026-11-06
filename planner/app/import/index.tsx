@@ -1,5 +1,7 @@
 import { router } from 'expo-router';
+import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { clearPending } from '../../src/data/importSession';
 import { FormScreen } from '../../src/ui/FormScreen';
 import { Rule } from '../../src/ui/Rule';
 import { Text } from '../../src/ui/Text';
@@ -15,6 +17,8 @@ const CHOICES = [
 ] as const;
 
 export default function ImportStart() {
+  // Every import starts fresh: a file left over from an earlier visit is never reviewed.
+  useEffect(() => clearPending(), []);
   return (
     <FormScreen title="Import">
       <View>
