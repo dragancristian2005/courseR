@@ -10,6 +10,8 @@ const ROWS: { label: string; href: Href }[] = [
   { label: 'Semester', href: '/settings/semester' },
   { label: 'Subjects', href: '/settings/subjects' },
   { label: 'Exams', href: '/exams' },
+  { label: 'Import timetable', href: '/import/prompt?kind=timetable' },
+  { label: 'Import exams', href: '/import/prompt?kind=exams' },
   { label: 'Backup', href: '/settings/backup' },
 ];
 

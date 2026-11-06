@@ -11,6 +11,8 @@ export function SetupPrompt({ data }: { data: PlannerData }) {
         body="Add your semester dates, then your classes, to see your day here."
         actionLabel="Set up semester"
         onAction={() => router.push('/settings/semester')}
+        secondaryLabel="Import from a photo"
+        onSecondary={() => router.push('/import')}
       />
     );
   }
@@ -21,6 +23,8 @@ export function SetupPrompt({ data }: { data: PlannerData }) {
         body="Add each class once and it repeats every week."
         actionLabel="Add a class"
         onAction={() => router.push('/class/edit')}
+        secondaryLabel="Import from a photo"
+        onSecondary={() => router.push('/import')}
       />
     );
   }

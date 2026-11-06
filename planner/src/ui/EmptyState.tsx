@@ -8,17 +8,24 @@ export function EmptyState({
   body,
   actionLabel,
   onAction,
+  secondaryLabel,
+  onSecondary,
 }: {
   title: string;
   body: string;
   actionLabel: string;
   onAction: () => void;
+  secondaryLabel?: string;
+  onSecondary?: () => void;
 }) {
   return (
     <View style={styles.box}>
       <Text variant="title">{title}</Text>
       <Text>{body}</Text>
       <Button label={actionLabel} onPress={onAction} />
+      {secondaryLabel ? (
+        <Button kind="outline" label={secondaryLabel} onPress={onSecondary} />
+      ) : null}
     </View>
   );
 }
