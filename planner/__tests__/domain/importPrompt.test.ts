@@ -19,6 +19,18 @@ describe('buildPrompt', () => {
     expect(p).toContain(`"kind": "${kind}"`);
   });
 
+  it('lists the allowed unsure names', () => {
+    expect(buildPrompt('timetable')).toContain(
+      '(one of: subject, type, room, teacher, start, end, weeks)',
+    );
+    expect(buildPrompt('exams')).toContain('(one of: subject, date, start, room)');
+  });
+
+  it('spells out the top-level groups and the exam year rule', () => {
+    expect(buildPrompt('timetable')).toContain('"semigroups" lists every semigroup label');
+    expect(buildPrompt('exams')).toContain('exams in January–August are in 2027');
+  });
+
   it.each(KINDS)('%s prompt round-trips through parseImport', (kind) => {
     const r = parseImport(buildPrompt(kind));
     expect(r.ok).toBe(true);
@@ -56,5 +68,6 @@ describe('examples', () => {
 
   it('exams example has two exams', () => {
     expect(EXAMS_EXAMPLE.exams).toHaveLength(2);
+    expect(EXAMS_EXAMPLE.exams.map((e) => e.unsure)).toEqual([[], ['room']]);
   });
 });

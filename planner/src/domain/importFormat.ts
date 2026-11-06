@@ -14,6 +14,11 @@ const UNSURE_FIELDS: readonly UnsureField[] = [
   'weeks',
 ];
 
+/** Exam field names Claude may flag as hard to read. */
+export type ExamUnsureField = 'subject' | 'date' | 'start' | 'room';
+
+const EXAM_UNSURE_FIELDS: readonly ExamUnsureField[] = ['subject', 'date', 'start', 'room'];
+
 export interface ImportSubject {
   abbreviation: string;
   name: string;
@@ -57,6 +62,7 @@ export interface ImportExam {
   start: HHMM | null;
   room: string | null;
   groups: string[];
+  unsure: ExamUnsureField[];
 }
 
 export interface ExamImport {
@@ -178,6 +184,9 @@ function readExam(raw: unknown, n: number): ImportExam | string {
   }
   const groups = requiredGroups(e.groups);
   if (groups === null) return `${label}: it doesn’t say which groups it’s for.`;
+  const unsure = strList(e.unsure).filter((f): f is ExamUnsureField =>
+    (EXAM_UNSURE_FIELDS as readonly string[]).includes(f),
+  );
   return {
     subject,
     subjectName: optStr(e.subjectName),
@@ -186,6 +195,7 @@ function readExam(raw: unknown, n: number): ImportExam | string {
     start,
     room: optStr(e.room),
     groups,
+    unsure,
   };
 }
 

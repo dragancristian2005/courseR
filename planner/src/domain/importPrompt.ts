@@ -76,6 +76,7 @@ export const EXAMS_EXAMPLE: ExamImport = {
       start: '09:00',
       room: 'A02',
       groups: ['all'],
+      unsure: [],
     },
     {
       subject: 'TSS',
@@ -85,6 +86,7 @@ export const EXAMS_EXAMPLE: ExamImport = {
       start: null,
       room: null,
       groups: ['Grupa 1'],
+      unsure: ['room'],
     },
   ],
 };
@@ -103,13 +105,14 @@ const TIMETABLE_RULES = `Rules:
 - Use exactly the format shown below ("format": "study-planner-import", "version": 1, "kind": "timetable").
 - One entry in "blocks" per class on the sheet. "day" is 1 for Monday up to 7 for Sunday. Times are 24-hour "HH:MM", e.g. "08:00", "09:40".
 - "groups" lists the group column headers the block covers, written exactly as on the sheet (e.g. "Grupa 1"). If a block spans every group, use ["all"].
-- If groups are split into semigroups (e.g. "semigrupa 1"), put the semigroup in "semigroup"; otherwise null.
+- At the top level, "groups" lists every group column header on the sheet, and "semigroups" lists every semigroup label (e.g. ["1", "2"]), or [] if there are none.
+- If groups are split into semigroups (e.g. "semigrupa 1"), put the semigroup in "semigroup"; otherwise null. Write just the semigroup's label, e.g. "1".
 - A cell split by a diagonal line holds two classes that alternate weekly: the TOP-LEFT half is ODD weeks ("weeks": "odd"), the BOTTOM-RIGHT half is EVEN weeks ("weeks": "even"). Make two blocks. Otherwise "weeks": "every".
 - "type": "course" for lectures (marked curs, (C), (CO) or written in full across groups), "seminar" for (S), "lab" for (L). If the sheet doesn't say, use null and add "type" to "unsure".
 - Use the abbreviation as "subject" when the sheet uses one, and list every abbreviation with its full name in "subjects" (match abbreviations to full course names on the sheet; ignore accents and Romanian letters when matching, e.g. ȘP = SP). If no full name is shown, repeat the abbreviation.
 - Several alternative classes in the same slot (optional courses), or the same subject offered at different times where a student attends only one: give them the same short "choiceGroup" id, e.g. "opt-mon-13". Otherwise null.
 - "online": true when the room says online.
-- If you can't read something confidently, still give your best guess and list the field name in "unsure".
+- If you can't read something confidently, still give your best guess and list the field name in "unsure" (one of: subject, type, room, teacher, start, end, weeks).
 - If the sheet shows a "valid from" date, put it in "validFrom" as "YYYY-MM-DD"; otherwise null.
 - Don't invent classes that aren't on the sheet.`;
 
@@ -119,13 +122,13 @@ The attached photo or PDF is the official exam schedule for my year. Read ALL of
 const EXAMS_RULES = `Rules:
 - Use exactly the format shown below ("format": "study-planner-import", "version": 1, "kind": "exams").
 - One entry in "exams" per exam on the sheet.
-- "date" is "YYYY-MM-DD". Assume the academic year shown on the sheet.
+- Dates are "YYYY-MM-DD". Use the academic year shown on the sheet: for "2026–2027", exams in September–December are in 2026 and exams in January–August are in 2027.
 - "start" is the start time as 24-hour "HH:MM", or null if the sheet doesn't give one.
 - "groups" lists the group column headers the exam covers, written exactly as on the sheet (e.g. "Grupa 1"). If an exam is for every group, use ["all"]. The top-level "groups" lists every group on the sheet.
 - "subject" is the abbreviation or name exactly as on the sheet. Put the full course name in "subjectName" if the sheet shows it; otherwise null.
 - "title" is "Exam" unless the sheet says something else, such as "Colocviu" or "Proiect".
 - "room" is the room as written on the sheet, or null.
-- If you can't read something confidently, still give your best guess and list the field name in "unsure".
+- If you can't read something confidently, still give your best guess and list the field name in "unsure" (one of: subject, date, start, room).
 - Don't invent exams that aren't on the sheet.`;
 
 const fence = (value: unknown): string => '```json\n' + JSON.stringify(value, null, 2) + '\n```';

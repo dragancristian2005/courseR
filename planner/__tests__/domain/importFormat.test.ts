@@ -75,7 +75,7 @@ describe('validateImport', () => {
   it('accepts an exam import', () => {
     const f = okFile(exams()) as ExamImport;
     expect(f.kind).toBe('exams');
-    expect(f.exams[0]).toEqual(exam());
+    expect(f.exams[0]).toEqual({ ...exam(), unsure: [] });
   });
 
   it('rejects non-objects and wrong or missing format', () => {
@@ -299,7 +299,15 @@ describe('validateImport', () => {
       start: null,
       room: null,
       groups: ['all'],
+      unsure: [],
     });
+  });
+
+  it('keeps known exam unsure fields and drops the rest', () => {
+    const f = okFile(
+      exams([exam({ unsure: ['room', 'date', 'teacher', 'type', 7] })]),
+    ) as ExamImport;
+    expect(f.exams[0].unsure).toEqual(['room', 'date']);
   });
 
   it('rejects an exam with no subject or groups', () => {
