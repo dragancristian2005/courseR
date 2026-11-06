@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import ImportReview from '../../app/import/review';
 import ImportStart from '../../app/import/index';
@@ -44,6 +44,11 @@ const press = async (name: string | RegExp) =>
   await fireEvent.press(screen.getByRole('button', { name }));
 const radio = async (name: string | RegExp) =>
   await fireEvent.press(screen.getByRole('radio', { name }));
+/** Press Save and wait for the save to finish (it navigates last). */
+async function save() {
+  await press('Save timetable');
+  await waitFor(() => expect(router.replace).toHaveBeenCalled());
+}
 const chooseGroup1 = async () => await radio('Grupa 1');
 /** Answer every open question of Grupa 1. */
 async function answerAll() {
@@ -171,7 +176,7 @@ describe('import review', () => {
     await chooseGroup1();
     await answerAll();
     await fireEvent.press(screen.getByRole('switch', { name: 'Administrarea rețelelor' }));
-    await press('Save timetable');
+    await save();
     const calls = upsert.mock.calls;
     const firstPattern = calls.findIndex((c) => c[0] === 'patterns');
     const lastSubject = calls.map((c) => c[0]).lastIndexOf('subjects');
@@ -240,7 +245,7 @@ describe('import review', () => {
     expect(screen.getByText('Check this: type may be misread.')).toBeTruthy();
     await press('Edit');
     await fireEvent.changeText(screen.getByLabelText('Room'), '060');
-    await press('Save timetable');
+    await save();
     const patterns = upsert.mock.calls
       .filter((c) => c[0] === 'patterns')
       .map((c) => c[1] as ClassPattern);
@@ -254,7 +259,7 @@ describe('import review of an already imported timetable', () => {
     const first = await setup(uvt);
     await chooseGroup1();
     await answerAll();
-    await press('Save timetable');
+    await save();
     let data: PlannerData | null = null;
     const off = first.repo.subscribe(
       (d) => (data = d),
@@ -336,7 +341,7 @@ describe('import review of an already imported timetable', () => {
         '1 one-off change and 1 note on or after Fri 4 Jan won’t carry over to the new schedule. Your notes stay in Notes.',
       ),
     ).toBeTruthy();
-    await press('Save timetable');
+    await save();
     const patterns = upsert.mock.calls
       .filter((c) => c[0] === 'patterns')
       .map((c) => c[1] as ClassPattern);
@@ -357,5 +362,87 @@ describe('import review of an already imported timetable', () => {
     expect(
       screen.getByRole('button', { name: 'Save timetable' }).props.accessibilityState.disabled,
     ).toBe(true);
+  });
+
+  it('shows a class that returns after being ended as new, and saves it from the chosen date', async () => {
+    const data0 = await importedState();
+    await screen.unmount();
+    const withoutAr: TimetableImport = {
+      ...uvt,
+      blocks: uvt.blocks.filter((b) => b.subject !== 'AR'),
+    };
+    const second = await setup(withoutAr, data0);
+    await chooseGroup1();
+    await answerAll();
+    await fireEvent.changeText(screen.getByLabelText('Apply changes from'), '2999-01-04');
+    await save();
+    const data1 = (() => {
+      let d: PlannerData | null = null;
+      second.repo.subscribe(
+        (x) => (d = x),
+        () => {},
+        () => {},
+      )();
+      return d as unknown as PlannerData;
+    })();
+    expect(data1.patterns.some((p) => p.validTo === '2999-01-03')).toBe(true);
+    await screen.unmount();
+    clearPending();
+    jest.clearAllMocks();
+    const third = await setup(uvt, data1);
+    await chooseGroup1();
+    await answerAll();
+    await fireEvent.changeText(screen.getByLabelText('Apply changes from'), '2999-02-01');
+    expect(screen.getByText('1 new, 0 removed, 10 unchanged')).toBeTruthy();
+    expect(
+      screen.getByText('Monday 14:40–16:10, Administrarea rețelelor, course, A02'),
+    ).toBeTruthy();
+    await save();
+    const saved = third.upsert.mock.calls
+      .filter((c) => c[0] === 'patterns')
+      .map((c) => c[1] as ClassPattern);
+    expect(saved).toHaveLength(1);
+    expect(saved[0].validFrom).toBe('2999-02-01');
+  });
+
+  it('saves once when Save is pressed twice in a row', async () => {
+    const { upsert } = await setup(uvt);
+    await chooseGroup1();
+    await answerAll();
+    const save = screen.getByRole('button', { name: 'Save timetable' });
+    await fireEvent.press(save);
+    await fireEvent.press(save);
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    const patterns = upsert.mock.calls.filter((c) => c[0] === 'patterns');
+    expect(patterns).toHaveLength(11);
+    expect(router.replace).toHaveBeenCalledTimes(1);
+  });
+
+  it('still saves when only an existing subject’s switch changed', async () => {
+    const data = await importedState();
+    await screen.unmount();
+    const { upsert } = await setup(uvt, data);
+    await chooseGroup1();
+    await answerAll();
+    expect(screen.getByRole('button', { name: 'Nothing to change' })).toBeTruthy();
+    await fireEvent.press(screen.getByRole('switch', { name: 'Administrarea rețelelor' }));
+    expect(
+      screen.getByRole('button', { name: 'Save timetable' }).props.accessibilityState.disabled,
+    ).toBe(false);
+    await save();
+    expect(upsert.mock.calls.filter((c) => c[0] === 'patterns')).toHaveLength(0);
+    const subjects = upsert.mock.calls
+      .filter((c) => c[0] === 'subjects')
+      .map((c) => c[1] as Subject);
+    expect(subjects).toHaveLength(1);
+    expect(subjects[0].attending).toBe(false);
+  });
+
+  it('labels the alternatives radio group with the question', async () => {
+    await setup(uvt);
+    await chooseGroup1();
+    expect(
+      screen.getAllByLabelText('These classes are alternatives. Which do you attend?').length,
+    ).toBe(3);
   });
 });

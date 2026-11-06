@@ -80,6 +80,7 @@ function Review({ file }: { file: TimetableImport }) {
     file.validFrom !== null && compareDates(file.validFrom, today) > 0 ? file.validFrom : today,
   );
   const [saving, setSaving] = useState(false);
+  const saveLock = useRef(false);
   const [failed, setFailed] = useState(false);
   const previewId = useRef(0);
 
@@ -95,18 +96,14 @@ function Review({ file }: { file: TimetableImport }) {
   const reimport = data.patterns.some(
     (p) => !p.deleted && p.source === 'import' && p.validTo === null,
   );
-  // On a re-import the earlier import's classes must not hide the new ones from applyAnswers.
+  // Earlier imports, ended or not, must not hide classes from applyAnswers' duplicate check:
+  // a class dropped by one re-import can come back on a later sheet. Manual classes still count.
   const baseData = useMemo<PlannerData>(
-    () =>
-      reimport
-        ? {
-            ...data,
-            patterns: data.patterns.filter(
-              (p) => p.deleted || p.source !== 'import' || p.validTo !== null,
-            ),
-          }
-        : data,
-    [data, reimport],
+    () => ({
+      ...data,
+      patterns: data.patterns.filter((p) => p.deleted || p.source !== 'import'),
+    }),
+    [data],
   );
   const complete = plan !== null && isComplete(plan, answers);
   const applied = useMemo(() => {
@@ -282,6 +279,7 @@ function Review({ file }: { file: TimetableImport }) {
   const nothing =
     complete &&
     applied !== null &&
+    applied.subjects.length === 0 &&
     (diff !== null ? diff.added.length + diff.removed.length === 0 : applied.patterns.length === 0);
 
   const nameForPattern = (p: ClassPattern) =>
@@ -310,7 +308,8 @@ function Review({ file }: { file: TimetableImport }) {
   })();
 
   const save = async () => {
-    if (saving) return;
+    if (saveLock.current) return;
+    saveLock.current = true;
     setSaving(true);
     setFailed(false);
     try {
@@ -325,6 +324,7 @@ function Review({ file }: { file: TimetableImport }) {
       router.replace('/');
     } catch {
       setFailed(true);
+      saveLock.current = false;
       setSaving(false);
     }
   };

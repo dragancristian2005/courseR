@@ -56,7 +56,10 @@ export function ChooseOneQuestion({
   return (
     <View style={styles.box}>
       <Text style={styles.ask}>These classes are alternatives. Which do you attend?</Text>
-      <View accessibilityRole="radiogroup">
+      <View
+        accessibilityRole="radiogroup"
+        accessibilityLabel="These classes are alternatives. Which do you attend?"
+      >
         {options.map(({ index, title, block }) => {
           const selected = chosen === index;
           const type =
