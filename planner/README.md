@@ -40,6 +40,13 @@ Run these inside `planner/`. Replace `YOUR-PROJECT-ID` with the value of `EXPO_P
 
 Open the Hosting URL in Safari, tap Share, then Add to Home Screen. Open the app from the new icon and sign in with Google.
 
+## 5. Check that it works offline
+
+1. Open the installed app, sign in and add a class.
+2. Turn on airplane mode and reopen the app. Today should still show the class.
+3. Add a note while offline.
+4. Turn airplane mode off. The note should appear on a second device.
+
 ## Import your timetable
 
 You can fill the planner from a photo or PDF of your timetable. It works with a free Claude account and needs no API key.
@@ -47,14 +54,7 @@ You can fill the planner from a photo or PDF of your timetable. It works with a 
 1. Open Settings and tap Import timetable (on first launch, tap Import from a photo).
 2. Tap Copy prompt.
 3. Open Claude, attach the photo or PDF, paste the prompt and send it.
-4. Copy Claude's whole answer, come back, tap Paste, then Check answer.
+4. Copy Claude's whole answer, come back, tap Paste from clipboard (or paste into the box), then Check answer.
 5. Pick your group, answer the questions and tap Save.
 
 Nothing is saved until you tap Save. Exams work the same way: choose the exams import, then check the list and tap Save exams.
-
-## 5. Check that it works offline
-
-1. Open the installed app, sign in and add a class.
-2. Turn on airplane mode and reopen the app. Today should still show the class.
-3. Add a note while offline.
-4. Turn airplane mode off. The note should appear on a second device.
