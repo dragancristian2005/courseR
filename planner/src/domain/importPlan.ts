@@ -19,6 +19,13 @@ function lastInteger(label: string): number | null {
   return m === null ? null : Number(m[m.length - 1]);
 }
 
+/** "semigrupa 1" and "1" are the same semigroup: equal labels, or the same last number. */
+function sameSemigroup(a: string, b: string): boolean {
+  if (fold(a) === fold(b)) return true;
+  const na = lastInteger(a);
+  return na !== null && na === lastInteger(b);
+}
+
 /**
  * Does a block's group list include the chosen group? True for "all", an exact label
  * (ignoring case, accents and spacing) or a numeric range ("1-4", "Grupa 1–4") that contains
@@ -77,7 +84,7 @@ export function blocksFor(
     .filter((b) => {
       if (!matchesGroup(b.groups, group)) return false;
       if (b.semigroup === null) return true;
-      return semigroup !== null && fold(b.semigroup) === fold(semigroup);
+      return semigroup !== null && sameSemigroup(b.semigroup, semigroup);
     })
     .map((b) => ({ ...b, groups: [...b.groups], unsure: [...b.unsure] }));
 }

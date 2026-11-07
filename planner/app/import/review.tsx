@@ -331,6 +331,20 @@ function Review({ file }: { file: TimetableImport }) {
 
   const total = plan.blocks.length;
   const q = plan.questions.length;
+  if (total === 0) {
+    const who =
+      needsSemigroup && semigroup !== null ? `${effGroup}, semigroup ${semigroup}` : effGroup;
+    return (
+      <FormScreen title="Check your timetable">
+        {pickers}
+        <Text>{`No classes for ${who} on this sheet. Pick another group, or ask Claude to copy the group headers exactly.`}</Text>
+        <View style={styles.block}>
+          <Rule weight="heavy" />
+          <Button label="Save timetable" disabled onPress={() => undefined} />
+        </View>
+      </FormScreen>
+    );
+  }
   return (
     <FormScreen title="Check your timetable">
       {pickers}

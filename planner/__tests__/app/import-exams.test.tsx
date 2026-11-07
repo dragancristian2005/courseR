@@ -101,6 +101,18 @@ describe('import exams review', () => {
     expect(screen.queryByText('Sisteme de operare')).toBeNull();
   });
 
+  it('says so when nothing is for the chosen group, and disables Save', async () => {
+    await setup(file([exam({ groups: ['A1'] })], ['A1', 'B2']));
+    await fireEvent.press(screen.getByRole('radio', { name: 'B2' }));
+    expect(
+      screen.getByText(
+        'No exams for B2 on this sheet. Pick another group, or ask Claude to copy the group headers exactly.',
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText('These exams are already in your planner.')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Save exams' })).toBeDisabled();
+  });
+
   it('preselects a single group and shows the meta line', async () => {
     await setup(file([exam({ groups: ['A1'] })], ['A1']));
     expect(screen.getByText('Baze de date')).toBeTruthy();

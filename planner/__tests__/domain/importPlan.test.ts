@@ -62,6 +62,38 @@ describe('matchesGroup', () => {
   });
 });
 
+describe('matchesGroup near misses', () => {
+  it('Grupa 10 does not match Grupa 1', () => {
+    expect(matchesGroup(['Grupa 10'], 'Grupa 1')).toBe(false);
+    expect(matchesGroup(['Grupa 1'], 'Grupa 10')).toBe(false);
+  });
+  it('the range 1-4 does not match group 10', () => {
+    expect(matchesGroup(['1-4'], 'Grupa 10')).toBe(false);
+    expect(matchesGroup(['Grupa 1-4'], '10')).toBe(false);
+  });
+  it('a label without a number matches only all or the exact label', () => {
+    expect(matchesGroup(['1-4'], 'Seria A')).toBe(false);
+    expect(matchesGroup(['Seria B'], 'Seria A')).toBe(false);
+    expect(matchesGroup(['Seria A'], 'seria a')).toBe(true);
+    expect(matchesGroup(['all'], 'Seria A')).toBe(true);
+  });
+});
+
+describe('blocksFor semigroups', () => {
+  it('matches "semigrupa 1" with "1" by their number, not "11"', () => {
+    const f = {
+      ...uvt,
+      blocks: [
+        { ...uvt.blocks[0], groups: ['all'], semigroup: 'semigrupa 1' },
+        { ...uvt.blocks[0], groups: ['all'], semigroup: '11' },
+      ],
+    };
+    expect(blocksFor(f, 'Grupa 1', '1')).toHaveLength(1);
+    expect(blocksFor(f, 'Grupa 1', 'Semigrupa 11')).toHaveLength(1);
+    expect(blocksFor(f, 'Grupa 1', 'Seria A')).toHaveLength(0);
+  });
+});
+
 describe('groupOptions', () => {
   it('uses the file lists', () => {
     expect(groupOptions(uvt).groups).toHaveLength(8);

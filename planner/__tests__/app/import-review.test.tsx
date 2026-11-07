@@ -121,6 +121,37 @@ describe('import review', () => {
     expect(screen.queryAllByText('Inginerie software pentru testare')).toHaveLength(0);
   });
 
+  it('says so when the chosen group has no classes, and disables Save', async () => {
+    const only = { ...uvt, groups: ['Grupa 1', 'Grupa 9'], blocks: [uvt.blocks[0]] };
+    await setup(only);
+    await radio('Grupa 9');
+    expect(
+      screen.getByText(
+        'No classes for Grupa 9 on this sheet. Pick another group, or ask Claude to copy the group headers exactly.',
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/classes found/)).toBeNull();
+    expect(screen.queryByText('Subjects')).toBeNull();
+    expect(screen.queryByText('Everything on this sheet is already in your planner.')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Save timetable' })).toBeDisabled();
+  });
+
+  it('names the semigroup when a semigroup has no classes', async () => {
+    const f: TimetableImport = {
+      ...uvt,
+      groups: ['Grupa 1'],
+      semigroups: ['1', '2'],
+      blocks: [{ ...uvt.blocks[0], groups: ['Grupa 1'], semigroup: '1' }],
+    };
+    await setup(f);
+    await radio('2');
+    expect(
+      screen.getByText(
+        'No classes for Grupa 1, semigroup 2 on this sheet. Pick another group, or ask Claude to copy the group headers exactly.',
+      ),
+    ).toBeTruthy();
+  });
+
   it('asks which Monday 13:00 alternative is attended, with a red outline until answered', async () => {
     await setup(uvt);
     await chooseGroup1();

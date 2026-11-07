@@ -136,6 +136,19 @@ function Review({ file }: { file: ExamImport }) {
   };
 
   const nothing = rows.length === 0;
+  if (plan.exams.length + plan.skipped === 0) {
+    return (
+      <FormScreen title={TITLE}>
+        <Rule weight="heavy" />
+        {picker}
+        <Text>{`No exams for ${effGroup} on this sheet. Pick another group, or ask Claude to copy the group headers exactly.`}</Text>
+        <View style={styles.footer}>
+          <Rule weight="heavy" />
+          <Button label="Save exams" disabled onPress={() => undefined} />
+        </View>
+      </FormScreen>
+    );
+  }
   return (
     <FormScreen title={TITLE}>
       <Rule weight="heavy" />
