@@ -1,17 +1,6 @@
 import type { ExamImport } from './importFormat';
-import { fold, matchesGroup, RANGE, subjectKey, uniqueByFold } from './importPlan';
-import type { Exam, PlannerData, Subject } from './types';
-
-function findSubject(data: PlannerData, abbreviation: string, name: string): Subject | null {
-  const live = data.subjects.filter((s) => !s.deleted);
-  const ak = subjectKey(abbreviation);
-  const nk = subjectKey(name);
-  return (
-    live.find((s) => subjectKey(s.abbreviation) === ak) ??
-    live.find((s) => subjectKey(s.name) === nk) ??
-    null
-  );
-}
+import { findSubject, fold, matchesGroup, RANGE, uniqueByFold } from './importPlan';
+import type { Exam, PlannerData } from './types';
 
 /**
  * Exams from the file that apply to the chosen group, ready to save. Exams already in the

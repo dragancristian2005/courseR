@@ -1,5 +1,6 @@
 import { addDays, compareDates } from './dates';
 import { stamp } from './edits';
+import { patternSignature } from './importPlan';
 import type { ClassPattern, ISODate, PlannerData } from './types';
 
 export interface ImportDiff {
@@ -8,8 +9,7 @@ export interface ImportDiff {
   unchanged: ClassPattern[];
 }
 
-const sig = (p: ClassPattern): string =>
-  JSON.stringify([p.subjectId, p.type, p.weekday, p.start, p.end, p.room, p.repeat, p.online]);
+const sig = patternSignature;
 
 /**
  * Compare a re-imported timetable with what an earlier import left in the planner. Only live,

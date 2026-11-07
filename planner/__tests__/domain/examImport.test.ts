@@ -1,5 +1,7 @@
 import type { ExamImport } from '../../src/domain/importFormat';
 import { examGroupOptions, planExamImport } from '../../src/domain/examImport';
+import { validateImport } from '../../src/domain/importFormat';
+import { applyAnswers, planTimetableImport } from '../../src/domain/importPlan';
 import type { Exam, PlannerData, Subject } from '../../src/domain/types';
 
 const empty = (): PlannerData => ({
@@ -123,6 +125,36 @@ describe('planExamImport', () => {
     const r = planExamImport(f, empty(), 'x', 5, counter());
     expect(r.unsure).toEqual({ id1: ['room', 'date'] });
     expect(JSON.stringify(f)).toBe(copy);
+  });
+});
+
+describe('exams after a timetable with a full-name course', () => {
+  it('link to the one subject the timetable import created', () => {
+    const r = validateImport(require('../fixtures/uvt-info3.json'));
+    if (!r.ok || r.file.kind !== 'timetable') throw new Error('bad fixture');
+    const ids = counter();
+    const plan = planTimetableImport(r.file, empty(), 'Grupa 1', null);
+    const done = applyAnswers(
+      plan,
+      {
+        chosen: { 'opt-mon-13': 3, 'opt-tue-08': 7, dct: 13 },
+        types: { 10: 'lab' },
+        attending: {},
+        edits: {},
+      },
+      empty(),
+      1,
+      ids,
+    );
+    const data = { ...empty(), subjects: done.subjects };
+    const tss = done.subjects.filter((s) => s.abbreviation === 'TSS');
+    expect(tss).toHaveLength(1);
+    const f = file([
+      { subject: 'TSS', subjectName: 'Testarea sistemelor software' },
+      { subject: 'Testarea sistemelor software', subjectName: null, date: '2027-01-22' },
+    ]);
+    const out = planExamImport(f, data, 'x', 5, ids);
+    expect(out.exams.map((e) => e.subjectId)).toEqual([tss[0].id, tss[0].id]);
   });
 });
 

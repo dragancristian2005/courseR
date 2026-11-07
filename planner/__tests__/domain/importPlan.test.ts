@@ -79,7 +79,7 @@ describe('groupOptions', () => {
 describe('blocksFor', () => {
   it('Grupa 1 gets all, listed and range blocks but not Grupa 5', () => {
     const b = blocksFor(uvt, 'Grupa 1', null);
-    expect(b).toHaveLength(15);
+    expect(b).toHaveLength(16);
     expect(b.some((x) => x.subject === 'SIIA')).toBe(false);
     expect(b.some((x) => x.subject === 'ITB')).toBe(true);
   });
@@ -217,7 +217,7 @@ describe('applyAnswers', () => {
     expect(r.patterns.filter((p) => p.weekday === 1 && p.start === '13:00')).toHaveLength(1);
     expect(r.patterns.filter((p) => p.weekday === 2 && p.start === '08:00')).toHaveLength(1);
     expect(r.patterns.filter((p) => p.start === '16:20')).toHaveLength(1);
-    expect(r.patterns).toHaveLength(11);
+    expect(r.patterns).toHaveLength(12);
     expect(used).not.toContain('PSTR');
     expect(used).not.toContain('GJS');
   });
@@ -363,5 +363,114 @@ describe('applyAnswers', () => {
     const a = JSON.stringify({ plan, answers, data, uvt });
     applyAnswers(plan, { ...answers, attending: { ȘP: false } }, data, 1, counter());
     expect(JSON.stringify({ plan, answers, data, uvt })).toBe(a);
+  });
+});
+
+describe('a course written with the full subject name', () => {
+  const answers: ImportAnswers = {
+    ...noAnswers(),
+    chosen: { 'opt-mon-13': 3, 'opt-tue-08': 7, dct: 13 },
+    types: { 10: 'lab' },
+  };
+  const tssBlocks = (plan: ReturnType<typeof planTimetableImport>) =>
+    plan.blocks.filter((b) => subjectKey(b.subject).startsWith('t'));
+
+  it('plans one TSS subject for the abbreviation and the full name', () => {
+    const plan = planTimetableImport(uvt, empty(), 'Grupa 1', null);
+    expect(tssBlocks(plan)).toHaveLength(3);
+    expect(plan.subjects.filter((s) => s.abbreviation === 'TSS')).toHaveLength(1);
+    expect(plan.subjects.some((s) => s.abbreviation === 'Testarea sistemelor software')).toBe(
+      false,
+    );
+  });
+
+  it('creates one subject and links every TSS class to it', () => {
+    const plan = planTimetableImport(uvt, empty(), 'Grupa 1', null);
+    const r = applyAnswers(plan, answers, empty(), 1, counter());
+    const tss = r.subjects.filter((s) => subjectKey(s.abbreviation) === 'tss');
+    expect(tss).toHaveLength(1);
+    expect(r.subjects.filter((s) => subjectKey(s.name) === 'testareasistemelorsoftware')).toEqual(
+      tss,
+    );
+    const linked = r.patterns.filter((p) => p.subjectId === tss[0].id);
+    expect(linked).toHaveLength(3);
+  });
+
+  it('reuses an existing subject once, even with attending changed', () => {
+    const data = empty();
+    data.subjects = [
+      {
+        id: 'tss',
+        name: 'Testarea sistemelor software',
+        abbreviation: 'TSS',
+        attending: true,
+        updatedAt: 3,
+      },
+    ];
+    const plan = planTimetableImport(uvt, data, 'Grupa 1', null);
+    const r = applyAnswers(plan, { ...answers, attending: { TSS: false } }, data, 9, counter());
+    expect(r.subjects.filter((s) => s.id === 'tss')).toHaveLength(1);
+    expect(r.subjects.filter((s) => subjectKey(s.abbreviation) === 'tss')).toHaveLength(1);
+    expect(r.patterns.filter((p) => p.subjectId === 'tss')).toHaveLength(3);
+  });
+
+  it('merges a typed full name into the subject created for its abbreviation', () => {
+    const plan = planTimetableImport(uvt, empty(), 'Grupa 1', null);
+    const i = plan.blocks.findIndex((b) => b.subject === 'Testarea sistemelor software');
+    // The plan lists TSS; an edit that types the name differently-spaced still lands on it.
+    const r = applyAnswers(
+      plan,
+      { ...answers, edits: { [i]: { subject: 'testarea  sistemelor software' } } },
+      empty(),
+      1,
+      counter(),
+    );
+    expect(r.subjects.filter((s) => subjectKey(s.abbreviation) === 'tss')).toHaveLength(1);
+    expect(r.subjects.filter((s) => /testarea/i.test(s.name))).toHaveLength(1);
+  });
+
+  it('two spellings of an existing subject update it only once', () => {
+    const data = empty();
+    data.subjects = [
+      {
+        id: 'tss',
+        name: 'Testarea sistemelor software',
+        abbreviation: 'TSS',
+        attending: true,
+        updatedAt: 3,
+      },
+    ];
+    const plan = planTimetableImport(uvt, data, 'Grupa 1', null);
+    // Hand-built plan with two entries pointing at the same subject.
+    const twin = {
+      ...plan,
+      subjects: [...plan.subjects, { abbreviation: 'Testarea', name: 'x', existingId: 'tss' }],
+    };
+    const i = plan.blocks.findIndex((b) => b.subject === 'Testarea sistemelor software');
+    const r = applyAnswers(
+      twin,
+      {
+        ...answers,
+        attending: { TSS: false, Testarea: false },
+        edits: { [i]: { subject: 'Testarea' } },
+      },
+      data,
+      9,
+      counter(),
+    );
+    expect(r.subjects.filter((s) => s.id === 'tss')).toHaveLength(1);
+  });
+
+  it('skips a block whose subject is empty', () => {
+    const plan = planTimetableImport(uvt, empty(), 'Grupa 1', null);
+    const r = applyAnswers(
+      plan,
+      { ...answers, edits: { 0: { subject: '  ' } } },
+      empty(),
+      1,
+      counter(),
+    );
+    expect(r.patterns.some((p) => p.start === '08:00' && p.weekday === 1)).toBe(false);
+    expect(r.subjects.some((s) => subjectKey(s.name) === '')).toBe(false);
   });
 });

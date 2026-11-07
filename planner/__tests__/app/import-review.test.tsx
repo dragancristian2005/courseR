@@ -106,7 +106,7 @@ describe('import review', () => {
     await setup(uvt);
     await chooseGroup1();
     expect(
-      screen.getByText('15 classes found, 5 need a look. Nothing is saved until you tap Save.'),
+      screen.getByText('16 classes found, 5 need a look. Nothing is saved until you tap Save.'),
     ).toBeTruthy();
     expect(screen.getByText('Monday')).toBeTruthy();
     expect(screen.getByText('Thursday')).toBeTruthy();
@@ -189,7 +189,7 @@ describe('import review', () => {
     expect(subjects.find((s) => s.abbreviation === 'AR')?.attending).toBe(false);
     expect(subjects.find((s) => s.abbreviation === 'ITB')?.attending).toBe(true);
     // 15 blocks minus 4 dropped alternatives (IBC, PSTR, GJS, DCT Thursday)
-    expect(patterns).toHaveLength(15 - 4);
+    expect(patterns).toHaveLength(16 - 4);
     expect(patterns.every((p) => p.source === 'import' && p.validFrom === OPEN_START)).toBe(true);
     expect(patterns.every((p) => subjects.some((s) => s.id === p.subjectId))).toBe(true);
     expect(router.replace).toHaveBeenCalledWith('/');
@@ -279,7 +279,7 @@ describe('import review of an already imported timetable', () => {
     const { upsert } = await setup(uvt, data);
     await chooseGroup1();
     await answerAll();
-    expect(screen.getByText('0 new, 0 removed, 11 unchanged')).toBeTruthy();
+    expect(screen.getByText('0 new, 0 removed, 12 unchanged')).toBeTruthy();
     expect(
       screen.getByRole('button', { name: 'Nothing to change' }).props.accessibilityState.disabled,
     ).toBe(true);
@@ -324,7 +324,7 @@ describe('import review of an already imported timetable', () => {
     const { upsert } = await setup(changed, { ...data, overrides: [override], notes: [note] });
     await chooseGroup1();
     await answerAll();
-    expect(screen.getByText('1 new, 2 removed, 9 unchanged')).toBeTruthy();
+    expect(screen.getByText('1 new, 2 removed, 10 unchanged')).toBeTruthy();
     expect(screen.getByText('New classes')).toBeTruthy();
     expect(screen.getByText('Removed classes')).toBeTruthy();
     expect(
@@ -393,7 +393,7 @@ describe('import review of an already imported timetable', () => {
     await chooseGroup1();
     await answerAll();
     await fireEvent.changeText(screen.getByLabelText('Apply changes from'), '2999-02-01');
-    expect(screen.getByText('1 new, 0 removed, 10 unchanged')).toBeTruthy();
+    expect(screen.getByText('1 new, 0 removed, 11 unchanged')).toBeTruthy();
     expect(
       screen.getByText('Monday 14:40–16:10, Administrarea rețelelor, course, A02'),
     ).toBeTruthy();
@@ -414,7 +414,7 @@ describe('import review of an already imported timetable', () => {
     await fireEvent.press(save);
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     const patterns = upsert.mock.calls.filter((c) => c[0] === 'patterns');
-    expect(patterns).toHaveLength(11);
+    expect(patterns).toHaveLength(12);
     expect(router.replace).toHaveBeenCalledTimes(1);
   });
 

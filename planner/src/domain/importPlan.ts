@@ -108,15 +108,43 @@ export interface ImportAnswers {
   edits: Record<number, Partial<ImportBlock>>;
 }
 
-function findExisting(data: PlannerData, abbreviation: string, name: string): Subject | null {
+/** The live subject whose abbreviation, else whose name, matches. Empty keys never match. */
+export function findSubject(data: PlannerData, abbreviation: string, name: string): Subject | null {
   const live = data.subjects.filter((s) => !s.deleted);
   const ak = subjectKey(abbreviation);
   const nk = subjectKey(name);
   return (
-    live.find((s) => subjectKey(s.abbreviation) === ak) ??
-    live.find((s) => subjectKey(s.name) === nk) ??
+    (ak === '' ? undefined : live.find((s) => subjectKey(s.abbreviation) === ak)) ??
+    (nk === '' ? undefined : live.find((s) => subjectKey(s.name) === nk)) ??
     null
   );
+}
+
+/** What makes two classes the same class when importing and when diffing a re-import. */
+export function patternSignature(p: ClassPattern): string {
+  return JSON.stringify([
+    p.subjectId,
+    p.type,
+    p.weekday,
+    p.start,
+    p.end,
+    p.room,
+    p.repeat,
+    p.online,
+  ]);
+}
+
+/**
+ * The sheet's subject entry for a block's subject text: by abbreviation first, else by full
+ * name ("Testarea sistemelor software" written out in a block).
+ */
+function entryFor(file: TimetableImport, subject: string) {
+  const key = subjectKey(subject);
+  const byAbbreviation = file.subjects.filter((s) => subjectKey(s.abbreviation) === key);
+  if (byAbbreviation.length > 0) {
+    return byAbbreviation.find((s) => s.abbreviation === subject) ?? byAbbreviation[0];
+  }
+  return file.subjects.find((s) => subjectKey(s.name) === key);
 }
 
 export function planTimetableImport(
@@ -146,27 +174,29 @@ export function planTimetableImport(
   const subjects: PlanSubject[] = [];
   const seen = new Set<string>();
   for (const b of blocks) {
-    const key = subjectKey(b.subject);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    const entries = file.subjects.filter((s) => subjectKey(s.abbreviation) === key);
-    const entry = entries.find((s) => s.abbreviation === b.subject) ?? entries[0];
+    if (subjectKey(b.subject) === '') continue;
+    const entry = entryFor(file, b.subject);
     const abbreviation = entry?.abbreviation ?? b.subject;
     const name = entry?.name ?? b.subject;
+    const key = subjectKey(abbreviation);
+    if (seen.has(key)) continue;
+    seen.add(key);
     subjects.push({
       abbreviation,
       name,
-      existingId: findExisting(data, abbreviation, name)?.id ?? null,
+      existingId: findSubject(data, abbreviation, name)?.id ?? null,
     });
   }
   return { blocks, questions, subjects };
 }
 
-function droppedBlocks(plan: ImportPlan, answers: ImportAnswers): Set<number> {
+/** Block indexes dropped because another option of their choose-one was picked. */
+export function droppedBlocks(plan: ImportPlan, answers: ImportAnswers): Set<number> {
   const dropped = new Set<number>();
   for (const q of plan.questions) {
     if (q.kind !== 'choose-one') continue;
     const pick = answers.chosen[q.id];
+    if (pick === undefined) continue;
     for (const i of q.options) if (i !== pick) dropped.add(i);
   }
   return dropped;
@@ -194,53 +224,76 @@ export function applyAnswers(
   newId: () => string,
 ): { subjects: Subject[]; patterns: ClassPattern[] } {
   const dropped = droppedBlocks(plan, answers);
-  const planByKey = new Map(plan.subjects.map((s) => [subjectKey(s.abbreviation), s]));
+  // A block may name its subject by abbreviation or by full name; both find the plan's entry.
+  const planByKey = new Map<string, PlanSubject>();
+  for (const s of plan.subjects) {
+    planByKey.set(subjectKey(s.abbreviation), s);
+    if (!planByKey.has(subjectKey(s.name))) planByKey.set(subjectKey(s.name), s);
+  }
 
   const subjects: Subject[] = [];
+  const created: Subject[] = [];
   const idByKey = new Map<string, string>();
-  const resolve = (abbreviation: string): string => {
-    const key = subjectKey(abbreviation);
+  const idByEntry = new Map<string, string>();
+  const resolve = (text: string): string => {
+    const key = subjectKey(text);
     const known = idByKey.get(key);
     if (known !== undefined) return known;
     const entry: PlanSubject = planByKey.get(key) ?? {
-      abbreviation,
-      name: abbreviation,
-      existingId: findExisting(data, abbreviation, abbreviation)?.id ?? null,
+      abbreviation: text,
+      name: text,
+      existingId: findSubject(data, text, text)?.id ?? null,
     };
-    const existing =
-      entry.existingId === null
-        ? null
-        : (data.subjects.find((s) => s.id === entry.existingId && !s.deleted) ?? null);
-    const wanted = answers.attending[entry.abbreviation];
-    let id: string;
-    if (existing !== null) {
-      id = existing.id;
-      if (wanted !== undefined && wanted !== existing.attending) {
-        subjects.push({ ...existing, attending: wanted, updatedAt: stamp(existing) });
+    const entryKey = subjectKey(entry.abbreviation);
+    let id = idByEntry.get(entryKey);
+    if (id === undefined) {
+      const existing =
+        entry.existingId === null
+          ? null
+          : (data.subjects.find((s) => s.id === entry.existingId && !s.deleted) ?? null);
+      const wanted = answers.attending[entry.abbreviation];
+      const sameImport =
+        existing === null
+          ? created.find((s) => subjectKey(s.name) === subjectKey(entry.name))
+          : undefined;
+      if (existing !== null) {
+        id = existing.id;
+        // Two sheet spellings can land on one subject: update it once.
+        if (
+          wanted !== undefined &&
+          wanted !== existing.attending &&
+          !subjects.some((s) => s.id === existing.id)
+        ) {
+          subjects.push({ ...existing, attending: wanted, updatedAt: stamp(existing) });
+        }
+      } else if (sameImport !== undefined) {
+        id = sameImport.id;
+      } else {
+        id = newId();
+        const fresh: Subject = {
+          id,
+          name: entry.name,
+          abbreviation: entry.abbreviation,
+          attending: wanted ?? true,
+          updatedAt: now,
+        };
+        subjects.push(fresh);
+        created.push(fresh);
       }
-    } else {
-      id = newId();
-      subjects.push({
-        id,
-        name: entry.name,
-        abbreviation: entry.abbreviation,
-        attending: wanted ?? true,
-        updatedAt: now,
-      });
+      idByEntry.set(entryKey, id);
     }
     idByKey.set(key, id);
     return id;
   };
 
   const known = data.patterns.filter((p) => !p.deleted);
-  const sig = (p: ClassPattern) =>
-    [p.subjectId, p.type, p.weekday, p.start, p.end, p.room, p.repeat].join('|');
-  const seen = new Set(known.map(sig));
+  const seen = new Set(known.map(patternSignature));
 
   const patterns: ClassPattern[] = [];
   plan.blocks.forEach((original, i) => {
     if (dropped.has(i)) return;
     const b: ImportBlock = { ...original, ...answers.edits[i] };
+    if (subjectKey(b.subject) === '') return;
     const type = answers.types[i] ?? b.type;
     if (type === null) return;
     const pattern: ClassPattern = {
@@ -259,7 +312,7 @@ export function applyAnswers(
       online: b.online,
       source: 'import',
     };
-    const s = sig(pattern);
+    const s = patternSignature(pattern);
     if (seen.has(s)) return;
     seen.add(s);
     pattern.id = newId();
