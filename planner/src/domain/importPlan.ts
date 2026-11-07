@@ -209,6 +209,22 @@ export function droppedBlocks(plan: ImportPlan, answers: ImportAnswers): Set<num
   return dropped;
 }
 
+/** A plan block with the answers' edits and chosen type applied. */
+export function effectiveBlock(plan: ImportPlan, answers: ImportAnswers, i: number): ImportBlock {
+  const b = { ...plan.blocks[i], ...answers.edits[i] };
+  return { ...b, type: answers.types[i] ?? b.type };
+}
+
+/** The plan's subject for a block's subject text: by abbreviation, else by full name. */
+export function planSubjectFor(plan: ImportPlan, text: string): PlanSubject | undefined {
+  const key = subjectKey(text);
+  if (key === '') return undefined;
+  return (
+    plan.subjects.find((s) => subjectKey(s.abbreviation) === key) ??
+    plan.subjects.find((s) => subjectKey(s.name) === key)
+  );
+}
+
 /** True once every choice is made and every kept block has a type. Notes about unsure fields don't count. */
 export function isComplete(plan: ImportPlan, answers: ImportAnswers): boolean {
   for (const q of plan.questions) {
@@ -231,13 +247,6 @@ export function applyAnswers(
   newId: () => string,
 ): { subjects: Subject[]; patterns: ClassPattern[] } {
   const dropped = droppedBlocks(plan, answers);
-  // A block may name its subject by abbreviation or by full name; both find the plan's entry.
-  const planByKey = new Map<string, PlanSubject>();
-  for (const s of plan.subjects) {
-    planByKey.set(subjectKey(s.abbreviation), s);
-    if (!planByKey.has(subjectKey(s.name))) planByKey.set(subjectKey(s.name), s);
-  }
-
   const subjects: Subject[] = [];
   const created: Subject[] = [];
   const idByKey = new Map<string, string>();
@@ -246,7 +255,7 @@ export function applyAnswers(
     const key = subjectKey(text);
     const known = idByKey.get(key);
     if (known !== undefined) return known;
-    const entry: PlanSubject = planByKey.get(key) ?? {
+    const entry: PlanSubject = planSubjectFor(plan, text) ?? {
       abbreviation: text,
       name: text,
       existingId: findSubject(data, text, text)?.id ?? null,
@@ -297,11 +306,11 @@ export function applyAnswers(
   const seen = new Set(known.map(patternSignature));
 
   const patterns: ClassPattern[] = [];
-  plan.blocks.forEach((original, i) => {
+  plan.blocks.forEach((_, i) => {
     if (dropped.has(i)) return;
-    const b: ImportBlock = { ...original, ...answers.edits[i] };
+    const b = effectiveBlock(plan, answers, i);
     if (subjectKey(b.subject) === '') return;
-    const type = answers.types[i] ?? b.type;
+    const type = b.type;
     if (type === null) return;
     const pattern: ClassPattern = {
       id: '',

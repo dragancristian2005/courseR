@@ -5,29 +5,29 @@ import { clearPending, getPending } from '../../src/data/importSession';
 import { newId } from '../../src/data/ids';
 import { useStore } from '../../src/data/useStore';
 import { compareDates, todayISO } from '../../src/domain/dates';
-import { droppedByChange } from '../../src/domain/edits';
-import type { ImportBlock, TimetableImport } from '../../src/domain/importFormat';
+import type { TimetableImport } from '../../src/domain/importFormat';
 import { applyDiff, diffImport } from '../../src/domain/importDiff';
 import {
   applyAnswers,
+  droppedBlocks,
+  effectiveBlock,
   groupOptions,
   isComplete,
+  planSubjectFor,
   planTimetableImport,
   subjectKey,
   type ImportAnswers,
-  type ImportQuestion,
-  type ImportPlan,
   type PlanSubject,
 } from '../../src/domain/importPlan';
-import type { ClassPattern, ClassType, PlannerData } from '../../src/domain/types';
+import type { PlannerData } from '../../src/domain/types';
 import { Button } from '../../src/ui/Button';
-import { droppedWarning } from '../../src/ui/ChangeForm';
-import { Chips, Field, isDate, MSG_DATE } from '../../src/ui/FormBits';
-import { TYPE_LABEL, WEEKDAYS_LONG } from '../../src/ui/format';
+import { isDate } from '../../src/ui/FormBits';
+import { WEEKDAYS_LONG } from '../../src/ui/format';
 import { FormScreen } from '../../src/ui/FormScreen';
-import { ImportBlockRow, whenWords } from '../../src/ui/ImportBlockRow';
-import { ChooseOneQuestion, TypeQuestion, UnsureQuestion } from '../../src/ui/ImportQuestionBox';
-import { ImportSubjectRow } from '../../src/ui/ImportSubjectRow';
+import { ImportClassRow, subjectNameOf } from '../../src/ui/ImportClassRow';
+import { ImportGroupPickers } from '../../src/ui/ImportGroupPickers';
+import { ImportKeptSubjects } from '../../src/ui/ImportKeptSubjects';
+import { ImportReimportPanel } from '../../src/ui/ImportReimportPanel';
 import { Rule } from '../../src/ui/Rule';
 import { Text } from '../../src/ui/Text';
 import { theme } from '../../src/ui/theme';
@@ -51,18 +51,6 @@ export default function ImportReview() {
     );
   }
   return <Review file={file} />;
-}
-
-/** Block indexes dropped because another option of their choose-one was picked. */
-function droppedSet(plan: ImportPlan, answers: ImportAnswers): Set<number> {
-  const dropped = new Set<number>();
-  for (const q of plan.questions) {
-    if (q.kind !== 'choose-one') continue;
-    const pick = answers.chosen[q.id];
-    if (pick === undefined) continue;
-    for (const i of q.options) if (i !== pick) dropped.add(i);
-  }
-  return dropped;
 }
 
 function Review({ file }: { file: TimetableImport }) {
@@ -135,64 +123,34 @@ function Review({ file }: { file: TimetableImport }) {
   };
   const patch = (fn: (a: ImportAnswers) => ImportAnswers) => setAnswers((a) => fn(a));
 
-  const header = (
-    <>
-      <Rule weight="heavy" />
-      {file.title ? <Text variant="meta">{file.title}</Text> : null}
-      <Chips
-        label="Which group are you in?"
-        options={opts.groups.map((g) => ({ value: g, label: g }))}
-        value={group}
-        onChange={(g) => {
-          if (g === group) return;
-          setGroup(g);
-          reset();
-        }}
-      />
-    </>
-  );
-  const semigroupChips =
-    needsSemigroup && effGroup !== null ? (
-      <Chips
-        label="Which semigroup?"
-        options={opts.semigroups.map((g) => ({ value: g, label: g }))}
-        value={semigroup}
-        onChange={(g) => {
-          if (g === semigroup) return;
-          setSemigroup(g);
-          reset();
-        }}
-      />
-    ) : null;
   const pickers = (
-    <>
-      {opts.groups.length > 0 ? (
-        header
-      ) : (
-        <>
-          <Rule weight="heavy" />
-          {file.title ? <Text variant="meta">{file.title}</Text> : null}
-        </>
-      )}
-      {semigroupChips}
-    </>
+    <ImportGroupPickers
+      title={file.title}
+      groups={opts.groups}
+      semigroups={opts.semigroups}
+      group={group}
+      semigroup={semigroup}
+      onGroup={(g) => {
+        setGroup(g);
+        reset();
+      }}
+      onSemigroup={(g) => {
+        setSemigroup(g);
+        reset();
+      }}
+    />
   );
   if (plan === null) return <FormScreen title="Check your timetable">{pickers}</FormScreen>;
 
-  const dropped = droppedSet(plan, answers);
-  const effective = (i: number): ImportBlock => {
-    const b = { ...plan.blocks[i], ...answers.edits[i] };
-    return { ...b, type: answers.types[i] ?? b.type };
-  };
-  const nameOf = (abbreviation: string) =>
-    plan.subjects.find((s) => subjectKey(s.abbreviation) === subjectKey(abbreviation))?.name ??
-    abbreviation;
-
+  const dropped = droppedBlocks(plan, answers);
   const missing =
     plan.questions.filter((q) => q.kind === 'choose-one' && answers.chosen[q.id] === undefined)
       .length +
     plan.questions.filter(
-      (q) => q.kind === 'type' && !dropped.has(q.block) && effective(q.block).type === null,
+      (q) =>
+        q.kind === 'type' &&
+        !dropped.has(q.block) &&
+        effectiveBlock(plan, answers, q.block).type === null,
     ).length;
 
   const days = [1, 2, 3, 4, 5, 6, 7]
@@ -204,93 +162,27 @@ function Review({ file }: { file: TimetableImport }) {
         .sort(
           (a, b) =>
             plan.blocks[a].start.localeCompare(plan.blocks[b].start) ||
-            nameOf(plan.blocks[a].subject).localeCompare(nameOf(plan.blocks[b].subject)),
+            subjectNameOf(plan, plan.blocks[a].subject).localeCompare(
+              subjectNameOf(plan, plan.blocks[b].subject),
+            ),
         ),
     }))
     .filter((d) => d.items.length > 0);
-
-  const renderBlock = (i: number) => {
-    const block = effective(i);
-    const isDropped = dropped.has(i);
-    const choice = plan.questions.find(
-      (q): q is Extract<ImportQuestion, { kind: 'choose-one' }> =>
-        q.kind === 'choose-one' && q.options.includes(i),
-    );
-    const choiceOpen = choice !== undefined && answers.chosen[choice.id] === undefined;
-    const typeQ = !isDropped && plan.questions.some((q) => q.kind === 'type' && q.block === i);
-    const unsureQ = plan.questions.find((q) => q.kind === 'unsure' && q.block === i);
-    const rowKey = `${group}|${semigroup}|${i}`;
-    const open =
-      invalid[rowKey] === true ||
-      choiceOpen ||
-      (!isDropped && block.type === null) ||
-      (!isDropped && unsureQ !== undefined && answers.edits[i] === undefined);
-    return (
-      <ImportBlockRow
-        key={i}
-        testID={`import-block-${i}`}
-        block={block}
-        title={nameOf(block.subject)}
-        open={open}
-        dimmed={isDropped}
-      >
-        {choice !== undefined && choice.options[0] === i ? (
-          <ChooseOneQuestion
-            options={choice.options.map((index) => ({
-              index,
-              block: effective(index),
-              title: nameOf(effective(index).subject),
-            }))}
-            chosen={answers.chosen[choice.id]}
-            onChoose={(index) =>
-              patch((a) => ({ ...a, chosen: { ...a.chosen, [choice.id]: index } }))
-            }
-          />
-        ) : null}
-        {typeQ ? (
-          <TypeQuestion
-            value={block.type}
-            onChange={(t: ClassType) => patch((a) => ({ ...a, types: { ...a.types, [i]: t } }))}
-          />
-        ) : null}
-        {!isDropped && unsureQ !== undefined && unsureQ.kind === 'unsure' ? (
-          <UnsureQuestion
-            key={rowKey}
-            onValidChange={(valid) => setRowValid(rowKey, valid)}
-            fields={unsureQ.fields}
-            block={block}
-            showType={!typeQ}
-            type={block.type}
-            onType={(t) => patch((a) => ({ ...a, types: { ...a.types, [i]: t } }))}
-            onEdit={(p) =>
-              patch((a) => ({ ...a, edits: { ...a.edits, [i]: { ...a.edits[i], ...p } } }))
-            }
-          />
-        ) : null}
-      </ImportBlockRow>
-    );
-  };
 
   // Subjects of the classes that stay, in sheet order.
   const kept: PlanSubject[] = [];
   plan.blocks.forEach((_, i) => {
     if (dropped.has(i)) return;
-    const key = subjectKey(effective(i).subject);
-    if (key === '' || kept.some((s) => subjectKey(s.abbreviation) === key)) return;
-    kept.push(
-      plan.subjects.find((s) => subjectKey(s.abbreviation) === key) ?? {
-        abbreviation: effective(i).subject,
-        name: effective(i).subject,
-        existingId: null,
-      },
-    );
+    const text = effectiveBlock(plan, answers, i).subject;
+    const subject = planSubjectFor(plan, text) ?? {
+      abbreviation: text,
+      name: text,
+      existingId: null,
+    };
+    if (subjectKey(subject.abbreviation) === '') return;
+    if (kept.some((s) => subjectKey(s.abbreviation) === subjectKey(subject.abbreviation))) return;
+    kept.push(subject);
   });
-  const existingOf = (s: PlanSubject) =>
-    s.existingId === null
-      ? undefined
-      : data.subjects.find((x) => x.id === s.existingId && !x.deleted);
-  const attendingOf = (s: PlanSubject) =>
-    answers.attending[s.abbreviation] ?? existingOf(s)?.attending ?? true;
 
   const fromOk = !reimport || isDate(from);
   const anyInvalid = Object.keys(invalid).length > 0;
@@ -301,31 +193,6 @@ function Review({ file }: { file: TimetableImport }) {
     (diff !== null
       ? diff.added.length + diff.removed.length + diff.reteached.length === 0
       : applied.patterns.length === 0);
-
-  const nameForPattern = (p: ClassPattern) =>
-    [...(applied?.subjects ?? []), ...data.subjects].find((s) => s.id === p.subjectId)?.name ?? '';
-  const patternLine = (p: ClassPattern) =>
-    [
-      whenWords(p.weekday, p.start, p.end),
-      nameForPattern(p),
-      TYPE_LABEL[p.type].toLowerCase(),
-      p.room,
-    ]
-      .filter(Boolean)
-      .join(', ');
-
-  const warning = (() => {
-    if (diff === null || !isDate(from)) return null;
-    const dropped = { overrides: [] as never[], notes: [] as never[] };
-    for (const p of diff.removed) {
-      const d = droppedByChange(data, p.id, from);
-      dropped.overrides.push(...(d.overrides as never[]));
-      dropped.notes.push(...(d.notes as never[]));
-    }
-    return dropped.overrides.length + dropped.notes.length > 0
-      ? droppedWarning(dropped, from)
-      : null;
-  })();
 
   const save = async () => {
     if (saveLock.current) return;
@@ -375,58 +242,40 @@ function Review({ file }: { file: TimetableImport }) {
         <View key={day}>
           <Text variant="title">{WEEKDAYS_LONG[day - 1]}</Text>
           <Rule weight="heavy" />
-          {items.map(renderBlock)}
+          {items.map((i) => {
+            const rowKey = `${group}|${semigroup}|${i}`;
+            return (
+              <ImportClassRow
+                key={rowKey}
+                index={i}
+                plan={plan}
+                answers={answers}
+                dropped={dropped.has(i)}
+                rowKey={rowKey}
+                invalid={invalid[rowKey] === true}
+                onAnswers={patch}
+                onValidChange={(valid) => setRowValid(rowKey, valid)}
+              />
+            );
+          })}
         </View>
       ))}
-      <View>
-        <Text variant="title">Subjects</Text>
-        <Rule weight="heavy" />
-        {kept.map((s) => (
-          <ImportSubjectRow
-            key={s.abbreviation}
-            name={s.name}
-            abbreviation={s.abbreviation}
-            existing={existingOf(s) !== undefined}
-            on={attendingOf(s)}
-            onToggle={(v) =>
-              patch((a) => ({ ...a, attending: { ...a.attending, [s.abbreviation]: v } }))
-            }
-          />
-        ))}
-      </View>
+      <ImportKeptSubjects
+        subjects={kept}
+        data={data}
+        attending={answers.attending}
+        onToggle={(abbreviation, v) =>
+          patch((a) => ({ ...a, attending: { ...a.attending, [abbreviation]: v } }))
+        }
+      />
       {reimport ? (
-        <View style={styles.block}>
-          <Field
-            label="Apply changes from"
-            value={from}
-            onChangeText={setFrom}
-            error={isDate(from) ? undefined : MSG_DATE}
-          />
-          {diff !== null ? (
-            <>
-              <Text style={styles.bold}>
-                {`${diff.added.length} new, ${diff.removed.length} removed, ${diff.unchanged.length} unchanged`}
-              </Text>
-              {diff.added.length > 0 ? (
-                <View>
-                  <Text variant="meta">New classes</Text>
-                  {diff.added.map((p, k) => (
-                    <Text key={`a${k}`}>{patternLine(p)}</Text>
-                  ))}
-                </View>
-              ) : null}
-              {diff.removed.length > 0 ? (
-                <View>
-                  <Text variant="meta">Removed classes</Text>
-                  {diff.removed.map((p) => (
-                    <Text key={p.id}>{patternLine(p)}</Text>
-                  ))}
-                </View>
-              ) : null}
-              {warning ? <Text style={styles.warning}>{warning}</Text> : null}
-            </>
-          ) : null}
-        </View>
+        <ImportReimportPanel
+          from={from}
+          onFromChange={setFrom}
+          diff={diff}
+          data={data}
+          newSubjects={applied?.subjects ?? []}
+        />
       ) : null}
       <View style={styles.block}>
         <Rule weight="heavy" />
@@ -453,7 +302,6 @@ function Review({ file }: { file: TimetableImport }) {
 }
 
 const styles = StyleSheet.create({
-  bold: { fontFamily: theme.font.appBold },
   block: { gap: theme.space(3) },
   warning: { color: theme.color.now, fontFamily: theme.font.appBold },
 });
