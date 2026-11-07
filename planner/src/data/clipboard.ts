@@ -10,11 +10,11 @@ export async function copyText(text: string): Promise<boolean> {
   }
 }
 
-/** Reads the system clipboard as text; empty when unavailable. */
-export async function readText(): Promise<string> {
+/** Reads the system clipboard as text; null when the platform refuses (permission denied). */
+export async function readText(): Promise<string | null> {
   try {
     return await Clipboard.getStringAsync();
   } catch {
-    return '';
+    return null;
   }
 }

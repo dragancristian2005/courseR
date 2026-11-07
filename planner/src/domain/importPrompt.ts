@@ -1,4 +1,4 @@
-import type { ExamImport, TimetableImport } from './importFormat';
+import type { ExamImport, ImportFile, TimetableImport } from './importFormat';
 
 export const TIMETABLE_EXAMPLE: TimetableImport = {
   format: 'study-planner-import',
@@ -139,4 +139,22 @@ export function buildPrompt(kind: 'timetable' | 'exams'): string {
       ? [TIMETABLE_INTRO, TIMETABLE_RULES, TIMETABLE_EXAMPLE]
       : [EXAMS_INTRO, EXAMS_RULES, EXAMS_EXAMPLE];
   return `${intro}\n\n${rules}\n\nFormat example:\n${fence(example)}\n${LAST_LINE}`;
+}
+
+function canonical(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(canonical).join(',')}]`;
+  if (v !== null && typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    return `{${Object.keys(o)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${canonical(o[k])}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(v);
+}
+
+/** True when a parsed file is exactly the worked example from the prompt, not a real answer. */
+export function isPromptExample(file: ImportFile): boolean {
+  const example = file.kind === 'timetable' ? TIMETABLE_EXAMPLE : EXAMS_EXAMPLE;
+  return canonical(file) === canonical(example);
 }

@@ -26,6 +26,9 @@ jest.mock('../../src/data/auth', () => ({ useAuth: () => ({ signOut: jest.fn() }
 jest.mock('../../src/data/clipboard', () => ({ copyText: jest.fn(), readText: jest.fn() }));
 jest.mock('../../src/ui/openLink', () => ({ openLink: jest.fn() }));
 
+const myTimetable = { ...TIMETABLE_EXAMPLE, title: 'My own timetable' };
+const myExams = { ...EXAMS_EXAMPLE, groups: [...EXAMS_EXAMPLE.groups, 'Z9'] };
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockParams = {};
@@ -113,7 +116,7 @@ describe('import paste', () => {
   it('stores a valid timetable and goes to review', async () => {
     mockParams = { kind: 'timetable' };
     await render(<ImportPaste />);
-    await answer('Here you go:\n```json\n' + JSON.stringify(TIMETABLE_EXAMPLE) + '\n```');
+    await answer('Here you go:\n```json\n' + JSON.stringify(myTimetable) + '\n```');
     expect(getPending()).toMatchObject({ kind: 'timetable' });
     expect(router.push).toHaveBeenLastCalledWith('/import/review');
   });
@@ -121,9 +124,31 @@ describe('import paste', () => {
   it('stores valid exams and goes to the exams check', async () => {
     mockParams = { kind: 'exams' };
     await render(<ImportPaste />);
-    await answer(JSON.stringify(EXAMS_EXAMPLE));
+    await answer(JSON.stringify(myExams));
     expect(getPending()).toMatchObject({ kind: 'exams' });
     expect(router.push).toHaveBeenLastCalledWith('/import/exams');
+  });
+
+  it('rejects the example from the prompt, for both kinds', async () => {
+    const msg =
+      'That’s the example from the prompt, not your timetable. Make sure the photo or PDF was attached, then ask Claude again.';
+    mockParams = { kind: 'timetable' };
+    const { unmount } = await render(<ImportPaste />);
+    await answer(JSON.stringify(TIMETABLE_EXAMPLE));
+    expect(screen.getByText(msg)).toBeTruthy();
+    expect(getPending()).toBeNull();
+    expect(router.push).not.toHaveBeenCalled();
+    await unmount();
+    mockParams = { kind: 'exams' };
+    await render(<ImportPaste />);
+    await answer(JSON.stringify(EXAMS_EXAMPLE));
+    expect(screen.getByText(msg)).toBeTruthy();
+    expect(getPending()).toBeNull();
+  });
+
+  it('turns off spell check on the answer field', async () => {
+    await render(<ImportPaste />);
+    expect(screen.getByLabelText('Claude’s answer').props.spellCheck).toBe(false);
   });
 
   it('flags the wrong kind', async () => {
@@ -146,6 +171,18 @@ describe('import paste', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Paste from clipboard' }));
     expect(screen.getByText('The clipboard is empty. Copy Claude’s answer first.')).toBeTruthy();
   });
+
+  it('says so, and keeps the field, when the clipboard cannot be read', async () => {
+    await render(<ImportPaste />);
+    await fireEvent.changeText(screen.getByLabelText('Claude’s answer'), 'old');
+    (readText as jest.Mock).mockResolvedValueOnce(null);
+    await fireEvent.press(screen.getByRole('button', { name: 'Paste from clipboard' }));
+    expect(
+      screen.getByText('Couldn’t read the clipboard. Paste into the box by hand.'),
+    ).toBeTruthy();
+    expect(screen.queryByText('The clipboard is empty. Copy Claude’s answer first.')).toBeNull();
+    expect(screen.getByLabelText('Claude’s answer').props.value).toBe('old');
+  });
 });
 
 describe('entry points', () => {
@@ -162,7 +199,7 @@ describe('entry points', () => {
     const { unmount } = await render(<SetupPrompt data={empty} />);
     await fireEvent.press(screen.getByRole('button', { name: 'Import from a photo' }));
     expect(router.push).toHaveBeenLastCalledWith('/import');
-    unmount();
+    await unmount();
     const noClasses = { semester: { id: 's' }, patterns: [] } as unknown as PlannerData;
     await render(<SetupPrompt data={noClasses} />);
     await fireEvent.press(screen.getByRole('button', { name: 'Import from a photo' }));

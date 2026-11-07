@@ -5,6 +5,7 @@ import { readText } from '../../src/data/clipboard';
 import { setPending } from '../../src/data/importSession';
 import { parseImport } from '../../src/domain/importParse';
 import {
+  isPromptExample,
   PROMPT_FIRST_LINE_EXAMS,
   PROMPT_FIRST_LINE_TIMETABLE,
 } from '../../src/domain/importPrompt';
@@ -19,6 +20,9 @@ import { theme } from '../../src/ui/theme';
 
 const MSG_PROMPT =
   'That’s the prompt, not Claude’s answer. Send it to Claude first, then copy Claude’s reply.';
+const MSG_EXAMPLE =
+  'That’s the example from the prompt, not your timetable. Make sure the photo or PDF was attached, then ask Claude again.';
+const MSG_DENIED = 'Couldn’t read the clipboard. Paste into the box by hand.';
 const MSG_EMPTY = 'The clipboard is empty. Copy Claude’s answer first.';
 
 export default function ImportPaste() {
@@ -28,6 +32,10 @@ export default function ImportPaste() {
 
   const paste = async () => {
     const clip = await readText();
+    if (clip === null) {
+      setError(MSG_DENIED);
+      return;
+    }
     if (clip.trim() === '') {
       setError(MSG_EMPTY);
       return;
@@ -58,6 +66,10 @@ export default function ImportPaste() {
       );
       return;
     }
+    if (isPromptExample(result.file)) {
+      setError(MSG_EXAMPLE);
+      return;
+    }
     setError(null);
     setPending(result.file);
     router.push(kind === 'exams' ? '/import/exams' : '/import/review');
@@ -81,6 +93,7 @@ export default function ImportPaste() {
           multiline
           autoCapitalize="none"
           autoCorrect={false}
+          spellCheck={false}
           textAlignVertical="top"
           style={[styles.input, error ? styles.inputError : null]}
         />
