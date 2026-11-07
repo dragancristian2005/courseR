@@ -128,6 +128,30 @@ describe('planExamImport', () => {
   });
 });
 
+describe('exams imported before their subject existed', () => {
+  it('are not imported twice once the subject is added', () => {
+    const f = file([
+      { subjectName: 'Baze de date' },
+      { date: '2027-01-22', subjectName: 'Baze de date', title: 'Retake' },
+    ]);
+    const ids = counter();
+    const first = planExamImport(f, empty(), 'x', 1, ids);
+    expect(first.exams).toHaveLength(2);
+    expect(first.exams.every((e) => e.subjectId === null)).toBe(true);
+    const data = { ...empty(), subjects: [subj('s1', 'BD', 'Baze de date')], exams: first.exams };
+    const second = planExamImport(f, data, 'x', 2, ids);
+    expect(second.exams).toHaveLength(0);
+    expect(second.skipped).toBe(2);
+  });
+  it('still imports a different exam of that subject', () => {
+    const f = file([{ subjectName: 'Baze de date' }]);
+    const first = planExamImport(f, empty(), 'x', 1, counter());
+    const data = { ...empty(), subjects: [subj('s1', 'BD', 'Baze de date')], exams: first.exams };
+    const g = file([{ subjectName: 'Baze de date', date: '2027-02-01' }]);
+    expect(planExamImport(g, data, 'x', 2, counter()).exams).toHaveLength(1);
+  });
+});
+
 describe('exams after a timetable with a full-name course', () => {
   it('link to the one subject the timetable import created', () => {
     const r = validateImport(require('../fixtures/uvt-info3.json'));

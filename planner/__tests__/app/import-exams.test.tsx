@@ -1,12 +1,12 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import ImportExams from '../../app/import/exams';
 import { createMemoryRepository } from '../../src/data/memoryRepository';
 import { StoreProvider } from '../../src/data/StoreProvider';
 import { clearPending, getPending, setPending } from '../../src/data/importSession';
 import type { ExamImport, ImportFile } from '../../src/domain/importFormat';
-import type { PlannerData } from '../../src/domain/types';
+import type { Exam, PlannerData } from '../../src/domain/types';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) },
@@ -201,6 +201,55 @@ describe('import exams review', () => {
       start: '10:00',
       room: 'B7',
     });
+  });
+
+  it('keeps edits and the list when the store emits another snapshot mid-review', async () => {
+    const { repo, upsert } = await setup(
+      file([
+        exam({ unsure: ['room'] }),
+        exam({ subject: 'SO', subjectName: 'SO', date: '2027-01-25' }),
+      ]),
+    );
+    await press('Edit');
+    await fireEvent.changeText(screen.getByLabelText('Room'), 'Z9');
+    await act(async () => {
+      await repo.upsert('homework', {
+        id: 'h1',
+        updatedAt: 1,
+        title: 'Read',
+        subjectId: 's1',
+        due: '2027-01-30',
+        dueTime: null,
+        done: false,
+      });
+    });
+    expect(screen.getByLabelText('Room').props.value).toBe('Z9');
+    expect(screen.getAllByTestId(/^exam-title-/)).toHaveLength(2);
+    await save();
+    const saved = upsert.mock.calls.filter((c) => c[0] === 'exams').map((c) => c[1] as Exam);
+    expect(saved).toHaveLength(2);
+    expect(saved.find((e) => e.date === '2027-01-21')?.room).toBe('Z9');
+    expect(new Set(saved.map((e) => e.id)).size).toBe(2);
+    expect(saved.every((e) => !e.id.startsWith('imp-'))).toBe(true);
+  });
+
+  it('skips on save an exam that was added to the planner meanwhile', async () => {
+    const { repo, upsert } = await setup(file([exam({}), exam({ date: '2027-01-25' })]));
+    await act(async () => {
+      await repo.upsert('exams', {
+        id: 'x1',
+        updatedAt: 1,
+        subjectId: 's1',
+        title: 'Exam',
+        date: '2027-01-25',
+        start: '09:00',
+        room: '',
+      });
+    });
+    upsert.mockClear();
+    await save();
+    const saved = upsert.mock.calls.filter((c) => c[0] === 'exams').map((c) => c[1] as Exam);
+    expect(saved.map((e) => e.date)).toEqual(['2027-01-21']);
   });
 
   it('shows an error and allows a retry when saving fails', async () => {

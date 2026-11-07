@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { clearPending, getPending } from '../../src/data/importSession';
 import { newId } from '../../src/data/ids';
 import { useStore } from '../../src/data/useStore';
-import { examGroupOptions, planExamImport } from '../../src/domain/examImport';
+import { examGroupOptions, planExamImport, type ExamPlan } from '../../src/domain/examImport';
 import type { ExamImport } from '../../src/domain/importFormat';
 import type { Exam } from '../../src/domain/types';
 import { Button } from '../../src/ui/Button';
@@ -60,20 +60,30 @@ export default function ImportExams() {
 }
 
 function Review({ file }: { file: ExamImport }) {
-  const { data, repo } = useStore();
+  const { data, repo, ready } = useStore();
   const groups = useMemo(() => examGroupOptions(file), [file]);
   const [group, setGroup] = useState<string | null>(groups.length === 1 ? groups[0] : null);
   const [edits, setEdits] = useState<Record<string, Edit>>({});
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const saveLock = useRef(false);
+  // Real ids given at save time, kept so a retry after a failure writes the same records.
+  const realIds = useRef<Record<string, string>>({});
   const [failed, setFailed] = useState(false);
 
   const effGroup = groups.length === 0 ? 'all' : group;
-  const plan = useMemo(
-    () => (effGroup === null ? null : planExamImport(file, data, effGroup, Date.now(), newId)),
-    [file, data, effGroup],
-  );
+  // The list is planned once, when the group is chosen: later store snapshots must not reshuffle
+  // it or drop edits. Duplicates are checked again against the current data on save.
+  const planned = useRef<{ group: string; plan: ExamPlan } | null>(null);
+  if (ready && effGroup !== null && planned.current?.group !== effGroup) {
+    let n = 0;
+    planned.current = {
+      group: effGroup,
+      plan: planExamImport(file, data, effGroup, Date.now(), () => `imp-${n++}`),
+    };
+  }
+  const plan =
+    effGroup !== null && planned.current?.group === effGroup ? planned.current.plan : null;
 
   const picker =
     groups.length > 0 ? (
@@ -125,7 +135,14 @@ function Review({ file }: { file: ExamImport }) {
     setSaving(true);
     setFailed(false);
     try {
-      for (const e of rows) await repo.upsert('exams', e);
+      const now = Date.now();
+      const fresh = planExamImport(file, data, effGroup ?? 'all', now, newId);
+      const stillNew = new Set(Object.values(fresh.sources));
+      for (const e of rows) {
+        if (!stillNew.has(plan.sources[e.id])) continue;
+        realIds.current[e.id] ??= newId();
+        await repo.upsert('exams', { ...e, id: realIds.current[e.id], updatedAt: now });
+      }
       clearPending();
       router.replace('/exams');
     } catch {
