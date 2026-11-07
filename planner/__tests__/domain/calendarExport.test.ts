@@ -204,6 +204,17 @@ describe('calendarEvents exams', () => {
     expect(es.map((e) => e.uid)).toEqual(['exam-c@study-planner']);
   });
 
+  it('exams start from today while classes start from the Monday', () => {
+    const d = make({
+      exams: [exam({ id: 'early', date: '2026-11-03' }), exam({ id: 'late', date: '2026-11-05' })],
+    });
+    const es = calendarEvents(d, '2026-11-02', { ...both, today: '2026-11-04' });
+    expect(es.filter((e) => e.uid.startsWith('exam-')).map((e) => e.uid)).toEqual([
+      'exam-late@study-planner',
+    ]);
+    expect(es.some((e) => e.date === '2026-11-02' && !e.uid.startsWith('exam-'))).toBe(true);
+  });
+
   it('exams still exported without semester', () => {
     const d = make({ semester: null, exams: [exam({})] });
     expect(calendarEvents(d, '2026-11-02', both)).toHaveLength(1);

@@ -11,7 +11,8 @@ const LAST_MINUTE = 23 * 60 + 59;
 const pad = (n: number) => String(n).padStart(2, '0');
 const minutesToTime = (m: number): HHMM => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
 
-export type ExportOptions = { classes: boolean; exams: boolean };
+/** `today`: exams earlier than this are left out (default: `from`); classes always start at `from`. */
+export type ExportOptions = { classes: boolean; exams: boolean; today?: ISODate };
 
 /** Sort key: all-day events first within a date, then by start time. */
 const startMinutes = (e: IcsEvent) => (e.kind === 'timed' ? timeToMinutes(e.start) : -1);
@@ -41,8 +42,9 @@ export function calendarEvents(data: PlannerData, from: ISODate, opts: ExportOpt
   }
 
   if (opts.exams) {
+    const examsFrom = opts.today ?? from;
     for (const x of data.exams) {
-      if (x.deleted || compareDates(x.date, from) < 0) continue;
+      if (x.deleted || compareDates(x.date, examsFrom) < 0) continue;
       const subject = x.subjectId
         ? data.subjects.find((s) => s.id === x.subjectId && !s.deleted)
         : undefined;
