@@ -11,6 +11,7 @@ const ROWS: { label: string; href: Href; startsImport?: boolean }[] = [
   { label: 'Semester', href: '/settings/semester' },
   { label: 'Subjects', href: '/settings/subjects' },
   { label: 'Exams', href: '/exams' },
+  { label: 'Add to calendar', href: '/settings/calendar' },
   { label: 'Import timetable', href: '/import/prompt?kind=timetable', startsImport: true },
   { label: 'Import exams', href: '/import/prompt?kind=exams', startsImport: true },
   { label: 'Backup', href: '/settings/backup' },
