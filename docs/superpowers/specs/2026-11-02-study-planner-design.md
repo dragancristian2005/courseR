@@ -75,8 +75,7 @@ The app borrows the visual language students already read every week: the printe
 - **Backend** (stack left to the builder; a hosted backend with Google auth and offline sync, e.g. Firebase or Supabase, fits) with these jobs:
   1. **Auth and sync:** stores the student's data, including notes, scoped to their account.
   2. **Import:** receives an image/PDF, calls an AI vision model, returns structured JSON. The uploaded file is not kept after the response.
-  3. **Calendar feed:** a per-user ICS subscription URL (unguessable token) that Google Calendar and Apple Calendar subscribe to, generated from the synced data.
-  4. **Notion push:** writes the schedule into a Notion database the student connects.
+  3. **Calendar feed and Notion push:** deferred (see Calendar publishing); Phase 3 exports an `.ics` file from the app with no server.
 - **Backup:** export of all data to a file (my call; less critical now that data syncs, kept as a safety net).
 
 ### Paying for AI import
@@ -176,8 +175,11 @@ General list (portal, email, library, etc.) and per-subject links (Classroom pag
 
 ### Calendar publishing (one-way)
 
-- **Google Calendar and Apple Calendar:** one ICS subscription URL, hosted by the server, covering attended classes and exams.
-- **Notion (my call):** one row per dated class session and one per exam, kept up to date as sessions change. The student connects by pasting a Notion integration token and choosing a database (no public Notion OAuth app needed).
+Decided 2026-11-07: **no server and no live subscription in Phase 3.**
+
+- **Add to calendar (Phase 3):** the app builds one `.ics` calendar file with every attended class session from this week to the end of the semester (odd/even, breaks, one-off moves and cancellations already applied) and every upcoming exam, in Europe/Bucharest time. On iPhone/iPad, Apple Calendar opens it and the student taps Add All; Google Calendar imports the same file on the web (Settings → Import). It is a snapshot: after timetable changes the student adds it again (the file names its own calendar, "Study Planner", so the old one can be deleted first).
+- **Live updates (Phase 4):** the native app writes directly into the phone's calendar and keeps those events updated; no server needed.
+- **Live subscription URL and Notion:** deferred. Both would need a small server (Cloudflare Worker): Google/Apple subscriptions poll a public URL, and Notion's API refuses browser requests. Revisit if wanted.
 - Edits happen only in the app.
 
 ### Widgets (iOS first)
@@ -199,7 +201,7 @@ Because the Apple fee is undecided, the author's daily use starts on the **web b
 
 1. Google sign-in and sync, manual entry, semester setup, Today, week grid, class detail, subjects on/off, homework, notes, links, backup export. Web build usable daily on iPhone/iPad.
 2. AI timetable import with review, and exam import (own-key gate on web).
-3. Calendar feed (Google/Apple) and Notion push.
+3. Add to calendar (`.ics` export, no server); live subscription and Notion deferred.
 4. Native app builds: local reminders, rewarded-ad gate. Android installable free; iOS on the author's devices.
 5. iOS widgets (needs the paid Apple account).
 6. Google Classroom homework import, if the university's Google Workspace allows third-party access.
