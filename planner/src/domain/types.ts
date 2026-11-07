@@ -38,6 +38,8 @@ export interface ClassPattern extends Base {
   validFrom: ISODate;
   validTo: ISODate | null;
   online: boolean;
+  /** Where the pattern came from; absent = manual. */
+  source?: 'import' | 'manual';
 }
 
 export interface SessionOverride extends Base {

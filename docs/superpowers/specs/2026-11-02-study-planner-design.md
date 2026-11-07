@@ -81,12 +81,16 @@ The app borrows the visual language students already read every week: the printe
 
 ### Paying for AI import
 
-AI import costs money per call. The policy must be swappable later (the author may change it if the app is released), so the gate sits behind one server-side check. Initial policy, chosen by the author:
+Decided 2026-11-06: **the app does not call an AI API in Phase 2.** The author's Claude subscription does not include API usage, and classmates would each need a paid API key. Instead the student uses the Claude app they already have (free or paid) through copy and paste:
 
-- **Watch a rewarded ad** to unlock one import (native apps; e.g. AdMob rewarded ads), or
-- **Enter your own AI API key**, used for the student's imports.
+1. The planner shows a ready-made prompt with **Copy prompt** (and a link to open Claude).
+2. The student attaches the timetable photo/PDF in the Claude app, pastes the prompt, sends it.
+3. The student copies Claude's answer (a JSON block in the app's import format) and pastes it into the planner.
+4. The planner validates it and opens the review screen.
 
-My calls: on the web build, only the own-key option is offered at first (rewarded ads are a native-app feature). The own key is stored only on the student's devices and sent with each import request, never saved on the server. Manual entry is always free.
+No API key, no server, no cost. A direct API import (own key, or the rewarded-ad gate on native) can be added later behind the same review screen; the original policy below is kept for that later step.
+
+- Later, optional: **watch a rewarded ad** to unlock one import (native apps), or **enter your own AI API key** (stored only on the device).
 
 ## Data model (conceptual)
 
@@ -120,7 +124,7 @@ A Subjects list shows every subject found by import or added manually, each with
 ### Timetable import
 
 1. Student picks a photo or PDF.
-2. Server sends it to an AI vision model with instructions to return structured JSON for the whole sheet: groups, semigroups, blocks with spans.
+2. The student sends it to the Claude app with the planner's import prompt and pastes back the JSON answer (see Paying for AI import). The JSON describes the whole sheet: groups, semigroups, blocks with the groups they apply to.
 3. App asks: which group (and semigroup, when present)?
 4. App filters to blocks that apply to that group: blocks spanning the group's column, full-width blocks for everyone, semigroup-specific blocks.
 5. Abbreviations are expanded by matching seminar/lab codes to course rows (RPA → Robotic Process Automation). Matching ignores diacritics: UVT writes the same subject as `ȘP` on the course and `SP` on the labs (Șabloane de proiectare).

@@ -28,9 +28,11 @@ Run the checks with `npx jest` and `npx tsc --noEmit`. Regenerate the app icons 
 ```
 npm install -g firebase-tools
 firebase login
-firebase use --add
+firebase use YOUR-PROJECT-ID --alias default
 npm run deploy
 ```
+
+Run these inside `planner/`. Replace `YOUR-PROJECT-ID` with the value of `EXPO_PUBLIC_FIREBASE_PROJECT_ID` from your `.env` (also shown in Firebase console → Project settings → General → Project ID). If `firebase login` can't open a browser, use `firebase login --no-localhost`. The `firebase use` command writes `.firebaserc`, which stays out of git.
 
 `npm run deploy` exports the web app to `dist/` and publishes it to Firebase Hosting together with the Firestore rules. The command prints the Hosting URL.
 
@@ -44,3 +46,15 @@ Open the Hosting URL in Safari, tap Share, then Add to Home Screen. Open the app
 2. Turn on airplane mode and reopen the app. Today should still show the class.
 3. Add a note while offline.
 4. Turn airplane mode off. The note should appear on a second device.
+
+## Import your timetable
+
+You can fill the planner from a photo or PDF of your timetable. It works with a free Claude account and needs no API key.
+
+1. Open Settings and tap Import timetable (on first launch, tap Import from a photo).
+2. Tap Copy prompt.
+3. Open Claude, attach the photo or PDF, paste the prompt and send it.
+4. Copy Claude's whole answer, come back, tap Paste from clipboard (or paste into the box), then Check answer.
+5. Pick your group, answer the questions and tap Save.
+
+Nothing is saved until you tap Save. Exams work the same way: choose the exams import, then check the list and tap Save exams.

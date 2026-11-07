@@ -2,6 +2,7 @@ import {
   addDays,
   compareDates,
   daysBetween,
+  isTime,
   mondayOf,
   timeToMinutes,
   todayISO,
@@ -42,5 +43,11 @@ describe('dates', () => {
   it('todayISO uses local calendar fields', () => {
     expect(todayISO(new Date(2026, 10, 2, 23, 59))).toBe('2026-11-02');
     expect(todayISO(new Date(2026, 0, 5, 0, 1))).toBe('2026-01-05');
+  });
+
+  it('isTime accepts only HH:MM', () => {
+    for (const ok of ['00:00', '09:40', '23:59']) expect(isTime(ok)).toBe(true);
+    for (const bad of ['9:40', '24:00', '12:60', '09:40:00', '', ' 09:40', '0940', 'ab:cd'])
+      expect(isTime(bad)).toBe(false);
   });
 });
