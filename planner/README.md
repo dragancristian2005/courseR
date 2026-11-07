@@ -61,4 +61,4 @@ Nothing is saved until you tap Save. Exams work the same way: choose the exams i
 
 ## Add to your calendar
 
-Open Settings, tap Add to calendar, choose Classes and Exams, and tap Add to calendar. It adds your classes from this week to the end of the semester, and your upcoming exams, as a copy in a file; if your timetable changes, add it again. In Apple Calendar, tap Add All, and delete the "Study Planner" calendar first to avoid duplicates. In Google Calendar, open calendar.google.com on a computer, go to Settings, then Import, and choose the downloaded `study-planner.ics`.
+Open Settings, tap Add to calendar, choose Classes and Exams, and tap Add to calendar. It adds your classes from this week to the end of the semester, and your upcoming exams, as a copy; if your timetable changes, add it again. On iPhone or iPad, tap Add All, and when asked which calendar, choose New Calendar and name it "Study Planner". In Google Calendar, on a computer, create a calendar called "Study Planner" (Settings, Add calendar), then Settings, Import, and choose the `study-planner.ics` file; to update later, delete the "Study Planner" calendar and add it again.

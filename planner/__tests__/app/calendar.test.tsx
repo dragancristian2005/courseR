@@ -3,16 +3,20 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import { router } from 'expo-router';
 import CalendarScreen from '../../app/settings/calendar';
 import Settings from '../../app/settings/index';
-import { saveCalendarFile } from '../../src/data/calendarFile';
+import { openCalendarFile, shareCalendarFile } from '../../src/data/calendarFile';
 import { createMemoryRepository } from '../../src/data/memoryRepository';
 import { StoreProvider } from '../../src/data/StoreProvider';
 import type { PlannerData } from '../../src/domain/types';
 
 jest.mock('../../src/data/auth', () => ({ useAuth: jest.fn(() => ({ signOut: jest.fn() })) }));
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
-jest.mock('../../src/data/calendarFile', () => ({ saveCalendarFile: jest.fn() }));
+jest.mock('../../src/data/calendarFile', () => ({
+  openCalendarFile: jest.fn(),
+  shareCalendarFile: jest.fn(),
+}));
 
-const save = saveCalendarFile as jest.Mock;
+const save = openCalendarFile as jest.Mock;
+const share = shareCalendarFile as jest.Mock;
 
 const FAKE_DATE_ONLY = [
   'setTimeout',
@@ -104,7 +108,7 @@ describe('add to calendar screen', () => {
     await setup();
     expect(
       screen.getByText(
-        'Adds your classes from this week to the end of the semester, and your upcoming exams, to your phone’s calendar. It’s a copy: if your timetable changes, add it again.',
+        'Adds your classes from this week to the end of the semester, and your upcoming exams, to your calendar. It’s a copy: if your timetable changes, add it again.',
       ),
     ).toBeTruthy();
     for (const name of ['Classes', 'Exams']) {
@@ -114,7 +118,7 @@ describe('add to calendar screen', () => {
   });
 
   it('saves an ics with the class and the exam, from this Monday', async () => {
-    save.mockResolvedValue('downloaded');
+    save.mockReturnValue('downloaded');
     await setup();
     await fireEvent.press(button());
     await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
@@ -127,7 +131,7 @@ describe('add to calendar screen', () => {
   });
 
   it('leaves exams out when Exams is off', async () => {
-    save.mockResolvedValue('downloaded');
+    save.mockReturnValue('downloaded');
     await setup();
     await fireEvent.press(screen.getByRole('checkbox', { name: 'Exams' }));
     expect(screen.getByRole('checkbox', { name: 'Exams' }).props.accessibilityState.checked).toBe(
@@ -162,35 +166,75 @@ describe('add to calendar screen', () => {
     expect(screen.getByText(NOTHING)).toBeTruthy();
   });
 
-  it('shows the success and Google messages after saving', async () => {
-    save.mockResolvedValue('downloaded');
+  it('always shows the help under the buttons', async () => {
     await setup();
-    await fireEvent.press(button());
-    await waitFor(() =>
-      expect(
-        screen.getByText(
-          'Done. In Apple Calendar, tap Add All. To avoid duplicates next time, delete the “Study Planner” calendar first.',
-        ),
-      ).toBeTruthy(),
-    );
-    expect(
-      screen.getByText(
-        'Google Calendar: open calendar.google.com on a computer, Settings → Import, and choose the downloaded study-planner.ics.',
-      ),
-    ).toBeTruthy();
+    for (const t of [
+      'iPhone or iPad: tap Add to calendar, then Add All. When asked which calendar, choose New Calendar and name it “Study Planner”.',
+      'Google Calendar: on a computer, create a calendar called “Study Planner” (Settings → Add calendar), then Settings → Import and choose the study-planner.ics file.',
+      'To update later, delete the “Study Planner” calendar and add it again.',
+    ]) {
+      expect(screen.getByText(t)).toBeTruthy();
+    }
   });
 
-  it('shows no success message when the share sheet is cancelled', async () => {
-    save.mockResolvedValue('cancelled');
+  it('shows the download message and clears it when a checkbox changes', async () => {
+    save.mockReturnValue('downloaded');
+    await setup();
+    await fireEvent.press(button());
+    const msg = 'Downloaded study-planner.ics. Import it into your calendar as described below.';
+    await waitFor(() => expect(screen.getByText(msg)).toBeTruthy());
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'Exams' }));
+    expect(screen.queryByText(msg)).toBeNull();
+  });
+
+  it('shows nothing extra when the calendar opens', async () => {
+    save.mockReturnValue('opened');
     await setup();
     await fireEvent.press(button());
     await waitFor(() => expect(save).toHaveBeenCalled());
-    expect(screen.queryByText(/^Done\./)).toBeNull();
+    expect(screen.queryByText(/^Downloaded/)).toBeNull();
+    expect(screen.queryByText(/^Saved\./)).toBeNull();
+  });
+
+  it('Save the file shares and shows the saved message', async () => {
+    share.mockResolvedValue('shared');
+    await setup();
+    await fireEvent.press(screen.getByRole('button', { name: 'Save the file' }));
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          'Saved. Open the file from where you saved it to add it to your calendar.',
+        ),
+      ).toBeTruthy(),
+    );
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('shows no message when the share sheet is cancelled', async () => {
+    share.mockResolvedValue('cancelled');
+    await setup();
+    await fireEvent.press(screen.getByRole('button', { name: 'Save the file' }));
+    await waitFor(() => expect(share).toHaveBeenCalled());
+    expect(screen.queryByText(/^Saved\./)).toBeNull();
     expect(screen.queryByText(/Couldn’t/)).toBeNull();
   });
 
+  it('leaves out an exam from earlier this week', async () => {
+    save.mockReturnValue('downloaded');
+    await setup({ ...data, exams: [{ ...data.exams![0], date: '2026-11-03' }] });
+    await fireEvent.press(button());
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    expect(save.mock.calls[0][0]).not.toContain('Final');
+  });
+
+  it('is empty when the only exam was earlier this week', async () => {
+    await setup({ ...data, exams: [{ ...data.exams![0], date: '2026-11-03' }] });
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'Classes' }));
+    expect(screen.getByText(NOTHING)).toBeTruthy();
+  });
+
   it('explains when the device is unsupported', async () => {
-    save.mockResolvedValue('unsupported');
+    save.mockReturnValue('unsupported');
     await setup();
     await fireEvent.press(button());
     await waitFor(() =>
@@ -198,11 +242,12 @@ describe('add to calendar screen', () => {
         screen.getByText('On this device, use the web app to export your calendar for now.'),
       ).toBeTruthy(),
     );
-    expect(screen.queryByText(/^Done\./)).toBeNull();
   });
 
   it('shows an error when saving fails', async () => {
-    save.mockRejectedValue(new Error('boom'));
+    save.mockImplementation(() => {
+      throw new Error('boom');
+    });
     await setup();
     await fireEvent.press(button());
     await waitFor(() =>
@@ -212,11 +257,14 @@ describe('add to calendar screen', () => {
 
   it('ignores a second press while saving', async () => {
     let finish: (v: string) => void = () => {};
-    save.mockReturnValue(new Promise((r) => (finish = r)));
+    share.mockReturnValue(new Promise((r) => (finish = r)));
+    const saveBtn = () => screen.getByRole('button', { name: 'Save the file' });
     await setup();
+    await fireEvent.press(saveBtn());
     await fireEvent.press(button());
-    await fireEvent.press(button());
-    expect(save).toHaveBeenCalledTimes(1);
+    await fireEvent.press(saveBtn());
+    expect(share).toHaveBeenCalledTimes(1);
+    expect(save).not.toHaveBeenCalled();
     expect(button().props.accessibilityState.disabled).toBe(true);
     finish('downloaded');
     await waitFor(() => expect(button().props.accessibilityState.disabled).toBe(false));

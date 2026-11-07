@@ -1,6 +1,10 @@
 import { useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { saveCalendarFile } from '../../src/data/calendarFile';
+import {
+  openCalendarFile,
+  shareCalendarFile,
+  type CalendarDelivery,
+} from '../../src/data/calendarFile';
 import { useStore } from '../../src/data/useStore';
 import { calendarEvents, exportCalendar } from '../../src/domain/calendarExport';
 import { mondayOf, todayISO } from '../../src/domain/dates';
@@ -9,7 +13,9 @@ import { FormScreen } from '../../src/ui/FormScreen';
 import { Text } from '../../src/ui/Text';
 import { theme } from '../../src/ui/theme';
 
-type Outcome = 'done' | 'unsupported' | 'error' | null;
+const FILENAME = 'study-planner.ics';
+
+type Outcome = 'downloaded' | 'shared' | 'unsupported' | 'error' | null;
 
 function Check({
   label,
@@ -44,23 +50,31 @@ export default function AddToCalendar() {
   const [saving, setSaving] = useState(false);
   const lock = useRef(false);
 
-  const from = mondayOf(todayISO());
-  const empty = useMemo(
-    () => calendarEvents(data, from, { classes, exams }).length === 0,
-    [data, from, classes, exams],
-  );
+  const empty = useMemo(() => {
+    const today = todayISO();
+    return calendarEvents(data, mondayOf(today), { classes, exams, today }).length === 0;
+  }, [data, classes, exams]);
 
-  const add = async () => {
+  const toggle = (set: (v: boolean) => void) => (v: boolean) => {
+    set(v);
+    setOutcome(null);
+  };
+
+  const run = async (
+    deliver: (ics: string, filename: string) => CalendarDelivery | Promise<CalendarDelivery>,
+  ) => {
     if (lock.current || empty) return;
     lock.current = true;
     setSaving(true);
     setOutcome(null);
     try {
       const now = new Date();
-      const { ics } = exportCalendar(data, mondayOf(todayISO(now)), { classes, exams }, now);
-      const result = await saveCalendarFile(ics, 'study-planner.ics');
-      if (result === 'unsupported') setOutcome('unsupported');
-      else if (result !== 'cancelled') setOutcome('done');
+      const today = todayISO(now);
+      const { ics } = exportCalendar(data, mondayOf(today), { classes, exams, today }, now);
+      const result = await deliver(ics, FILENAME);
+      if (result === 'downloaded' || result === 'shared' || result === 'unsupported') {
+        setOutcome(result);
+      }
     } catch {
       setOutcome('error');
     } finally {
@@ -73,29 +87,44 @@ export default function AddToCalendar() {
     <FormScreen title="Add to calendar">
       <Text>
         Adds your classes from this week to the end of the semester, and your upcoming exams, to
-        your phone’s calendar. It’s a copy: if your timetable changes, add it again.
+        your calendar. It’s a copy: if your timetable changes, add it again.
       </Text>
       <View>
-        <Check label="Classes" checked={classes} onChange={setClasses} />
-        <Check label="Exams" checked={exams} onChange={setExams} />
+        <Check label="Classes" checked={classes} onChange={toggle(setClasses)} />
+        <Check label="Exams" checked={exams} onChange={toggle(setExams)} />
       </View>
       {empty ? (
         <Text variant="meta">
           Nothing to add yet. Set up your semester and classes, or add an exam.
         </Text>
       ) : null}
-      <Button label="Add to calendar" onPress={() => void add()} disabled={empty || saving} />
-      {outcome === 'done' ? (
-        <>
-          <Text>
-            Done. In Apple Calendar, tap Add All. To avoid duplicates next time, delete the “Study
-            Planner” calendar first.
-          </Text>
-          <Text variant="meta">
-            Google Calendar: open calendar.google.com on a computer, Settings → Import, and choose
-            the downloaded study-planner.ics.
-          </Text>
-        </>
+      <Button
+        label="Add to calendar"
+        onPress={() => void run(openCalendarFile)}
+        disabled={empty || saving}
+      />
+      <Button
+        label="Save the file"
+        kind="outline"
+        onPress={() => void run(shareCalendarFile)}
+        disabled={empty || saving}
+      />
+      <Text variant="meta">
+        iPhone or iPad: tap Add to calendar, then Add All. When asked which calendar, choose New
+        Calendar and name it “Study Planner”.
+      </Text>
+      <Text variant="meta">
+        Google Calendar: on a computer, create a calendar called “Study Planner” (Settings → Add
+        calendar), then Settings → Import and choose the study-planner.ics file.
+      </Text>
+      <Text variant="meta">
+        To update later, delete the “Study Planner” calendar and add it again.
+      </Text>
+      {outcome === 'downloaded' ? (
+        <Text>Downloaded study-planner.ics. Import it into your calendar as described below.</Text>
+      ) : null}
+      {outcome === 'shared' ? (
+        <Text>Saved. Open the file from where you saved it to add it to your calendar.</Text>
       ) : null}
       {outcome === 'unsupported' ? (
         <Text>On this device, use the web app to export your calendar for now.</Text>
