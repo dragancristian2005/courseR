@@ -7,7 +7,7 @@ import ImportPaste from '../../app/import/paste';
 import Settings from '../../app/settings/index';
 import { SetupPrompt } from '../../src/ui/SetupPrompt';
 import { copyText, readText } from '../../src/data/clipboard';
-import { clearPending, getPending } from '../../src/data/importSession';
+import { clearPending, getPending, setPending } from '../../src/data/importSession';
 import { openLink } from '../../src/ui/openLink';
 import {
   buildPrompt,
@@ -192,6 +192,16 @@ describe('entry points', () => {
     expect(router.push).toHaveBeenLastCalledWith('/import/prompt?kind=timetable');
     await fireEvent.press(screen.getByRole('button', { name: 'Import exams' }));
     expect(router.push).toHaveBeenLastCalledWith('/import/prompt?kind=exams');
+  });
+
+  it('settings rows drop a file left over from an earlier import', async () => {
+    await render(<Settings />);
+    setPending(myTimetable as never);
+    await fireEvent.press(screen.getByRole('button', { name: 'Import timetable' }));
+    expect(getPending()).toBeNull();
+    setPending(myExams as never);
+    await fireEvent.press(screen.getByRole('button', { name: 'Import exams' }));
+    expect(getPending()).toBeNull();
   });
 
   it('setup prompts offer Import from a photo in both states', async () => {
