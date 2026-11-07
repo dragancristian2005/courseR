@@ -83,6 +83,16 @@ function Review({ file }: { file: TimetableImport }) {
   const saveLock = useRef(false);
   const [failed, setFailed] = useState(false);
   const previewId = useRef(0);
+  // Rows of the plan whose inline edit holds values that can't be saved.
+  const [invalid, setInvalid] = useState<Record<string, boolean>>({});
+  const setRowValid = (key: string, valid: boolean) =>
+    setInvalid((all) => {
+      if (valid === !all[key]) return all;
+      const next = { ...all };
+      if (valid) delete next[key];
+      else next[key] = true;
+      return next;
+    });
 
   const needsSemigroup = opts.semigroups.length > 0;
   const effGroup = opts.groups.length === 0 ? 'all' : group;
@@ -121,7 +131,10 @@ function Review({ file }: { file: TimetableImport }) {
     [reimport, applied, data],
   );
 
-  const reset = () => setAnswers(EMPTY);
+  const reset = () => {
+    setAnswers(EMPTY);
+    setInvalid({});
+  };
   const patch = (fn: (a: ImportAnswers) => ImportAnswers) => setAnswers((a) => fn(a));
 
   const header = (
@@ -133,6 +146,7 @@ function Review({ file }: { file: TimetableImport }) {
         options={opts.groups.map((g) => ({ value: g, label: g }))}
         value={group}
         onChange={(g) => {
+          if (g === group) return;
           setGroup(g);
           reset();
         }}
@@ -146,6 +160,7 @@ function Review({ file }: { file: TimetableImport }) {
         options={opts.semigroups.map((g) => ({ value: g, label: g }))}
         value={semigroup}
         onChange={(g) => {
+          if (g === semigroup) return;
           setSemigroup(g);
           reset();
         }}
@@ -206,7 +221,9 @@ function Review({ file }: { file: TimetableImport }) {
     const choiceOpen = choice !== undefined && answers.chosen[choice.id] === undefined;
     const typeQ = !isDropped && plan.questions.some((q) => q.kind === 'type' && q.block === i);
     const unsureQ = plan.questions.find((q) => q.kind === 'unsure' && q.block === i);
+    const rowKey = `${group}|${semigroup}|${i}`;
     const open =
+      invalid[rowKey] === true ||
       choiceOpen ||
       (!isDropped && block.type === null) ||
       (!isDropped && unsureQ !== undefined && answers.edits[i] === undefined);
@@ -240,6 +257,8 @@ function Review({ file }: { file: TimetableImport }) {
         ) : null}
         {!isDropped && unsureQ !== undefined && unsureQ.kind === 'unsure' ? (
           <UnsureQuestion
+            key={rowKey}
+            onValidChange={(valid) => setRowValid(rowKey, valid)}
             fields={unsureQ.fields}
             block={block}
             showType={!typeQ}
@@ -259,7 +278,7 @@ function Review({ file }: { file: TimetableImport }) {
   plan.blocks.forEach((_, i) => {
     if (dropped.has(i)) return;
     const key = subjectKey(effective(i).subject);
-    if (kept.some((s) => subjectKey(s.abbreviation) === key)) return;
+    if (key === '' || kept.some((s) => subjectKey(s.abbreviation) === key)) return;
     kept.push(
       plan.subjects.find((s) => subjectKey(s.abbreviation) === key) ?? {
         abbreviation: effective(i).subject,
@@ -276,6 +295,7 @@ function Review({ file }: { file: TimetableImport }) {
     answers.attending[s.abbreviation] ?? existingOf(s)?.attending ?? true;
 
   const fromOk = !reimport || isDate(from);
+  const anyInvalid = Object.keys(invalid).length > 0;
   const nothing =
     complete &&
     applied !== null &&
@@ -412,10 +432,12 @@ function Review({ file }: { file: TimetableImport }) {
         <Rule weight="heavy" />
         <Button
           label={nothing ? 'Nothing to change' : 'Save timetable'}
-          disabled={!complete || nothing || !fromOk || saving}
+          disabled={!complete || nothing || !fromOk || anyInvalid || saving}
           onPress={() => void save()}
         />
-        {nothing ? (
+        {anyInvalid ? (
+          <Text variant="meta">Fix the highlighted classes to save.</Text>
+        ) : nothing ? (
           <Text variant="meta">Everything on this sheet is already in your planner.</Text>
         ) : !complete ? (
           <Text variant="meta">

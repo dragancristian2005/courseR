@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { ImportBlock, UnsureField } from '../domain/importFormat';
 import { TYPE_LABEL } from './format';
-import { Chips, Field, isTime, MSG_TIME } from './FormBits';
+import { Chips, Field, isTime, MSG_ORDER, MSG_TIME } from './FormBits';
 import { whenWords } from './ImportBlockRow';
 import { Text } from './Text';
 import { TextButton } from './TextButton';
@@ -20,6 +20,8 @@ const WEEKS_OPTIONS: { value: Repeat; label: string }[] = [
   { value: 'odd', label: 'Odd weeks' },
   { value: 'even', label: 'Even weeks' },
 ];
+
+const MSG_SUBJECT = 'Enter the subject.';
 
 const FIELD_WORDS: Record<UnsureField, string> = {
   subject: 'subject',
@@ -108,6 +110,7 @@ export function UnsureQuestion({
   type,
   onType,
   onEdit,
+  onValidChange,
 }: {
   fields: string[];
   /** The block as it stands, with edits applied. */
@@ -117,10 +120,22 @@ export function UnsureQuestion({
   type: ClassType | null;
   onType: (t: ClassType) => void;
   onEdit: (patch: Partial<ImportBlock>) => void;
+  /** Told whenever the typed values become valid or invalid (true again once unmounted). */
+  onValidChange: (valid: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [start, setStart] = useState(block.start);
   const [end, setEnd] = useState(block.end);
+  const subjectError = block.subject.trim() === '' ? MSG_SUBJECT : undefined;
+  const startError = isTime(start) ? undefined : MSG_TIME;
+  const endError = !isTime(end) ? MSG_TIME : isTime(start) && end <= start ? MSG_ORDER : undefined;
+  const valid = subjectError === undefined && startError === undefined && endError === undefined;
+  const report = useRef(onValidChange);
+  report.current = onValidChange;
+  useEffect(() => {
+    report.current(valid);
+  }, [valid]);
+  useEffect(() => () => report.current(true), []);
   return (
     <View style={styles.box}>
       <Text style={styles.ask}>{`Check this: ${inWords(fields)} may be misread.`}</Text>
@@ -130,6 +145,7 @@ export function UnsureQuestion({
             label="Subject"
             value={block.subject}
             onChangeText={(v) => onEdit({ subject: v })}
+            error={subjectError}
           />
           {showType ? (
             <Chips label="Type" options={TYPE_OPTIONS} value={type} onChange={onType} />
@@ -141,7 +157,7 @@ export function UnsureQuestion({
               setStart(v);
               if (isTime(v)) onEdit({ start: v });
             }}
-            error={isTime(start) ? undefined : MSG_TIME}
+            error={startError}
           />
           <Field
             label="End"
@@ -150,7 +166,7 @@ export function UnsureQuestion({
               setEnd(v);
               if (isTime(v)) onEdit({ end: v });
             }}
-            error={isTime(end) ? undefined : MSG_TIME}
+            error={endError}
           />
           <Field label="Room" value={block.room ?? ''} onChangeText={(v) => onEdit({ room: v })} />
           <Field
@@ -165,7 +181,7 @@ export function UnsureQuestion({
             value={block.weeks}
             onChange={(w) => onEdit({ weeks: w })}
           />
-          <TextButton label="Done" onPress={() => setEditing(false)} />
+          {valid ? <TextButton label="Done" onPress={() => setEditing(false)} /> : null}
         </View>
       ) : (
         <TextButton label="Edit" onPress={() => setEditing(true)} />

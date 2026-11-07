@@ -284,6 +284,50 @@ describe('import review', () => {
   });
 });
 
+describe('import review inline edit validation', () => {
+  async function toEditor() {
+    const r = await setup(uvt);
+    await chooseGroup1();
+    await answerAll();
+    await press('Edit');
+    return r;
+  }
+  const saveDisabled = () =>
+    screen.getByRole('button', { name: 'Save timetable' }).props.accessibilityState.disabled;
+
+  it('blocks Save for an empty subject until it is filled again', async () => {
+    await toEditor();
+    const subject = screen.getByLabelText('Subject');
+    await fireEvent.changeText(subject, '   ');
+    expect(screen.getByText('Enter the subject.')).toBeTruthy();
+    expect(saveDisabled()).toBe(true);
+    expect(screen.getByText('Fix the highlighted classes to save.')).toBeTruthy();
+    await fireEvent.changeText(subject, 'TSS');
+    expect(saveDisabled()).toBe(false);
+    expect(screen.queryByText('Fix the highlighted classes to save.')).toBeNull();
+  });
+
+  it('blocks Save for a bad time and for an end that is not after the start', async () => {
+    await toEditor();
+    await fireEvent.changeText(screen.getByLabelText('Start'), '9:4');
+    expect(screen.getByText('Enter a time like 09:40.')).toBeTruthy();
+    expect(saveDisabled()).toBe(true);
+    await fireEvent.changeText(screen.getByLabelText('Start'), '12:00');
+    expect(screen.getByText('The class must end after it starts.')).toBeTruthy();
+    expect(saveDisabled()).toBe(true);
+    await fireEvent.changeText(screen.getByLabelText('End'), '13:00');
+    expect(saveDisabled()).toBe(false);
+  });
+
+  it('keeps the editor open while invalid and clears the block when the group changes', async () => {
+    await toEditor();
+    await fireEvent.changeText(screen.getByLabelText('End'), '09:00');
+    expect(screen.queryByRole('button', { name: 'Done' })).toBeNull();
+    await radio('Grupa 2');
+    expect(screen.queryByText('Fix the highlighted classes to save.')).toBeNull();
+  });
+});
+
 describe('import review of an already imported timetable', () => {
   async function importedState() {
     // First import, answered the same way every time
