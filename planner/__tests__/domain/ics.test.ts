@@ -7,7 +7,7 @@ const dec = new TextDecoder('utf-8', { fatal: true });
 
 describe('escapeText', () => {
   it('escapes backslash, semicolon, comma and newlines', () => {
-    expect(escapeText('a\\b;c,d')).toBe('a\\\\b\;c\\,d');
+    expect(escapeText('a\\b;c,d')).toBe('a\\\\b\\;c\\,d');
     expect(escapeText('x\ny')).toBe('x\\ny');
     expect(escapeText('x\r\ny')).toBe('x\\ny');
   });
@@ -83,6 +83,15 @@ describe('buildCalendar', () => {
   it('writes an all-day event with DTEND the next day', () => {
     expect(out).toContain('DTSTART;VALUE=DATE:20261231\r\n');
     expect(out).toContain('DTEND;VALUE=DATE:20270101\r\n');
+  });
+
+  it('escapes semicolons in summary and location', () => {
+    const o = buildCalendar([{ ...allDay, summary: 'A;B', location: 'C;D' }], {
+      name: 'n',
+      now: NOW,
+    });
+    expect(o).toContain('SUMMARY:A\\;B\r\n');
+    expect(o).toContain('LOCATION:C\\;D\r\n');
   });
 
   it('omits empty location and description', () => {

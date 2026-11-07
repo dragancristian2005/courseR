@@ -34,7 +34,7 @@ const VTIMEZONE = [
 export function escapeText(s: string): string {
   return s
     .replace(/\\/g, '\\\\')
-    .replace(/;/g, '\;')
+    .replace(/;/g, '\\;')
     .replace(/,/g, '\\,')
     .replace(/\r\n|\r|\n/g, '\\n');
 }
