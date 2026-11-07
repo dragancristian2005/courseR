@@ -85,6 +85,33 @@ describe('diffImport', () => {
   });
 });
 
+describe('teacher changes', () => {
+  it('stay unchanged but are listed for saving, with the new teacher', () => {
+    const old = pat({ teacher: 'Old T.' });
+    const d = diffImport([pat({ id: '', teacher: 'New T.' })], dataWith([old]));
+    expect(d.added).toHaveLength(0);
+    expect(d.removed).toHaveLength(0);
+    expect(d.unchanged).toEqual([old]);
+    expect(d.reteached).toEqual([{ ...old, teacher: 'New T.' }]);
+  });
+  it('same teacher lists nothing', () => {
+    expect(diffImport([pat({ id: '' })], dataWith([pat()])).reteached).toEqual([]);
+  });
+  it('applyDiff upserts the existing pattern with the new teacher and a newer stamp', () => {
+    const old = pat({ teacher: 'Old T.', updatedAt: 5 });
+    const d = diffImport([pat({ id: '', teacher: 'New T.' })], dataWith([old]));
+    const out = applyDiff(d, '2026-11-09', 100, counter());
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ id: 'p1', teacher: 'New T.', validTo: null, source: 'import' });
+    expect(out[0].updatedAt).toBeGreaterThan(5);
+  });
+  it('a different online flag is a different class', () => {
+    const d = diffImport([pat({ id: '', online: true })], dataWith([pat()]));
+    expect(d.added).toHaveLength(1);
+    expect(d.removed).toHaveLength(1);
+  });
+});
+
 describe('applyDiff', () => {
   it('ends removed the day before from and starts added on from', () => {
     const old = pat();

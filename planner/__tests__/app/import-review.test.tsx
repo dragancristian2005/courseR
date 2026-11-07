@@ -284,6 +284,44 @@ describe('import review', () => {
   });
 });
 
+describe('import review against manual classes', () => {
+  it('does not add a block identical to an existing manual pattern on a first import', async () => {
+    const itb: Subject = {
+      id: 'itb',
+      name: 'Inginerie software pentru testare',
+      abbreviation: 'ITB',
+      attending: true,
+      updatedAt: 1,
+    };
+    const manual: ClassPattern = {
+      id: 'm1',
+      updatedAt: 1,
+      subjectId: 'itb',
+      type: 'lab',
+      weekday: 1,
+      start: '08:00',
+      end: '09:30',
+      room: '032',
+      teacher: '',
+      repeat: 'every',
+      validFrom: OPEN_START,
+      validTo: null,
+      online: false,
+      source: 'manual',
+    };
+    const { upsert } = await setup(uvt, { subjects: [itb], patterns: [manual] });
+    expect(screen.queryByLabelText('Apply changes from')).toBeNull();
+    await chooseGroup1();
+    await answerAll();
+    await save();
+    const patterns = upsert.mock.calls
+      .filter((c) => c[0] === 'patterns')
+      .map((c) => c[1] as ClassPattern);
+    expect(patterns).toHaveLength(11);
+    expect(patterns.some((p) => p.subjectId === 'itb')).toBe(false);
+  });
+});
+
 describe('import review inline edit validation', () => {
   async function toEditor() {
     const r = await setup(uvt);
@@ -424,6 +462,48 @@ describe('import review of an already imported timetable', () => {
     expect(patterns.filter((p) => p.validFrom === '2999-01-04' && !p.deleted)).toHaveLength(1);
     expect(patterns.filter((p) => p.validTo === '2999-01-03')).toHaveLength(2);
     expect(router.replace).toHaveBeenCalledWith('/');
+  });
+
+  it('treats a timetable whose imported classes have all ended as a re-import', async () => {
+    const data = await importedState();
+    await screen.unmount();
+    const ended = {
+      ...data,
+      patterns: data.patterns.map((p) => ({ ...p, validTo: '2020-01-01' })),
+    };
+    const { upsert } = await setup(uvt, ended);
+    await chooseGroup1();
+    await answerAll();
+    expect(screen.getByLabelText('Apply changes from')).toBeTruthy();
+    expect(screen.getByText('12 new, 0 removed, 0 unchanged')).toBeTruthy();
+    await save();
+    const patterns = upsert.mock.calls
+      .filter((c) => c[0] === 'patterns')
+      .map((c) => c[1] as ClassPattern);
+    expect(patterns).toHaveLength(12);
+    expect(patterns.every((p) => p.validTo === null && p.validFrom !== OPEN_START)).toBe(true);
+  });
+
+  it('saves a changed teacher on the existing class and nothing else', async () => {
+    const data = await importedState();
+    await screen.unmount();
+    const changed: TimetableImport = {
+      ...uvt,
+      blocks: uvt.blocks.map((b) => (b.subject === 'ITB' ? { ...b, teacher: 'Nou N.' } : b)),
+    };
+    const { upsert } = await setup(changed, data);
+    await chooseGroup1();
+    await answerAll();
+    expect(screen.getByText('0 new, 0 removed, 12 unchanged')).toBeTruthy();
+    expect(screen.queryByText('Everything on this sheet is already in your planner.')).toBeNull();
+    await save();
+    const patterns = upsert.mock.calls
+      .filter((c) => c[0] === 'patterns')
+      .map((c) => c[1] as ClassPattern);
+    expect(patterns).toHaveLength(1);
+    const before = data.patterns.find((p) => p.start === '08:00' && p.weekday === 1)!;
+    expect(patterns[0]).toMatchObject({ id: before.id, teacher: 'Nou N.', validTo: null });
+    expect(patterns[0].updatedAt).toBeGreaterThan(before.updatedAt);
   });
 
   it('rejects a from date that is not YYYY-MM-DD', async () => {

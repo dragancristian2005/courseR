@@ -103,9 +103,7 @@ function Review({ file }: { file: TimetableImport }) {
     [chosen, file, data, effGroup, needsSemigroup, semigroup],
   );
 
-  const reimport = data.patterns.some(
-    (p) => !p.deleted && p.source === 'import' && p.validTo === null,
-  );
+  const reimport = data.patterns.some((p) => !p.deleted && p.source === 'import');
   // Earlier imports, ended or not, must not hide classes from applyAnswers' duplicate check:
   // a class dropped by one re-import can come back on a later sheet. Manual classes still count.
   const baseData = useMemo<PlannerData>(
@@ -300,7 +298,9 @@ function Review({ file }: { file: TimetableImport }) {
     complete &&
     applied !== null &&
     applied.subjects.length === 0 &&
-    (diff !== null ? diff.added.length + diff.removed.length === 0 : applied.patterns.length === 0);
+    (diff !== null
+      ? diff.added.length + diff.removed.length + diff.reteached.length === 0
+      : applied.patterns.length === 0);
 
   const nameForPattern = (p: ClassPattern) =>
     [...(applied?.subjects ?? []), ...data.subjects].find((s) => s.id === p.subjectId)?.name ?? '';
