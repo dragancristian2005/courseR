@@ -58,3 +58,7 @@ You can fill the planner from a photo or PDF of your timetable. It works with a 
 5. Pick your group, answer the questions and tap Save.
 
 Nothing is saved until you tap Save. Exams work the same way: choose the exams import, then check the list and tap Save exams.
+
+## Add to your calendar
+
+Open Settings, tap Add to calendar, choose Classes and Exams, and tap Add to calendar. It adds your classes from this week to the end of the semester, and your upcoming exams, as a copy in a file; if your timetable changes, add it again. In Apple Calendar, tap Add All, and delete the "Study Planner" calendar first to avoid duplicates. In Google Calendar, open calendar.google.com on a computer, go to Settings, then Import, and choose the downloaded `study-planner.ics`.
