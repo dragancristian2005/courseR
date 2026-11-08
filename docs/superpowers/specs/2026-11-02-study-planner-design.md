@@ -188,6 +188,18 @@ Decided 2026-11-07: **no server and no live subscription in Phase 3.**
 - Small: homework due soon.
 - Medium: today's schedule.
 
+### Google Classroom import (decided 2026-11-08)
+
+A spike confirmed the author's UVT Google account lets the app read Classroom (courses, assignments, own submissions) with read-only scopes, from the browser, with no server.
+
+- Homework → **Import from Classroom**: Google asks for read-only Classroom access (popup in a tab, redirect in the installed app); the token stays in memory.
+- First time: each Classroom course is linked to a planner subject (suggested by name, diacritic-insensitive) or "Don't import"; links are remembered (synced).
+- Imported: assignments with no due date, due today or later, and overdue ones not yet turned in. Turned-in assignments are marked done. Overdue and turned in → skipped. Due times converted from UTC to Romanian time.
+- Homework can now have no due date (own "No due date" section; never on Today).
+- Re-import updates titles and due dates, never duplicates; if the student edited an imported homework and Classroom also changed it, the review asks which to keep. Typed homework is never touched.
+- Review before saving, as with the timetable import.
+- For classmates: while the Google Cloud project is in Testing, each user's email must be added as a test user (up to 100), or the app must be verified by Google.
+
 ## Timetable formats (reference)
 
 Two real sheets drove this design:
