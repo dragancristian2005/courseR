@@ -21,10 +21,12 @@
     "react-native-web": "~0.21.4"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
     "@react-native/jest-preset": "^0.88.1",
     "@testing-library/react-native": "^14.1.0",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.3.0",
+    "firebase-tools": "^15.35.0",
     "jest": "^30.5.2",
     "jest-expo": "^58.0.13",
     "prettier": "^3.9.10",
@@ -37,15 +39,20 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "jest",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p __tests__",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p __tests__ && tsc --noEmit -p rules-tests",
     "build:web": "expo export -p web",
     "deploy": "expo export -p web && firebase deploy --only hosting,firestore:rules",
     "icons": "node scripts/make-icons.js",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-planner \"jest -c rules-tests/jest.config.js\""
   },
   "private": true,
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/rules-tests/"
+    ]
   }
 }
