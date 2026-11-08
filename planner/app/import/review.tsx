@@ -21,6 +21,8 @@ import {
 } from '../../src/domain/importPlan';
 import type { PlannerData } from '../../src/domain/types';
 import { Button } from '../../src/ui/Button';
+import { NothingToReview } from '../../src/ui/NothingToReview';
+import { useSaveLock } from '../../src/ui/useSaveLock';
 import { isDate } from '../../src/ui/FormBits';
 import { WEEKDAYS_LONG } from '../../src/ui/format';
 import { FormScreen } from '../../src/ui/FormScreen';
@@ -42,13 +44,7 @@ export default function ImportReview() {
     return p !== null && p.kind === 'timetable' ? p : null;
   });
   if (file === null) {
-    return (
-      <FormScreen title="Check your timetable">
-        <Rule weight="heavy" />
-        <Text>Nothing to review. Start an import from Settings.</Text>
-        <Button label="Go to import" onPress={() => router.push('/import')} />
-      </FormScreen>
-    );
+    return <NothingToReview title="Check your timetable" onGo={() => router.push('/import')} />;
   }
   return <Review file={file} />;
 }
@@ -67,9 +63,7 @@ function Review({ file }: { file: TimetableImport }) {
   const [from, setFrom] = useState(
     file.validFrom !== null && compareDates(file.validFrom, today) > 0 ? file.validFrom : today,
   );
-  const [saving, setSaving] = useState(false);
-  const saveLock = useRef(false);
-  const [failed, setFailed] = useState(false);
+  const { saving, failed, run } = useSaveLock();
   const previewId = useRef(0);
   // Rows of the plan whose inline edit holds values that can't be saved.
   const [invalid, setInvalid] = useState<Record<string, boolean>>({});
@@ -194,12 +188,8 @@ function Review({ file }: { file: TimetableImport }) {
       ? diff.added.length + diff.removed.length + diff.reteached.length === 0
       : applied.patterns.length === 0);
 
-  const save = async () => {
-    if (saveLock.current) return;
-    saveLock.current = true;
-    setSaving(true);
-    setFailed(false);
-    try {
+  const save = () =>
+    run(async () => {
       const now = Date.now();
       const result = applyAnswers(plan, answers, baseData, now, newId);
       const patterns = reimport
@@ -209,12 +199,7 @@ function Review({ file }: { file: TimetableImport }) {
       for (const p of patterns) await repo.upsert('patterns', p);
       clearPending();
       router.replace('/');
-    } catch {
-      setFailed(true);
-      saveLock.current = false;
-      setSaving(false);
-    }
-  };
+    });
 
   const total = plan.blocks.length;
   const q = plan.questions.length;

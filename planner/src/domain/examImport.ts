@@ -21,6 +21,8 @@ export function planExamImport(
   group: string,
   now: number,
   newId: () => string,
+  /** The user's edited date and start per source row, used for the duplicate check. */
+  edited: Record<number, { date: string; start: string | null }> = {},
 ): ExamPlan {
   const live = data.exams.filter((e) => !e.deleted);
   const exams: Exam[] = [];
@@ -30,6 +32,8 @@ export function planExamImport(
 
   for (const [index, e] of file.exams.entries()) {
     if (!matchesGroup(e.groups, group)) continue;
+    const date = edited[index]?.date ?? e.date;
+    const start = edited[index] === undefined ? e.start : edited[index].start;
     const subject = findSubject(data, e.subject, e.subjectName ?? e.subject);
     const base = e.title ?? 'Exam';
     const title = subject === null ? `${e.subjectName ?? e.subject}: ${base}` : base;
@@ -37,8 +41,8 @@ export function planExamImport(
     // An exam saved while its subject was unknown carries the subject in its title.
     const unlinked = `${e.subjectName ?? e.subject}: ${base}`;
     const taken = (x: Exam) =>
-      x.date === e.date &&
-      x.start === e.start &&
+      x.date === date &&
+      x.start === start &&
       (subjectId === null
         ? x.subjectId === null && x.title === title
         : x.subjectId === subjectId || (x.subjectId === null && x.title === unlinked));
@@ -51,8 +55,8 @@ export function planExamImport(
       updatedAt: now,
       subjectId,
       title,
-      date: e.date,
-      start: e.start,
+      date,
+      start,
       room: e.room ?? '',
     };
     exams.push(exam);

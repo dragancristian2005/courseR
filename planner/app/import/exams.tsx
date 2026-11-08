@@ -8,6 +8,8 @@ import { examGroupOptions, planExamImport, type ExamPlan } from '../../src/domai
 import type { ExamImport } from '../../src/domain/importFormat';
 import type { Exam } from '../../src/domain/types';
 import { Button } from '../../src/ui/Button';
+import { NothingToReview } from '../../src/ui/NothingToReview';
+import { useSaveLock } from '../../src/ui/useSaveLock';
 import { Chips, Field, isDate, isTime, MSG_TIME } from '../../src/ui/FormBits';
 import { shortDate } from '../../src/ui/format';
 import { FormScreen } from '../../src/ui/FormScreen';
@@ -48,13 +50,7 @@ export default function ImportExams() {
     return p !== null && p.kind === 'exams' ? p : null;
   });
   if (file === null) {
-    return (
-      <FormScreen title={TITLE}>
-        <Rule weight="heavy" />
-        <Text>Nothing to review. Start an import from Settings.</Text>
-        <Button label="Go to import" onPress={() => router.push('/import')} />
-      </FormScreen>
-    );
+    return <NothingToReview title={TITLE} onGo={() => router.push('/import')} />;
   }
   return <Review file={file} />;
 }
@@ -65,11 +61,10 @@ function Review({ file }: { file: ExamImport }) {
   const [group, setGroup] = useState<string | null>(groups.length === 1 ? groups[0] : null);
   const [edits, setEdits] = useState<Record<string, Edit>>({});
   const [open, setOpen] = useState<Record<string, boolean>>({});
-  const [saving, setSaving] = useState(false);
-  const saveLock = useRef(false);
+  const { saving, failed, run } = useSaveLock();
+  const [alreadySaved, setAlreadySaved] = useState(false);
   // Real ids given at save time, kept so a retry after a failure writes the same records.
   const realIds = useRef<Record<string, string>>({});
-  const [failed, setFailed] = useState(false);
 
   const effGroup = groups.length === 0 ? 'all' : group;
   // The list is planned once, when the group is chosen: later store snapshots must not reshuffle
@@ -129,28 +124,25 @@ function Review({ file }: { file: ExamImport }) {
       },
     }));
 
-  const save = async () => {
-    if (saveLock.current) return;
-    saveLock.current = true;
-    setSaving(true);
-    setFailed(false);
-    try {
+  const save = () =>
+    run(async () => {
       const now = Date.now();
-      const fresh = planExamImport(file, data, effGroup ?? 'all', now, newId);
+      // Re-check against the date and start the user sees, not the sheet's.
+      const edited: Record<number, { date: string; start: string | null }> = {};
+      for (const e of rows) edited[plan.sources[e.id]] = { date: e.date, start: e.start };
+      const fresh = planExamImport(file, data, effGroup ?? 'all', now, newId, edited);
       const stillNew = new Set(Object.values(fresh.sources));
+      let written = 0;
       for (const e of rows) {
         if (!stillNew.has(plan.sources[e.id])) continue;
         realIds.current[e.id] ??= newId();
         await repo.upsert('exams', { ...e, id: realIds.current[e.id], updatedAt: now });
+        written++;
       }
+      if (written === 0) setAlreadySaved(true);
       clearPending();
       router.replace('/exams');
-    } catch {
-      setFailed(true);
-      saveLock.current = false;
-      setSaving(false);
-    }
-  };
+    });
 
   const nothing = rows.length === 0;
   if (plan.exams.length + plan.skipped === 0) {
@@ -158,7 +150,11 @@ function Review({ file }: { file: ExamImport }) {
       <FormScreen title={TITLE}>
         <Rule weight="heavy" />
         {picker}
-        <Text>{`No exams for ${effGroup} on this sheet. Pick another group, or ask Claude to copy the group headers exactly.`}</Text>
+        <Text>
+          {groups.length === 0
+            ? 'No exams found in this sheet.'
+            : `No exams for ${effGroup} on this sheet. Pick another group, or ask Claude to copy the group headers exactly.`}
+        </Text>
         <View style={styles.footer}>
           <Rule weight="heavy" />
           <Button label="Save exams" disabled onPress={() => undefined} />
@@ -244,6 +240,7 @@ function Review({ file }: { file: ExamImport }) {
           onPress={() => void save()}
         />
         {nothing ? <Text variant="meta">These exams are already in your planner.</Text> : null}
+        {alreadySaved ? <Text variant="meta">These exams were already saved.</Text> : null}
         {failed ? <Text style={styles.warning}>Couldn’t save. Try again.</Text> : null}
       </View>
     </FormScreen>

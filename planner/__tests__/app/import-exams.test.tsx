@@ -252,6 +252,80 @@ describe('import exams review', () => {
     expect(saved.map((e) => e.date)).toEqual(['2027-01-21']);
   });
 
+  it('saves an edited row that matches a saved exam only on the sheet’s date', async () => {
+    const { repo, upsert } = await setup(
+      file([exam({ unsure: ['date'] }), exam({ date: '2027-01-25' })]),
+    );
+    await press('Edit');
+    await fireEvent.changeText(screen.getByLabelText('Date'), '2027-01-30');
+    await act(async () => {
+      await repo.upsert('exams', {
+        id: 'x1',
+        updatedAt: 1,
+        subjectId: 's1',
+        title: 'Exam',
+        date: '2027-01-21',
+        start: '09:00',
+        room: '',
+      });
+    });
+    upsert.mockClear();
+    await save();
+    const saved = upsert.mock.calls.filter((c) => c[0] === 'exams').map((c) => c[1] as Exam);
+    expect(saved.map((e) => e.date).sort()).toEqual(['2027-01-25', '2027-01-30']);
+  });
+
+  it('skips an edited row whose new date and start are already saved', async () => {
+    const { repo, upsert } = await setup(
+      file([exam({ unsure: ['date'] }), exam({ date: '2027-01-25' })]),
+    );
+    await press('Edit');
+    await fireEvent.changeText(screen.getByLabelText('Date'), '2027-02-02');
+    await act(async () => {
+      await repo.upsert('exams', {
+        id: 'x1',
+        updatedAt: 1,
+        subjectId: 's1',
+        title: 'Exam',
+        date: '2027-02-02',
+        start: '09:00',
+        room: '',
+      });
+    });
+    upsert.mockClear();
+    await save();
+    const saved = upsert.mock.calls.filter((c) => c[0] === 'exams').map((c) => c[1] as Exam);
+    expect(saved.map((e) => e.date)).toEqual(['2027-01-25']);
+  });
+
+  it('says the exams were already saved when every row is a duplicate by Save time', async () => {
+    const { repo, upsert } = await setup(file([exam({})]));
+    await act(async () => {
+      await repo.upsert('exams', {
+        id: 'x1',
+        updatedAt: 1,
+        subjectId: 's1',
+        title: 'Exam',
+        date: '2027-01-21',
+        start: '09:00',
+        room: '',
+      });
+    });
+    upsert.mockClear();
+    await save();
+    expect(upsert).not.toHaveBeenCalled();
+    expect(screen.getByText('These exams were already saved.')).toBeTruthy();
+    expect(router.replace).toHaveBeenCalledWith('/exams');
+    expect(getPending()).toBeNull();
+  });
+
+  it('words the empty sheet naturally when it lists no groups', async () => {
+    await setup(file([]));
+    expect(screen.getByText('No exams found in this sheet.')).toBeTruthy();
+    expect(screen.queryByText(/No exams for all/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Save exams' })).toBeDisabled();
+  });
+
   it('shows an error and allows a retry when saving fails', async () => {
     const { upsert } = await setup(file([exam({})]));
     upsert.mockRejectedValueOnce(new Error('x'));
