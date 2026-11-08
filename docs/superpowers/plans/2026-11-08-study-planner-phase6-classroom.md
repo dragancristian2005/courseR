@@ -37,7 +37,7 @@ planner/src/domain/types.ts            Homework.due nullable; Homework source/ex
 planner/src/domain/selectors.ts        homeworkGroups: noDue group; dueLabel(null)
 planner/src/domain/classroomImport.ts  planClassroomImport()
 planner/src/data/classroom.ts          getClassroomToken(), fetchClassroom()
-planner/src/data/auth.ts               keep the access token from a redirect result
+planner/src/data/firebase.ts           initClassroomAuth() (secondary app)
 planner/app/classroom/index.tsx        connect → link courses → review → save
 planner/app/dev/classroom.tsx          (spike, deleted in Task 5)
 ```
@@ -70,7 +70,9 @@ planner/app/dev/classroom.tsx          (spike, deleted in Task 5)
 
 ### Task 3: Talk to Classroom
 
-**Files:** Create `src/data/classroom.ts`; Modify `src/data/auth.ts`; Test `__tests__/data/classroom.test.ts`, extend `__tests__/data/auth.test.ts` (or the existing auth tests).
+**Files:** Create `src/data/classroom.ts`; Modify `src/data/firebase.ts` (`initClassroomAuth`); Test `__tests__/data/classroom.test.ts`, `__tests__/data/firebaseClassroom.test.ts`.
+
+**Revised 2026-11-08 (user decision):** Classroom sign-in uses a secondary Firebase app named 'classroom' (session persistence), so any Google account works and the main sign-in is unaffected (the account appears in Firebase Auth's user list). `getClassroomToken` uses `signInWithPopup`/`signInWithRedirect` on that auth with `prompt: select_account`; a sessionStorage flag marks a pending redirect and `takeClassroomToken(): Promise<string | null>` (in classroom.ts, async) reads it once. `auth.ts` is unchanged; the bullets below that mention reauthenticate* or auth.ts are superseded.
 
 **Interfaces:**
 - `getClassroomToken(): Promise<string | 'redirecting'>` — web only. Provider = GoogleAuthProvider with both scopes. Normal tab: `reauthenticateWithPopup(currentUser, provider)` → access token. Installed app (`chooseSignInMethod` = 'redirect'): `reauthenticateWithRedirect` → returns 'redirecting' (the page leaves).

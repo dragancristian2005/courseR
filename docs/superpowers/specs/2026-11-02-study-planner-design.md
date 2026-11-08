@@ -192,7 +192,7 @@ Decided 2026-11-07: **no server and no live subscription in Phase 3.**
 
 A spike confirmed the author's UVT Google account lets the app read Classroom (courses, assignments, own submissions) with read-only scopes, from the browser, with no server.
 
-- Homework → **Import from Classroom**: Google asks for read-only Classroom access (popup in a tab, redirect in the installed app); the token stays in memory.
+- Homework → **Import from Classroom**: Google asks for read-only Classroom access (popup in a tab, redirect in the installed app); the token stays in memory. Any Google account can be chosen (e.g. the UVT one) while the app stays signed in as the planner account: Classroom sign-in runs on a separate secondary Firebase app with session-only persistence, so the main sign-in is unaffected; that account appears in Firebase Auth's user list.
 - First time: each Classroom course is linked to a planner subject (suggested by name, diacritic-insensitive) or "Don't import"; links are remembered (synced).
 - Imported: assignments with no due date, due today or later, and overdue ones not yet turned in. Turned-in assignments are marked done. Overdue and turned in → skipped. Due times converted from UTC to Romanian time.
 - Homework can now have no due date (own "No due date" section; never on Today).
