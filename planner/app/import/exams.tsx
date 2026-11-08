@@ -8,6 +8,7 @@ import { examGroupOptions, planExamImport, type ExamPlan } from '../../src/domai
 import type { ExamImport } from '../../src/domain/importFormat';
 import type { Exam } from '../../src/domain/types';
 import { Button } from '../../src/ui/Button';
+import { leaveImport } from '../../src/ui/leaveImport';
 import { NothingToReview } from '../../src/ui/NothingToReview';
 import { useSaveLock } from '../../src/ui/useSaveLock';
 import { Chips, Field, isDate, isTime, MSG_TIME } from '../../src/ui/FormBits';
@@ -141,7 +142,7 @@ function Review({ file }: { file: ExamImport }) {
       }
       if (written === 0) setAlreadySaved(true);
       clearPending();
-      router.replace('/exams');
+      leaveImport('/exams');
     });
 
   const nothing = rows.length === 0;

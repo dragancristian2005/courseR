@@ -113,6 +113,8 @@ export interface ImportAnswers {
   /** by abbreviation as listed in plan.subjects */
   attending: Record<string, boolean>;
   edits: Record<number, Partial<ImportBlock>>;
+  /** Blocks whose "Check this" note the student has looked at (Done), by block index. */
+  checked?: Record<number, boolean>;
 }
 
 /** The live subject whose abbreviation, else whose name, matches. Empty keys never match. */
@@ -251,6 +253,26 @@ export function applyAnswers(
   const created: Subject[] = [];
   const idByKey = new Map<string, string>();
   const idByEntry = new Map<string, string>();
+  // Sheet spellings of the kept classes, by the existing subject they land on.
+  const spellingsOf = new Map<string, Set<string>>();
+  plan.blocks.forEach((_, i) => {
+    if (dropped.has(i)) return;
+    const text = effectiveBlock(plan, answers, i).subject;
+    if (subjectKey(text) === '') return;
+    const entry = planSubjectFor(plan, text);
+    if (entry === undefined || entry.existingId === null) return;
+    const set = spellingsOf.get(entry.existingId) ?? new Set<string>();
+    set.add(entry.abbreviation);
+    spellingsOf.set(entry.existingId, set);
+  });
+  /** Two entries on one subject: it is on if any entry is on (an unanswered one keeps its state). */
+  const wantedFor = (entry: PlanSubject, existing: Subject): boolean | undefined => {
+    const spellings = spellingsOf.get(existing.id) ?? new Set([entry.abbreviation]);
+    spellings.add(entry.abbreviation);
+    const answered = [...spellings].filter((a) => answers.attending[a] !== undefined);
+    if (answered.length === 0) return undefined;
+    return [...spellings].some((a) => answers.attending[a] ?? existing.attending);
+  };
   const resolve = (text: string): string => {
     const key = subjectKey(text);
     const known = idByKey.get(key);
@@ -267,7 +289,8 @@ export function applyAnswers(
         entry.existingId === null
           ? null
           : (data.subjects.find((s) => s.id === entry.existingId && !s.deleted) ?? null);
-      const wanted = answers.attending[entry.abbreviation];
+      const wanted =
+        existing === null ? answers.attending[entry.abbreviation] : wantedFor(entry, existing);
       const sameImport =
         existing === null
           ? created.find((s) => subjectKey(s.name) === subjectKey(entry.name))

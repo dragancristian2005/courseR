@@ -18,7 +18,14 @@ import type {
 } from '../../src/domain/types';
 
 jest.mock('expo-router', () => ({
-  router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) },
+  router: {
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
+    canGoBack: jest.fn(() => true),
+    dismissAll: jest.fn(),
+    canDismiss: jest.fn(() => true),
+  },
 }));
 
 const raw = JSON.stringify(require('../fixtures/uvt-info3.json'));
@@ -269,6 +276,30 @@ describe('import review', () => {
     ).toBe(true);
   });
 
+  it('dismisses the import stack before replacing, so back skips the paste box', async () => {
+    await setup(uvt);
+    await chooseGroup1();
+    await answerAll();
+    await save();
+    expect(router.dismissAll).toHaveBeenCalledTimes(1);
+    expect(router.replace).toHaveBeenCalledWith('/');
+    expect((router.dismissAll as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(
+      (router.replace as jest.Mock).mock.invocationCallOrder[0],
+    );
+  });
+
+  it('Done on an unsure block marks it checked, without any edit', async () => {
+    await setup(uvt);
+    await chooseGroup1();
+    await answerAll();
+    const box = () => screen.getByTestId('import-block-10');
+    expect(box()).toHaveStyle({ borderColor: '#C8302A' });
+    await press('Edit');
+    await press('Done');
+    expect(box()).not.toHaveStyle({ borderColor: '#C8302A' });
+    expect(screen.queryByRole('button', { name: 'Done' })).toBeNull();
+  });
+
   it('lets an unsure block be edited inline', async () => {
     const { upsert } = await setup(uvt);
     await chooseGroup1();
@@ -385,6 +416,41 @@ describe('import review of an already imported timetable', () => {
     clearPending();
     return data as PlannerData;
   }
+
+  it('says how many teachers were updated when only teachers changed', async () => {
+    const data = await importedState();
+    await screen.unmount();
+    const changed: TimetableImport = {
+      ...uvt,
+      blocks: uvt.blocks.map((b) => (b.subject === 'AR' ? { ...b, teacher: 'Dr. New' } : b)),
+    };
+    const { upsert } = await setup(changed, data);
+    await chooseGroup1();
+    await answerAll();
+    expect(screen.getByText('0 new, 0 removed, 12 unchanged')).toBeTruthy();
+    expect(screen.getByText('1 teacher updated')).toBeTruthy();
+    await save();
+    expect(upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the plural for several teachers and shows nothing when none changed', async () => {
+    const data = await importedState();
+    await screen.unmount();
+    const changed: TimetableImport = {
+      ...uvt,
+      blocks: uvt.blocks.map((b) => ({ ...b, teacher: 'Dr. New' })),
+    };
+    await setup(changed, data);
+    await chooseGroup1();
+    await answerAll();
+    expect(screen.getByText(/^\d+ teachers updated$/)).toBeTruthy();
+    expect(screen.queryByText(/^1 teacher updated$/)).toBeNull();
+    await screen.unmount();
+    await setup(uvt, data);
+    await chooseGroup1();
+    await answerAll();
+    expect(screen.queryByText(/teachers? updated/)).toBeNull();
+  });
 
   it('shows 0 new, 0 removed, N unchanged and saves nothing for the same file', async () => {
     const data = await importedState();

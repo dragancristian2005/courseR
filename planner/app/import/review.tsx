@@ -21,6 +21,7 @@ import {
 } from '../../src/domain/importPlan';
 import type { PlannerData } from '../../src/domain/types';
 import { Button } from '../../src/ui/Button';
+import { leaveImport } from '../../src/ui/leaveImport';
 import { NothingToReview } from '../../src/ui/NothingToReview';
 import { useSaveLock } from '../../src/ui/useSaveLock';
 import { isDate } from '../../src/ui/FormBits';
@@ -34,7 +35,7 @@ import { Rule } from '../../src/ui/Rule';
 import { Text } from '../../src/ui/Text';
 import { theme } from '../../src/ui/theme';
 
-const EMPTY: ImportAnswers = { chosen: {}, types: {}, attending: {}, edits: {} };
+const EMPTY: ImportAnswers = { chosen: {}, types: {}, attending: {}, edits: {}, checked: {} };
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -198,7 +199,7 @@ function Review({ file }: { file: TimetableImport }) {
       for (const s of result.subjects) await repo.upsert('subjects', s);
       for (const p of patterns) await repo.upsert('patterns', p);
       clearPending();
-      router.replace('/');
+      leaveImport('/');
     });
 
   const total = plan.blocks.length;

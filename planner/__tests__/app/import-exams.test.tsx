@@ -9,7 +9,14 @@ import type { ExamImport, ImportFile } from '../../src/domain/importFormat';
 import type { Exam, PlannerData } from '../../src/domain/types';
 
 jest.mock('expo-router', () => ({
-  router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) },
+  router: {
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
+    canGoBack: jest.fn(() => true),
+    dismissAll: jest.fn(),
+    canDismiss: jest.fn(() => true),
+  },
 }));
 
 const exam = (o: Partial<ExamImport['exams'][number]>): ExamImport['exams'][number] => ({
@@ -174,6 +181,10 @@ describe('import exams review', () => {
     await save();
     expect(upsert).toHaveBeenCalledTimes(1);
     expect(router.replace).toHaveBeenCalledWith('/exams');
+    expect(router.dismissAll).toHaveBeenCalledTimes(1);
+    expect((router.dismissAll as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(
+      (router.replace as jest.Mock).mock.invocationCallOrder[0],
+    );
     expect(getPending()).toBeNull();
     expect(upsert.mock.calls[0][0]).toBe('exams');
     expect(upsert.mock.calls[0][1]).toMatchObject({
