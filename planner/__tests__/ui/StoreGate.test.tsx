@@ -1,5 +1,7 @@
 import React from 'react';
 import { Text as RNText } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { useAuth } from '../../src/data/auth';
 import { createMemoryRepository } from '../../src/data/memoryRepository';
@@ -80,5 +82,38 @@ describe('StoreGate', () => {
     await fireEvent.press(screen.getByText('Dismiss'));
     expect(screen.queryByText('Dismiss')).toBeNull();
     expect(screen.getByText('content')).toBeTruthy();
+  });
+
+  it('keeps the write-error banner below the top safe area', async () => {
+    (useAuth as jest.Mock).mockReturnValue({ signOut: jest.fn() });
+    let rejectWrite: (e: Error) => void = () => {};
+    const repo: Repository = {
+      ...createMemoryRepository(),
+      subscribe(cb, _onError, onWriteError) {
+        cb(emptyPlannerData());
+        rejectWrite = onWriteError!;
+        return () => {};
+      },
+    };
+    const metrics = {
+      frame: { x: 0, y: 0, width: 390, height: 844 },
+      insets: { top: 47, left: 0, right: 0, bottom: 34 },
+    };
+    await render(
+      <SafeAreaProvider initialMetrics={metrics}>
+        <StoreProvider repository={repo}>
+          <StoreGate>
+            <RNText>content</RNText>
+          </StoreGate>
+        </StoreProvider>
+      </SafeAreaProvider>,
+    );
+    await act(async () => {
+      rejectWrite(new Error('permission-denied'));
+    });
+    const banner = StyleSheet.flatten(
+      screen.getByText('A change didn’t sync', { exact: false }).parent!.props.style,
+    );
+    expect(banner.paddingTop).toBe(8 + 47);
   });
 });

@@ -9,11 +9,12 @@ import {
   changeEveryWeek,
   droppedByChange,
   moveThisWeek,
+  overrideIdOf,
   stamp,
 } from '../domain/edits';
 import { dueLabel, homeworkGroups, linksBySubject, notesFor } from '../domain/selectors';
 import { resolveSession, sessionsBetween } from '../domain/sessions';
-import type { ISODate, Repeat } from '../domain/types';
+import type { ISODate, Repeat, SessionOverride } from '../domain/types';
 import { weekFor } from '../domain/weeks';
 import { goBack } from './BackLink';
 import { Button } from './Button';
@@ -108,6 +109,13 @@ export function ClassDetail({
   const override = data.overrides
     .filter((o) => !o.deleted && o.sessionId === session.id)
     .sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  // A removed override stays in the store as a tombstone, and the rules want a strictly newer
+  // updatedAt than whatever is stored, so a re-created move or cancellation is stamped above it.
+  const overrideStamp = () =>
+    stamp(
+      override,
+      repo.tombstones<SessionOverride>('overrides').find((o) => o.id === overrideIdOf(session)),
+    );
   const type = TYPE_LABEL[session.type];
   const links =
     linksBySubject(data).bySubject.find((x) => x.subject.id === subject.id)?.links ?? [];
@@ -227,7 +235,7 @@ export function ClassDetail({
           session={session}
           onCancel={() => setMode('none')}
           onSave={(to) => {
-            void repo.upsert('overrides', moveThisWeek(session, to, stamp(override)));
+            void repo.upsert('overrides', moveThisWeek(session, to, overrideStamp()));
             setMode('none');
           }}
         />
@@ -249,7 +257,7 @@ export function ClassDetail({
             <Button
               label="Cancel class"
               onPress={() => {
-                void repo.upsert('overrides', cancelThisWeek(session, stamp(override)));
+                void repo.upsert('overrides', cancelThisWeek(session, overrideStamp()));
                 leave();
               }}
             />

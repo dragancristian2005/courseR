@@ -5,6 +5,7 @@ import { useStore } from '../../src/data/useStore';
 import { exportBackup, parseBackup } from '../../src/domain/backup';
 import { todayISO } from '../../src/domain/dates';
 import type { PlannerData } from '../../src/domain/types';
+import { Button } from '../../src/ui/Button';
 import { Text } from '../../src/ui/Text';
 import { theme } from '../../src/ui/theme';
 
@@ -89,13 +90,7 @@ export default function Backup() {
         {pending ? (
           <View style={styles.confirm}>
             <Text>This replaces everything in your account with the backup. Continue?</Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => void replace()}
-              style={styles.primary}
-            >
-              <Text style={styles.primaryLabel}>Replace everything</Text>
-            </Pressable>
+            <Button label="Replace everything" onPress={() => void replace()} />
             <Pressable
               accessibilityRole="button"
               onPress={() => setPending(null)}

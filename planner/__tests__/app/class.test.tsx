@@ -189,6 +189,42 @@ describe('Class detail', () => {
     expect(seen).toBe(1);
   });
 
+  it('stamps a re-created move above the tombstone left by an earlier undo', async () => {
+    const tombstone = {
+      id: 'ov_p1_2026-11-02',
+      sessionId: SID,
+      kind: 'moved' as const,
+      date: '2026-11-04',
+      start: '09:00',
+      end: '10:30',
+      updatedAt: Date.now() + 60_000,
+      deleted: true,
+    };
+    const { repo, upsert } = await detail({ ...base, overrides: [tombstone] });
+    await press('Move this week');
+    await type('Date', '2026-11-03');
+    await type('Start', '13:00');
+    await type('End', '14:30');
+    await press('Save move');
+    expect(upsert.mock.calls[0][1].updatedAt).toBe(tombstone.updatedAt + 1);
+    await waitFor(() => expect(screen.getByText('13:00 to 14:30')).toBeTruthy());
+    expect(repo.tombstones('overrides')).toHaveLength(0);
+  });
+
+  it('stamps a re-created cancellation above the tombstone too', async () => {
+    const tombstone = {
+      id: 'ov_p1_2026-11-02',
+      sessionId: SID,
+      kind: 'cancelled' as const,
+      updatedAt: Date.now() + 60_000,
+      deleted: true,
+    };
+    const { upsert } = await detail({ ...base, overrides: [tombstone] });
+    await press('Cancel this week’s class');
+    await press('Cancel class');
+    expect(upsert.mock.calls[0][1].updatedAt).toBe(tombstone.updatedAt + 1);
+  });
+
   it('validates the move form', async () => {
     await detail();
     await press('Move this week');

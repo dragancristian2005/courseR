@@ -21,8 +21,8 @@ const req = (method = 'GET', mode = 'same-origin') => ({ method, mode });
 describe('service worker strategyFor', () => {
   const { strategyFor, CACHE } = load();
 
-  it('names the cache planner-v1', () => {
-    expect(CACHE).toBe('planner-v1');
+  it('names the cache planner-v2', () => {
+    expect(CACHE).toBe('planner-v2');
   });
   it('is network-first for navigations', () => {
     expect(strategyFor(new URL(origin + '/week'), req('GET', 'navigate'), origin)).toBe(
@@ -110,5 +110,59 @@ describe('service worker fetch handler', () => {
     const n = navigate();
     l.fetch(n.event);
     expect(await n.get()).toBe(shell);
+  });
+});
+
+describe('service worker activate and cache-first', () => {
+  function setup(opts: { keys?: string[]; cached?: unknown; response?: Response } = {}) {
+    const listeners: Record<string, (e: any) => void> = {};
+    const put = jest.fn().mockResolvedValue(undefined);
+    const caches = {
+      keys: jest.fn().mockResolvedValue(opts.keys ?? []),
+      delete: jest.fn().mockResolvedValue(true),
+      match: jest.fn().mockResolvedValue(opts.cached),
+      open: jest.fn().mockResolvedValue({ put }),
+    };
+    const claim = jest.fn().mockResolvedValue(undefined);
+    const self: any = {
+      registration: {},
+      location: { origin },
+      clients: { claim },
+      addEventListener: (t: string, fn: (e: any) => void) => (listeners[t] = fn),
+    };
+    load({ self, caches, fetch: jest.fn().mockResolvedValue(opts.response) });
+    return { listeners, caches, put, claim };
+  }
+
+  it('deletes older planner caches on activate and keeps the current one', async () => {
+    const { listeners, caches, claim } = setup({
+      keys: ['planner-v1', 'planner-v2', 'other-app'],
+    });
+    let waited: Promise<unknown> | undefined;
+    listeners.activate({ waitUntil: (p: Promise<unknown>) => (waited = p) });
+    await waited;
+    expect(caches.delete).toHaveBeenCalledTimes(1);
+    expect(caches.delete).toHaveBeenCalledWith('planner-v1');
+    expect(claim).toHaveBeenCalled();
+  });
+
+  it('stores a fetched bundle inside waitUntil', async () => {
+    const { listeners, put } = setup({ response: new Response('js') });
+    let responded: Promise<Response> | undefined;
+    const waits: Promise<unknown>[] = [];
+    const request = {
+      url: origin + '/_expo/static/js/web/entry-abc.js',
+      method: 'GET',
+      mode: 'no-cors',
+    };
+    listeners.fetch({
+      request,
+      respondWith: (p: Promise<Response>) => (responded = p),
+      waitUntil: (p: Promise<unknown>) => waits.push(p),
+    });
+    await responded;
+    expect(waits).toHaveLength(1);
+    await Promise.all(waits);
+    expect(put).toHaveBeenCalledWith(request, expect.any(Response));
   });
 });

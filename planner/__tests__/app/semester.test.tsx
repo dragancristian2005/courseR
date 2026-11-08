@@ -46,6 +46,13 @@ beforeEach(() => {
 afterEach(() => jest.useRealTimers());
 
 describe('Semester setup', () => {
+  it('explains that a break counts whole weeks', async () => {
+    await setup();
+    expect(
+      screen.getByText('A break week counts as a whole week, even if it starts mid-week.'),
+    ).toBeTruthy();
+  });
+
   it('lists 14 weeks and one break row for 28 Sep to 15 Jan with a 21 Dec break', async () => {
     await setup();
     await type('First day of classes', '2026-09-28');

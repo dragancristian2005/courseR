@@ -285,4 +285,11 @@ describe('stamp', () => {
     expect(stamp({ updatedAt: 1000 })).toBe(1001);
     expect(stamp({ updatedAt: 5000 })).toBe(5001);
   });
+
+  it('is newer than every record it is given, undefined ones ignored', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(1000);
+    expect(stamp(undefined, { updatedAt: 5000 }, { updatedAt: 3000 })).toBe(5001);
+    expect(stamp(undefined, undefined)).toBe(1000);
+  });
 });

@@ -37,7 +37,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "jest",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p __tests__",
     "build:web": "expo export -p web",
     "deploy": "expo export -p web && firebase deploy --only hosting,firestore:rules",
     "icons": "node scripts/make-icons.js",

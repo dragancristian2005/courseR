@@ -1,6 +1,8 @@
 /* Service worker for the installed web app. Plain JS, no build step.
  * Firestore keeps its own offline data; this only caches the app shell. */
-var CACHE_NAME = 'planner-v1';
+// Bump on each release that changes this file's caching: activate then drops every older planner-*
+// cache, which is what clears bundles from earlier builds.
+var CACHE_NAME = 'planner-v2';
 var CACHE_PREFIX = 'planner-';
 var PRECACHE = ['/', '/manifest.json'];
 var STATIC_PREFIXES = ['/_expo/static/', '/assets/'];
@@ -134,9 +136,11 @@ if (typeof self !== 'undefined' && self.registration) {
         return fetch(request).then(function (response) {
           if (response && response.ok) {
             var copy = response.clone();
-            caches.open(CACHE_NAME).then(function (cache) {
-              return cache.put(request, copy);
-            });
+            event.waitUntil(
+              caches.open(CACHE_NAME).then(function (cache) {
+                return cache.put(request, copy);
+              }),
+            );
           }
           return response;
         });
