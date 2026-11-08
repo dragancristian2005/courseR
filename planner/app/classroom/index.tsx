@@ -125,6 +125,7 @@ export default function ClassroomImport() {
       setFetched(result);
       setPlan(next);
       setLinks([]);
+      setConflicts({});
       if (next.unlinkedCourses.length > 0) openLinks(next.unlinkedCourses, next, []);
       else setPhase('review');
     } catch (e) {
