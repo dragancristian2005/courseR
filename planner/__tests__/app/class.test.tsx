@@ -632,4 +632,21 @@ describe('Add a class', () => {
     await fireEvent(screen.getByLabelText('Online'), 'valueChange', true);
     expect(screen.queryByLabelText('Room')).toBeNull();
   });
+
+  it('offers Change every week on a normal occurrence', async () => {
+    await detail();
+    expect(screen.getByRole('button', { name: 'Change every week' })).toBeTruthy();
+  });
+
+  it('hides Change every week on a cancelled occurrence', async () => {
+    const cancelled = {
+      id: 'ov_p1_2026-11-02',
+      updatedAt: 5,
+      sessionId: 'p1:2026-11-02',
+      kind: 'cancelled' as const,
+    };
+    await detail({ ...base, overrides: [cancelled] });
+    expect(screen.getByText('Cancelled this week')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Change every week' })).toBeNull();
+  });
 });

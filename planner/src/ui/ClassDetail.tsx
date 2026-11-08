@@ -211,13 +211,15 @@ export function ClassDetail({
             />
           </View>
         )}
-        <View style={styles.flex}>
-          <Button
-            label="Change every week"
-            kind="outline"
-            onPress={() => setMode(mode === 'change' ? 'none' : 'change')}
-          />
-        </View>
+        {cancelled ? null : (
+          <View style={styles.flex}>
+            <Button
+              label="Change every week"
+              kind="outline"
+              onPress={() => setMode(mode === 'change' ? 'none' : 'change')}
+            />
+          </View>
+        )}
       </View>
 
       {mode === 'move' ? (
@@ -230,7 +232,7 @@ export function ClassDetail({
           }}
         />
       ) : null}
-      {mode === 'change' ? (
+      {mode === 'change' && !cancelled ? (
         <ChangeForm
           pattern={pattern}
           defaultFrom={originalDate}

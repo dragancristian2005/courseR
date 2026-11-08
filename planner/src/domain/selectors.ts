@@ -32,7 +32,8 @@ export function todayAgenda(
   const sem = data.semester && !data.semester.deleted ? data.semester : null;
   const setupNeeded = !sem || alive(data.patterns).length === 0;
   const week = sem ? weekFor(sem, today) : null;
-  const sessions = week?.isBreak ? [] : sessionsBetween(data, today, today);
+  // A break has no regular classes, but a class the user moved into it still shows.
+  const sessions = sessionsBetween(data, today, today);
   const current = sessions.find(
     (s) => timeToMinutes(s.start) <= nowMinutes && nowMinutes < timeToMinutes(s.end),
   );

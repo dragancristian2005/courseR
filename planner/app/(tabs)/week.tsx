@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useStore } from '../../src/data/useStore';
 import { addDays, mondayOf, todayISO } from '../../src/domain/dates';
-import { sessionsBetween } from '../../src/domain/sessions';
+import { sessionsWithCancelled } from '../../src/domain/sessions';
 import type { ISODate, Session } from '../../src/domain/types';
 import { weekFor } from '../../src/domain/weeks';
 import { ClassDetail } from '../../src/ui/ClassDetail';
@@ -40,7 +40,9 @@ export default function WeekScreen() {
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const monday = addDays(mondayOf(today), offset * 7);
   const week = data.semester ? weekFor(data.semester, monday) : null;
-  const sessions = sessionsBetween(data, monday, addDays(monday, 6));
+  const generated = sessionsWithCancelled(data, monday, addDays(monday, 6));
+  const sessions = generated.map((g) => g.session);
+  const cancelledIds = new Set(generated.filter((g) => g.cancelled).map((g) => g.session.id));
   const end = addDays(monday, lastShownDay(sessions, monday) - 1);
   const wide = layout === 'wide';
 
@@ -58,7 +60,7 @@ export default function WeekScreen() {
 
   let body: React.ReactNode;
   if (needsSetup) body = <SetupPrompt data={data} />;
-  else if (week?.isBreak)
+  else if (week?.isBreak && sessions.length === 0)
     body = <Text style={styles.plain}>No classes this week, it’s a break.</Text>;
   else
     body = (
@@ -71,6 +73,7 @@ export default function WeekScreen() {
         onPressSession={onPressSession}
         density={wide ? 'full' : 'compact'}
         selectedSessionId={wide ? selectedId : undefined}
+        cancelledIds={cancelledIds}
       />
     );
 

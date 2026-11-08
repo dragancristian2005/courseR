@@ -14,6 +14,7 @@ export interface SlotRowProps {
   onPress?: () => void;
   now?: boolean;
   nowTime?: HHMM;
+  moved?: boolean;
 }
 
 const minutes = (t: HHMM): number => {
@@ -38,8 +39,9 @@ export function SlotRow({
   onPress,
   now,
   nowTime,
+  moved,
 }: SlotRowProps) {
-  const label = `${title}, ${type}, ${start} to ${end}${room ? `, room ${room}` : ''}`;
+  const label = `${title}, ${type}, ${start} to ${end}${room ? `, room ${room}` : ''}${moved ? ', moved' : ''}`;
   const top = `${nowFraction(start, end, nowTime) * 100}%` as const;
   const cellStyle = [styles.cell, { backgroundColor: typeFill(type) }];
   const content = (
@@ -50,6 +52,11 @@ export function SlotRow({
       {subtitle ? (
         <Text variant="meta" style={styles.subtitle}>
           {subtitle}
+        </Text>
+      ) : null}
+      {moved ? (
+        <Text variant="meta" style={styles.movedLabel}>
+          Moved
         </Text>
       ) : null}
     </>
@@ -100,6 +107,7 @@ const styles = StyleSheet.create({
   end: { fontSize: 12, fontVariant: ['tabular-nums'] },
   cell: { flex: 1, minHeight: 48, justifyContent: 'center', padding: theme.space(3), gap: 2 },
   title: { fontFamily: theme.font.appBold },
+  movedLabel: { fontFamily: theme.font.appBold },
   subtitle: { color: theme.color.ink },
   nowLine: { position: 'absolute', left: 0, right: 0, height: 2, backgroundColor: theme.color.now },
   nowTag: {

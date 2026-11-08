@@ -122,7 +122,7 @@ export default function Today() {
     const thin = STANDARD_SLOTS.filter((t) => timeToMinutes(t) >= lastEnd);
     body = (
       <View>
-        {week?.isBreak ? (
+        {week?.isBreak && sessions.length === 0 ? (
           <Text style={styles.plain}>No classes this week, it’s a break.</Text>
         ) : sessions.length === 0 ? (
           week ? (
@@ -141,6 +141,7 @@ export default function Today() {
                   subtitle={subtitleOf(s)}
                   room={s.online ? undefined : s.room}
                   type={s.type}
+                  moved={s.moved}
                   now={s.id === currentSessionId}
                   nowTime={nowTime}
                   onPress={() =>
@@ -165,7 +166,16 @@ export default function Today() {
                 <Rule weight={i === thin.length - 1 ? 'heavy' : 'hair'} />
               </View>
             ))}
-            {thin.length === 0 ? <Rule weight="heavy" /> : null}
+            {thin.length === 0 ? (
+              <View>
+                {freeAfter ? (
+                  <View style={styles.thin}>
+                    <Text variant="meta">{`Free after ${freeAfter}`}</Text>
+                  </View>
+                ) : null}
+                <Rule weight="heavy" />
+              </View>
+            ) : null}
           </View>
         )}
         <Homeworks items={hw} data={data} today={today} />

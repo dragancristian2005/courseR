@@ -13,7 +13,7 @@ function overrideMap(data: PlannerData): Map<string, SessionOverride> {
   return map;
 }
 
-interface Generated {
+export interface Generated {
   session: Session;
   /** The occurrence has a live 'cancelled' override; session is then the original slot. */
   cancelled: boolean;
@@ -86,6 +86,16 @@ export function sessionsBetween(data: PlannerData, from: ISODate, to: ISODate): 
   return generate(data)
     .filter((s) => compareDates(s.date, from) >= 0 && compareDates(s.date, to) <= 0)
     .sort(compareSessions);
+}
+
+/**
+ * Sessions in a date range with cancelled occurrences included and flagged (a cancelled one sits
+ * at its original slot). For views that show cancellations; sessionsBetween leaves them out.
+ */
+export function sessionsWithCancelled(data: PlannerData, from: ISODate, to: ISODate): Generated[] {
+  return generateAll(data)
+    .filter((g) => compareDates(g.session.date, from) >= 0 && compareDates(g.session.date, to) <= 0)
+    .sort((a, b) => compareSessions(a.session, b.session));
 }
 
 export function sessionById(data: PlannerData, id: string): Session | null {
