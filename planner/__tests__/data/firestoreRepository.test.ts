@@ -1,3 +1,4 @@
+import type { Homework } from '../../src/domain/types';
 import { createFirestoreRepository } from '../../src/data/firestoreRepository';
 
 const mockSetDoc = jest.fn().mockResolvedValue(undefined);
@@ -20,7 +21,16 @@ jest.mock('firebase/firestore', () => ({
   writeBatch: () => ({ set: mockBatchSet, commit: mockCommit }),
 }));
 
-const COLS = ['subjects', 'patterns', 'overrides', 'exams', 'homework', 'notes', 'links'];
+const COLS = [
+  'subjects',
+  'patterns',
+  'overrides',
+  'exams',
+  'homework',
+  'notes',
+  'links',
+  'classroomCourses',
+];
 const colSnap = (docs: Record<string, object>) => ({
   forEach: (fn: (d: { id: string; data: () => object }) => void) =>
     Object.entries(docs).forEach(([id, d]) => fn({ id, data: () => d })),
@@ -61,6 +71,22 @@ describe('firestore repository', () => {
     expect(Object.keys(listeners)).toHaveLength(0);
   });
 
+  it('stores and delivers classroomCourses under users/{uid}/classroomCourses', async () => {
+    const repo = createFirestoreRepository({} as never, 'u1');
+    const cb = jest.fn();
+    repo.subscribe(cb);
+    for (const c of COLS) emit(c);
+    emitSemester();
+    const course = { id: '123', updatedAt: 3, name: 'Algebra', subjectId: null };
+    await repo.upsert('classroomCourses', course);
+    expect(mockSetDoc).toHaveBeenCalledWith(
+      expect.objectContaining({ path: 'users/u1/classroomCourses/123' }),
+      stripId(course),
+    );
+    emit('classroomCourses', { '123': stripId(course) });
+    expect(cb.mock.calls[cb.mock.calls.length - 1][0].classroomCourses).toEqual([course]);
+  });
+
   it('skips an upsert that is not strictly newer than the known record', async () => {
     const repo = createFirestoreRepository({} as never, 'u1');
     repo.subscribe(() => {});
@@ -88,6 +114,28 @@ describe('firestore repository', () => {
     expect(opts).toEqual({ merge: true });
   });
 
+  it('tombstones returns removed and remotely deleted records with their fields', async () => {
+    const repo = createFirestoreRepository({} as never, 'u1');
+    const cb = jest.fn();
+    repo.subscribe(cb);
+    for (const c of COLS) if (c !== 'homework') emit(c);
+    emitSemester();
+    const hw = { title: 'T', subjectId: 'alg', due: null, dueTime: null, done: false };
+    emit('homework', {
+      h1: { ...hw, updatedAt: 1, source: 'classroom', externalId: 'w1' },
+      h2: { ...hw, updatedAt: 2, source: 'classroom', externalId: 'w2', deleted: true },
+    });
+    await repo.remove('homework', 'h1');
+    const ids = repo.tombstones<Homework>('homework').map((h) => [h.id, h.externalId]);
+    expect(ids.sort()).toEqual([
+      ['h1', 'w1'],
+      ['h2', 'w2'],
+    ]);
+    expect(repo.tombstones('homework')[0]).toMatchObject({ source: 'classroom', deleted: true });
+    expect(cb.mock.calls[0][0].homework.map((h: { id: string }) => h.id)).toEqual(['h1']);
+    expect(repo.tombstones('subjects')).toEqual([]);
+  });
+
   it('replaceAll batches in chunks of at most 450 and tombstones missing records', async () => {
     const repo = createFirestoreRepository({} as never, 'u1');
     repo.subscribe(() => {});
@@ -102,6 +150,7 @@ describe('firestore repository', () => {
       homework: [],
       notes: [],
       links: [],
+      classroomCourses: [],
     });
     expect(mockBatchSet).toHaveBeenCalledTimes(901);
     expect(mockCommit).toHaveBeenCalledTimes(3);
@@ -145,6 +194,7 @@ describe('firestore repository', () => {
         homework: [],
         notes: [],
         links: [],
+        classroomCourses: [],
       });
       expect(mockCommit).toHaveBeenCalledTimes(3);
     } finally {

@@ -77,9 +77,21 @@ export interface Exam extends Base {
 export interface Homework extends Base {
   title: string;
   subjectId: string | null;
-  due: ISODate;
+  due: ISODate | null;
   dueTime: HHMM | null;
   done: boolean;
+  /** Set on homework imported from Google Classroom. */
+  source?: 'classroom';
+  /** Classroom identifier of the coursework this homework was imported from. */
+  externalId?: string;
+  /** What Classroom said at the last import; used to detect the student's own edits. */
+  imported?: { title: string; due: ISODate | null; dueTime: HHMM | null };
+}
+
+/** A Classroom course; `id` is the Classroom course id. `subjectId: null` means "Don't import". */
+export interface ClassroomCourse extends Base {
+  name: string;
+  subjectId: string | null;
 }
 
 export interface Note extends Base {
@@ -104,4 +116,5 @@ export interface PlannerData {
   homework: Homework[];
   notes: Note[];
   links: Link[];
+  classroomCourses: ClassroomCourse[];
 }

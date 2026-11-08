@@ -174,7 +174,9 @@ describe('Today screen', () => {
       done: false,
     };
     const later = { ...hw, id: 'h2', title: 'Later', due: '2026-12-01' };
-    const { upsert } = await setup({ ...base, homework: [hw, later] });
+    const undated = { ...hw, id: 'h3', title: 'Undated', due: null };
+    const { upsert } = await setup({ ...base, homework: [hw, later, undated] });
+    expect(screen.queryByText(/Undated/)).toBeNull();
     expect(screen.getByText('Lab 3 for TSS')).toBeTruthy();
     expect(screen.getByText('Tomorrow')).toBeTruthy();
     expect(screen.queryByText(/Later/)).toBeNull();

@@ -188,6 +188,19 @@ Decided 2026-11-07: **no server and no live subscription in Phase 3.**
 - Small: homework due soon.
 - Medium: today's schedule.
 
+### Google Classroom import (decided 2026-11-08)
+
+A spike confirmed the author's UVT Google account lets the app read Classroom (courses, assignments, own submissions) with read-only scopes, from the browser, with no server.
+
+- Homework → **Import from Classroom**: Google asks for read-only Classroom access (popup in a tab, redirect in the installed app); the token stays in memory. Any Google account can be chosen (e.g. the UVT one) while the app stays signed in as the planner account: Classroom sign-in runs on a separate secondary Firebase app with session-only persistence, so the main sign-in is unaffected; that account appears in Firebase Auth's user list.
+- First time: each Classroom course is linked to a planner subject (suggested by name, diacritic-insensitive) or "Don't import"; links are remembered (synced). A course with no suggestion and nothing to import starts on "Don't import". A link to a deleted subject counts as no link (asked again); a course linked to a switched-off subject imports nothing. The review has "Change course links", which reopens the link step for every course with the current links preselected.
+- Imported: assignments with no due date, due today or later, and overdue ones not yet turned in. Turned-in assignments are marked done. Overdue and turned in → skipped. With a semester set, new assignments due (local date) before its first day are skipped; already-imported homework is always updated. Due times converted from UTC to Romanian time.
+- Homework the student deleted is never imported again. A course that can't be read is skipped and named; the import fails only on a connection error or when no course could be read. An account with no courses says so ("This Google account has no Classroom courses. Try again and choose your university account."). A blocked popup says "Your browser blocked the Google window. Allow pop-ups for this site and try again."
+- Homework can now have no due date (own "No due date" section; never on Today).
+- Re-import updates titles and due dates, never duplicates; if the student edited an imported homework and Classroom also changed it, the review asks which to keep. Typed homework is never touched.
+- Review before saving, as with the timetable import.
+- For classmates: while the Google Cloud project is in Testing, each user's email must be added as a test user (up to 100), or the app must be verified by Google.
+
 ## Timetable formats (reference)
 
 Two real sheets drove this design:

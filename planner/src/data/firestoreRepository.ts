@@ -20,6 +20,7 @@ const COLLECTIONS: Collection[] = [
   'homework',
   'notes',
   'links',
+  'classroomCourses',
 ];
 
 const BATCH_LIMIT = 450;
@@ -114,6 +115,12 @@ export function createFirestoreRepository(db: Firestore, uid: string): Repositor
         errorSinks.delete(writeFailed);
         unsubs.forEach((u) => u());
       };
+    },
+
+    tombstones<T extends Base = Base>(c: Collection): T[] {
+      return Array.from(known[c].values())
+        .filter((r) => r.deleted)
+        .map((r) => ({ ...r }) as T);
     },
 
     async upsert<T extends Base>(c: Collection, record: T) {

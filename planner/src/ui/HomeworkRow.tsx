@@ -45,9 +45,11 @@ export function HomeworkRow({
             <Text style={hw.done && styles.doneText}>{hw.title}</Text>
             {sub ? <Text variant="meta">{sub}</Text> : null}
           </View>
-          <Text style={URGENT.includes(label) && !hw.done ? styles.urgent : styles.due}>
-            {label}
-          </Text>
+          {label ? (
+            <Text style={URGENT.includes(label) && !hw.done ? styles.urgent : styles.due}>
+              {label}
+            </Text>
+          ) : null}
         </Pressable>
       </View>
       <Rule />

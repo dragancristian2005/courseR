@@ -16,6 +16,9 @@ const LIST_KEYS = [
   'links',
 ] as const;
 
+// Added later: absent in older backups, which then restore with none.
+const OPTIONAL_LIST_KEYS = ['classroomCourses'] as const;
+
 export type ParseResult = { ok: true; data: PlannerData } | { ok: false; error: string };
 
 export function exportBackup(data: PlannerData, now: Date): string {
@@ -76,9 +79,15 @@ export function parseBackup(json: string): ParseResult {
     const list = data[key];
     if (!Array.isArray(list) || !list.every(isRecord)) return { ok: false, error: NOT_BACKUP };
   }
+  const optional: Record<string, unknown> = {};
+  for (const key of OPTIONAL_LIST_KEYS) {
+    const list = data[key] ?? [];
+    if (!Array.isArray(list) || !list.every(isRecord)) return { ok: false, error: NOT_BACKUP };
+    optional[key] = list;
+  }
   const links = data.links as unknown[];
   if (!links.every((l) => isObject(l) && typeof l.url === 'string' && isSafeLinkUrl(l.url))) {
     return { ok: false, error: NOT_BACKUP };
   }
-  return { ok: true, data: data as unknown as PlannerData };
+  return { ok: true, data: { ...data, ...optional } as unknown as PlannerData };
 }

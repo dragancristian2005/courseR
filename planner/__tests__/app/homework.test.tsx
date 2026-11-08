@@ -5,6 +5,8 @@ import HomeworkTab from '../../app/(tabs)/homework';
 import EditHomework from '../../app/homework/edit';
 import { createMemoryRepository } from '../../src/data/memoryRepository';
 import { StoreProvider } from '../../src/data/StoreProvider';
+import { emptyPlannerData } from '../../src/data/repository';
+import { planClassroomImport } from '../../src/domain/classroomImport';
 import type { Homework, PlannerData, Subject } from '../../src/domain/types';
 
 let mockParams: { id?: string; subjectId?: string } = {};
@@ -94,6 +96,25 @@ describe('Homework tab', () => {
     expect(screen.queryByText('Quiz prep')).toBeNull();
   });
 
+  it('shows undated homework under No due date after Later, without due text', async () => {
+    await setup(HomeworkTab, {
+      ...base,
+      homework: [...base.homework!, hw({ id: 'h4', title: 'Read chapter', due: null })],
+    });
+    const headings = ['This week', 'Later', 'No due date'].map((t) => screen.getByText(t));
+    expect(headings).toHaveLength(3);
+    expect(screen.getByText('Read chapter')).toBeTruthy();
+    const order = screen
+      .getAllByText(/^(Later|No due date|Read chapter|Essay)$/)
+      .map((n) => n.props.children);
+    expect(order).toEqual(['Later', 'Essay', 'No due date', 'Read chapter']);
+  });
+
+  it('hides the No due date section when empty', async () => {
+    await setup(HomeworkTab);
+    expect(screen.queryByText('No due date')).toBeNull();
+  });
+
   it('expands Done and unticking upserts done:false', async () => {
     const { upsert } = await setup(HomeworkTab);
     await press('Done (1) ›');
@@ -123,6 +144,12 @@ describe('Homework tab', () => {
       expect.objectContaining({ id: 'h1', done: true }),
     );
     expect(upsert.mock.calls[0][1].updatedAt).toBe(Date.now());
+  });
+
+  it('opens the Classroom import from the header', async () => {
+    await setup(HomeworkTab);
+    await press('Import from Classroom');
+    expect(router.push).toHaveBeenCalledWith('/classroom');
   });
 
   it('shows the empty state and Add homework', async () => {
@@ -168,6 +195,32 @@ describe('Homework form', () => {
     expect(router.back).toHaveBeenCalled();
   });
 
+  it('saves homework with an empty due date as null', async () => {
+    const { upsert } = await setup(EditHomework);
+    await type('Title', 'Read chapter');
+    await press('Save homework');
+    expect(upsert).toHaveBeenCalledTimes(1);
+    expect(upsert.mock.calls[0][1]).toMatchObject({
+      title: 'Read chapter',
+      due: null,
+      dueTime: null,
+    });
+  });
+
+  it('needs a due date before a due time', async () => {
+    const { upsert } = await setup(EditHomework);
+    await type('Title', 'Read chapter');
+    await type('Due time', '09:40');
+    expect(screen.getByText('Add a due date first.')).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'Save homework' }).props.accessibilityState.disabled,
+    ).toBe(true);
+    await type('Due date', '2026-11-09');
+    expect(screen.queryByText('Add a due date first.')).toBeNull();
+    await press('Save homework');
+    expect(upsert.mock.calls[0][1]).toMatchObject({ due: '2026-11-09', dueTime: '09:40' });
+  });
+
   it('lets the subject be cleared', async () => {
     const { upsert } = await setup(EditHomework);
     await type('Title', 'Read');
@@ -188,6 +241,49 @@ describe('Homework form', () => {
       'homework',
       expect.objectContaining({ id: 'h1', dueTime: '09:40', subjectId: 'tss' }),
     );
+  });
+
+  it('editing an imported homework keeps its Classroom link, so a later change is a conflict', async () => {
+    mockParams = { id: 'h1' };
+    const imported = { title: 'Problem set 3', due: '2026-11-03' as const, dueTime: null };
+    const { upsert } = await setup(EditHomework, {
+      subjects: [tss],
+      homework: [hw({ source: 'classroom', externalId: 'w1', imported })],
+    });
+    await type('Title', 'Problem set 3 (odd ones)');
+    await press('Save homework');
+    const saved = upsert.mock.calls[0][1] as Homework;
+    expect(saved).toMatchObject({
+      id: 'h1',
+      title: 'Problem set 3 (odd ones)',
+      source: 'classroom',
+      externalId: 'w1',
+      imported,
+    });
+
+    const plan = planClassroomImport(
+      {
+        courses: [{ id: 'c1', name: 'TSS', section: null }],
+        work: [
+          {
+            id: 'w1',
+            courseId: 'c1',
+            title: 'Problem set 3',
+            dueDate: { year: 2026, month: 11, day: 5 },
+            dueTime: null,
+          },
+        ],
+        turnedIn: new Set(),
+      },
+      {
+        ...emptyPlannerData(),
+        subjects: [tss],
+        homework: [saved],
+        classroomCourses: [{ id: 'c1', name: 'TSS', subjectId: 'tss', updatedAt: 1 }],
+      },
+      '2026-11-02',
+    );
+    expect(plan.items.map((i) => i.action)).toEqual(['conflict']);
   });
 
   it('deletes with confirmation, or keeps it', async () => {

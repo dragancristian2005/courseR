@@ -46,6 +46,39 @@ describe('backup', () => {
     expect(result).toEqual({ ok: true, data });
   });
 
+  it('round trips classroomCourses and Classroom homework fields', () => {
+    const data = sample();
+    data.classroomCourses = [{ id: '123', name: 'Algebra', subjectId: null, updatedAt: 3 }];
+    data.homework[0] = {
+      ...data.homework[0],
+      source: 'classroom',
+      externalId: 'c1:w9',
+      imported: { title: 'Sheet 3', due: null, dueTime: null },
+    };
+    const result = parseBackup(exportBackup(data, new Date('2026-11-04T10:00:00Z')));
+    expect(result).toEqual({ ok: true, data });
+  });
+
+  it('treats a backup without classroomCourses as having none', () => {
+    const { classroomCourses: _c, ...old } = emptyPlannerData();
+    const result = parseBackup(wrap({ data: old }));
+    expect(result).toEqual({ ok: true, data: emptyPlannerData() });
+  });
+
+  it('rejects a non-array classroomCourses', () => {
+    expect(parseBackup(wrap({ data: { ...emptyPlannerData(), classroomCourses: {} } }))).toEqual({
+      ok: false,
+      error: NOT_BACKUP,
+    });
+  });
+
+  it('round trips homework without a due date', () => {
+    const data = sample();
+    data.homework[0] = { ...data.homework[0], due: null };
+    const result = parseBackup(exportBackup(data, new Date('2026-11-04T10:00:00Z')));
+    expect(result).toEqual({ ok: true, data });
+  });
+
   it('writes envelope with exportedAt and 2-space indent', () => {
     const text = exportBackup(emptyPlannerData(), new Date('2026-11-04T10:00:00Z'));
     const obj = JSON.parse(text);
@@ -169,6 +202,7 @@ describe('backup', () => {
         'homework',
         'notes',
         'links',
+        'classroomCourses',
       ]) {
         expect(withData({ [key]: list })).toEqual(rejected);
       }

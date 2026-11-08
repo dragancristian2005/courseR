@@ -18,7 +18,8 @@ export default function HomeworkTab() {
   const today = todayISO(useNow());
   const [showDone, setShowDone] = useState(false);
   const groups = homeworkGroups(data, today);
-  const total = groups.thisWeek.length + groups.later.length + groups.done.length;
+  const total =
+    groups.thisWeek.length + groups.later.length + groups.noDue.length + groups.done.length;
 
   const toggle = (h: Homework) =>
     void repo.upsert('homework', {
@@ -44,6 +45,7 @@ export default function HomeworkTab() {
         actionLabel="Add homework"
         onAction={() => router.push('/homework/edit')}
       />
+      <TextButton label="Import from Classroom" onPress={() => router.push('/classroom')} />
       {total === 0 ? (
         <Text style={styles.empty}>Nothing due. Add homework when you get it.</Text>
       ) : (
@@ -58,6 +60,12 @@ export default function HomeworkTab() {
             <>
               <SectionHeading>Later</SectionHeading>
               {list(groups.later)}
+            </>
+          ) : null}
+          {groups.noDue.length > 0 ? (
+            <>
+              <SectionHeading>No due date</SectionHeading>
+              {list(groups.noDue)}
             </>
           ) : null}
           {groups.done.length > 0 ? (

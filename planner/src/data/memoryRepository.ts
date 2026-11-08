@@ -9,6 +9,7 @@ const COLLECTIONS: Collection[] = [
   'homework',
   'notes',
   'links',
+  'classroomCourses',
 ];
 
 function clone(data: PlannerData): PlannerData {
@@ -46,6 +47,10 @@ export function createMemoryRepository(initial: Partial<PlannerData> = {}): Repo
       return () => {
         listeners.delete(cb);
       };
+    },
+
+    tombstones<T extends Base = Base>(c: Collection): T[] {
+      return (state[c] as Base[]).filter((r) => r.deleted).map((r) => ({ ...r }) as T);
     },
 
     async upsert<T extends Base>(c: Collection, record: T) {

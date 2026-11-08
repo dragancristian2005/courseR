@@ -36,11 +36,24 @@ describe('emptyPlannerData', () => {
       homework: [],
       notes: [],
       links: [],
+      classroomCourses: [],
     });
   });
 });
 
 describe('memory repository', () => {
+  it('upserts, updates and tombstones classroomCourses', async () => {
+    const repo = createMemoryRepository();
+    const s = latest(repo);
+    const course = { id: 'c1', updatedAt: 1, name: 'Algebra', subjectId: null };
+    await repo.upsert('classroomCourses', course);
+    expect(s.get().classroomCourses).toEqual([course]);
+    await repo.upsert('classroomCourses', { ...course, updatedAt: 2, subjectId: 's1' });
+    expect(s.get().classroomCourses[0].subjectId).toBe('s1');
+    await repo.remove('classroomCourses', 'c1');
+    expect(s.get().classroomCourses).toEqual([]);
+  });
+
   it('subscribe calls back immediately with current data', () => {
     const repo = createMemoryRepository({ subjects: [subj('a', 1)] });
     const s = latest(repo);
@@ -72,6 +85,30 @@ describe('memory repository', () => {
     await repo.upsert('subjects', subj('a', 1));
     await repo.remove('subjects', 'a');
     expect(s.get().subjects).toEqual([]);
+  });
+
+  it('tombstones returns removed records with their fields, and subscribe still hides them', async () => {
+    const repo = createMemoryRepository();
+    const s = latest(repo);
+    const hw = {
+      id: 'h1',
+      updatedAt: 1,
+      title: 'Problem set',
+      subjectId: 'alg',
+      due: null,
+      dueTime: null,
+      done: false,
+      source: 'classroom' as const,
+      externalId: 'w1',
+    };
+    await repo.upsert('homework', hw);
+    await repo.upsert('homework', { ...hw, id: 'h2', externalId: 'w2' });
+    await repo.remove('homework', 'h1');
+    expect(repo.tombstones('homework')).toEqual([
+      { ...hw, deleted: true, updatedAt: expect.any(Number) },
+    ]);
+    expect(repo.tombstones('subjects')).toEqual([]);
+    expect(s.get().homework.map((h) => h.id)).toEqual(['h2']);
   });
 
   it('tombstoned initial records are not delivered', () => {

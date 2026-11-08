@@ -62,3 +62,25 @@ Nothing is saved until you tap Save. Exams work the same way: choose the exams i
 ## Add to your calendar
 
 Open Settings, tap Add to calendar, choose Classes and Exams, and tap Add to calendar. It adds your classes from this week to the end of the semester, and your upcoming exams, as a copy; if your timetable changes, add it again. On iPhone or iPad, tap Add All, and when asked which calendar, choose New Calendar and name it "Study Planner". In Google Calendar, on a computer, create a calendar called "Study Planner" (Settings, Add calendar), then Settings, Import, and choose the `study-planner.ics` file; to update later, delete the "Study Planner" calendar and add it again.
+
+## Import homework from Google Classroom
+
+Open Homework and tap Import from Classroom (or Settings, Google Classroom). Tap Connect to Classroom, pick a Google account, match each course to a subject, check the list and tap Save. Nothing is saved until you tap Save.
+
+Students can pick any Google account, such as a university one. It does not have to be the account you sign in to the planner with. That account then appears in Firebase Authentication's user list. Importing a second time adds nothing new: only new or changed assignments show up.
+
+- What comes in: assignments with no due date, due today or later, and overdue ones you haven't turned in. When a semester is set up, assignments due before its first day are left out, so old courses don't flood Today.
+- Homework you delete stays deleted: importing again doesn't bring it back. Assignments deleted in Classroom stay in the planner until you delete them.
+- To change which subject a course goes to, or to import a course you set to "Don't import", tap Change course links on the list before saving. Courses with no matching subject and nothing to import start on "Don't import".
+- "This Google account has no Classroom courses" usually means you picked a personal account: tap Try again and choose your university account.
+- If one course can't be read (for example, you were removed from it), the rest are still imported and the list names that course.
+- "Your browser blocked the Google window": allow pop-ups for the planner's site and tap Try again.
+- In the installed app, Classroom import works only after setup step 6 (auth domain on `<project-id>.web.app`); don't try it on a dev server or before step 6. The installed app doesn't share Safari's sign-ins, so Google may ask for your university password each time.
+
+One-time Google Cloud setup (the project behind your Firebase project):
+
+1. In Google Cloud Console, open APIs & Services, Library, and enable the Google Classroom API.
+2. Open APIs & Services, OAuth consent screen, and add these two scopes as full URLs:
+   - `https://www.googleapis.com/auth/classroom.courses.readonly`
+   - `https://www.googleapis.com/auth/classroom.coursework.me.readonly`
+3. While the app is in Testing, add each student's Google account under Test users.
