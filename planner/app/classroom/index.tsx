@@ -19,7 +19,7 @@ import {
 import { todayISO } from '../../src/domain/dates';
 import { stamp } from '../../src/domain/edits';
 import { dueLabel } from '../../src/domain/selectors';
-import type { ClassroomCourse, PlannerData } from '../../src/domain/types';
+import type { ClassroomCourse, Homework, PlannerData } from '../../src/domain/types';
 import { Button } from '../../src/ui/Button';
 import { Chips } from '../../src/ui/FormBits';
 import { FormScreen } from '../../src/ui/FormScreen';
@@ -56,11 +56,20 @@ export default function ClassroomImport() {
   const tookToken = useRef(false);
   const today = todayISO();
 
+  // Deleted homework is planned with too, so what the student deleted is never imported again.
+  // Only this plan sees the tombstones; the store and every other screen stay without them.
+  const planWith = (result: ClassroomFetch, d: PlannerData): ClassroomPlan =>
+    planClassroomImport(
+      result,
+      { ...d, homework: [...d.homework, ...repo.tombstones<Homework>('homework')] },
+      today,
+    );
+
   const read = async (token: string) => {
     setPhase('reading');
     try {
       const result = await fetchClassroom(token);
-      const next = planClassroomImport(result, data, today);
+      const next = planWith(result, data);
       setFetched(result);
       setPlan(next);
       setChoices(
@@ -135,7 +144,7 @@ export default function ClassroomImport() {
     };
     if (fetched === null) return;
     setLinks(made);
-    setPlan(planClassroomImport(fetched, merged, today));
+    setPlan(planWith(fetched, merged));
     setPhase('review');
   };
 

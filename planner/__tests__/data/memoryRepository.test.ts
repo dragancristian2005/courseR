@@ -87,6 +87,30 @@ describe('memory repository', () => {
     expect(s.get().subjects).toEqual([]);
   });
 
+  it('tombstones returns removed records with their fields, and subscribe still hides them', async () => {
+    const repo = createMemoryRepository();
+    const s = latest(repo);
+    const hw = {
+      id: 'h1',
+      updatedAt: 1,
+      title: 'Problem set',
+      subjectId: 'alg',
+      due: null,
+      dueTime: null,
+      done: false,
+      source: 'classroom' as const,
+      externalId: 'w1',
+    };
+    await repo.upsert('homework', hw);
+    await repo.upsert('homework', { ...hw, id: 'h2', externalId: 'w2' });
+    await repo.remove('homework', 'h1');
+    expect(repo.tombstones('homework')).toEqual([
+      { ...hw, deleted: true, updatedAt: expect.any(Number) },
+    ]);
+    expect(repo.tombstones('subjects')).toEqual([]);
+    expect(s.get().homework.map((h) => h.id)).toEqual(['h2']);
+  });
+
   it('tombstoned initial records are not delivered', () => {
     const repo = createMemoryRepository({ subjects: [{ ...subj('a', 1), deleted: true }] });
     expect(latest(repo).get().subjects).toEqual([]);

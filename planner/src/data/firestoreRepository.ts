@@ -117,6 +117,12 @@ export function createFirestoreRepository(db: Firestore, uid: string): Repositor
       };
     },
 
+    tombstones<T extends Base = Base>(c: Collection): T[] {
+      return Array.from(known[c].values())
+        .filter((r) => r.deleted)
+        .map((r) => ({ ...r }) as T);
+    },
+
     async upsert<T extends Base>(c: Collection, record: T) {
       const stored = known[c].get(record.id);
       if (stored && record.updatedAt <= stored.updatedAt) return;

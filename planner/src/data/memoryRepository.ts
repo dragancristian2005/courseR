@@ -49,6 +49,10 @@ export function createMemoryRepository(initial: Partial<PlannerData> = {}): Repo
       };
     },
 
+    tombstones<T extends Base = Base>(c: Collection): T[] {
+      return (state[c] as Base[]).filter((r) => r.deleted).map((r) => ({ ...r }) as T);
+    },
+
     async upsert<T extends Base>(c: Collection, record: T) {
       const list = state[c] as Base[];
       const idx = list.findIndex((r) => r.id === record.id);

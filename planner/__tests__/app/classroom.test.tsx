@@ -203,6 +203,38 @@ describe('Import from Classroom', () => {
     expect(screen.getByRole('button', { name: 'Nothing to add' })).toBeDisabled();
   });
 
+  it('does not bring back an imported homework the student deleted', async () => {
+    fetchC.mockResolvedValue(fetched({ work: [fetched().work[0]], turnedIn: new Set() }));
+    const repo = createMemoryRepository({
+      subjects: [alg],
+      classroomCourses: [{ id: 'c1', name: 'Algebra', subjectId: 'alg', updatedAt: 1 }],
+    });
+    const upsert = jest.spyOn(repo, 'upsert');
+    const ui = (
+      <StoreProvider repository={repo}>
+        <ClassroomImport />
+      </StoreProvider>
+    );
+    const first = await render(ui);
+    await press('Connect to Classroom');
+    expect(await screen.findByText('1 new, 0 updated')).toBeTruthy();
+    await press('Save');
+    await waitFor(() => expect(upsert).toHaveBeenCalledTimes(1));
+    const saved = upsert.mock.calls[0][1] as Homework;
+    expect(saved).toMatchObject({ source: 'classroom', externalId: 'w1' });
+    await repo.remove('homework', saved.id);
+    await first.unmount();
+    upsert.mockClear();
+
+    await render(ui);
+    await press('Connect to Classroom');
+    expect(
+      await screen.findByText('Everything from Classroom is already in your homework.'),
+    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Nothing to add' })).toBeDisabled();
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
   it('needs a choice for each conflict before Save, and applies it', async () => {
     const existing: Homework = {
       id: 'h1',

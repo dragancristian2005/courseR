@@ -1,3 +1,4 @@
+import type { Homework } from '../../src/domain/types';
 import { createFirestoreRepository } from '../../src/data/firestoreRepository';
 
 const mockSetDoc = jest.fn().mockResolvedValue(undefined);
@@ -111,6 +112,28 @@ describe('firestore repository', () => {
     const [, body, opts] = mockSetDoc.mock.calls[0];
     expect(body).toEqual({ deleted: true, updatedAt: stored + 1 });
     expect(opts).toEqual({ merge: true });
+  });
+
+  it('tombstones returns removed and remotely deleted records with their fields', async () => {
+    const repo = createFirestoreRepository({} as never, 'u1');
+    const cb = jest.fn();
+    repo.subscribe(cb);
+    for (const c of COLS) if (c !== 'homework') emit(c);
+    emitSemester();
+    const hw = { title: 'T', subjectId: 'alg', due: null, dueTime: null, done: false };
+    emit('homework', {
+      h1: { ...hw, updatedAt: 1, source: 'classroom', externalId: 'w1' },
+      h2: { ...hw, updatedAt: 2, source: 'classroom', externalId: 'w2', deleted: true },
+    });
+    await repo.remove('homework', 'h1');
+    const ids = repo.tombstones<Homework>('homework').map((h) => [h.id, h.externalId]);
+    expect(ids.sort()).toEqual([
+      ['h1', 'w1'],
+      ['h2', 'w2'],
+    ]);
+    expect(repo.tombstones('homework')[0]).toMatchObject({ source: 'classroom', deleted: true });
+    expect(cb.mock.calls[0][0].homework.map((h: { id: string }) => h.id)).toEqual(['h1']);
+    expect(repo.tombstones('subjects')).toEqual([]);
   });
 
   it('replaceAll batches in chunks of at most 450 and tombstones missing records', async () => {

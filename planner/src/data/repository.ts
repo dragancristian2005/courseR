@@ -27,6 +27,12 @@ export interface Repository {
    * Write methods resolve once the write is queued locally, not when the server acknowledges it.
    */
   upsert<T extends Base>(c: Collection, record: T): Promise<void>;
+  /**
+   * Copies of the tombstoned records of a collection, with their last fields. Only for code that
+   * must remember what the student deleted (the Classroom import, so deleted homework stays
+   * deleted); everything else reads subscribe's output, which never holds tombstones.
+   */
+  tombstones<T extends Base = Base>(c: Collection): T[];
   /** Writes a tombstone (never a hard delete). Unknown id is a no-op. */
   remove(c: Collection, id: string): Promise<void>;
   saveSemester(s: Semester): Promise<void>;
