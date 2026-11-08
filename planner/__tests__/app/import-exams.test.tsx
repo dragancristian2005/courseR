@@ -309,7 +309,7 @@ describe('import exams review', () => {
     expect(saved.map((e) => e.date)).toEqual(['2027-01-25']);
   });
 
-  it('says the exams were already saved when every row is a duplicate by Save time', async () => {
+  it('says the exams were already saved, stays, and leaves on Done', async () => {
     const { repo, upsert } = await setup(file([exam({})]));
     await act(async () => {
       await repo.upsert('exams', {
@@ -323,11 +323,43 @@ describe('import exams review', () => {
       });
     });
     upsert.mockClear();
-    await save();
+    await press('Save exams');
+    await waitFor(() => expect(screen.getByText('These exams were already saved.')).toBeTruthy());
     expect(upsert).not.toHaveBeenCalled();
-    expect(screen.getByText('These exams were already saved.')).toBeTruthy();
-    expect(router.replace).toHaveBeenCalledWith('/exams');
+    expect(router.replace).not.toHaveBeenCalled();
     expect(getPending()).toBeNull();
+    await press('Done');
+    expect(router.replace).toHaveBeenCalledWith('/exams');
+  });
+
+  const COLLISION = 'Two exams have the same date and time. Change one of them.';
+
+  it('blocks Save when an edited row lands on an unedited row', async () => {
+    const { upsert } = await setup(
+      file([exam({ unsure: ['date'] }), exam({ date: '2027-01-25' })]),
+    );
+    await press('Edit');
+    expect(screen.queryByText(COLLISION)).toBeNull();
+    await fireEvent.changeText(screen.getByLabelText('Date'), '2027-01-25');
+    expect(screen.getAllByText(COLLISION)).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Save exams' })).toBeDisabled();
+    await fireEvent.changeText(screen.getByLabelText('Date'), '2027-01-26');
+    expect(screen.queryByText(COLLISION)).toBeNull();
+    await save();
+    expect(upsert.mock.calls.filter((c) => c[0] === 'exams')).toHaveLength(2);
+  });
+
+  it('blocks Save when two edited rows end up the same', async () => {
+    await setup(file([exam({ unsure: ['date'] }), exam({ date: '2027-01-25', unsure: ['date'] })]));
+    const edits = screen.getAllByRole('button', { name: 'Edit' });
+    await fireEvent.press(edits[0]);
+    await fireEvent.press(screen.getAllByRole('button', { name: 'Edit' })[0]);
+    const dates = screen.getAllByLabelText('Date');
+    await fireEvent.changeText(dates[0], '2027-02-01');
+    // The edited row now sorts last, so the other one is first.
+    await fireEvent.changeText(screen.getAllByLabelText('Date')[0], '2027-02-01');
+    expect(screen.getAllByText(COLLISION)).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Save exams' })).toBeDisabled();
   });
 
   it('words the empty sheet naturally when it lists no groups', async () => {

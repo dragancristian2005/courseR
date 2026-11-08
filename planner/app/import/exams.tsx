@@ -20,6 +20,7 @@ import { TextButton } from '../../src/ui/TextButton';
 import { theme } from '../../src/ui/theme';
 
 const MSG_EXAM_DATE = 'Enter a date like 2027-01-20.';
+const MSG_COLLISION = 'Two exams have the same date and time. Change one of them.';
 const TITLE = 'Check your exams';
 
 interface Edit {
@@ -112,6 +113,12 @@ function Review({ file }: { file: ExamImport }) {
     .map(apply)
     .sort((a, b) => a.date.localeCompare(b.date) || (a.start ?? '').localeCompare(b.start ?? ''));
   const anyInvalid = Object.values(edits).some((e) => editInvalid(e));
+  // Same identity as the duplicate check: subject (or title) + date + start.
+  const keyOf = (e: Exam) => `${e.subjectId ?? e.title}|${e.date}|${e.start ?? ''}`;
+  const keyCount: Record<string, number> = {};
+  for (const e of rows) keyCount[keyOf(e)] = (keyCount[keyOf(e)] ?? 0) + 1;
+  const collides = (e: Exam) => keyCount[keyOf(e)] > 1;
+  const anyCollision = rows.some(collides);
   const nameOf = (e: Exam) =>
     (e.subjectId === null ? undefined : data.subjects.find((s) => s.id === e.subjectId)?.name) ??
     e.title;
@@ -140,8 +147,12 @@ function Review({ file }: { file: ExamImport }) {
         await repo.upsert('exams', { ...e, id: realIds.current[e.id], updatedAt: now });
         written++;
       }
-      if (written === 0) setAlreadySaved(true);
       clearPending();
+      if (written === 0) {
+        // Stay so the message can be read; Done leaves like a normal save. Save stays locked.
+        setAlreadySaved(true);
+        return;
+      }
       leaveImport('/exams');
     });
 
@@ -186,6 +197,7 @@ function Review({ file }: { file: ExamImport }) {
                   {nameOf(e)}
                 </Text>
                 <Text variant="meta">{meta}</Text>
+                {collides(e) ? <Text style={styles.warning}>{MSG_COLLISION}</Text> : null}
               </View>
               {flagged ? (
                 <View style={styles.question}>
@@ -237,11 +249,16 @@ function Review({ file }: { file: ExamImport }) {
         <Rule weight="heavy" />
         <Button
           label={nothing ? 'Nothing to add' : 'Save exams'}
-          disabled={nothing || anyInvalid || saving}
+          disabled={nothing || anyInvalid || anyCollision || saving}
           onPress={() => void save()}
         />
         {nothing ? <Text variant="meta">These exams are already in your planner.</Text> : null}
-        {alreadySaved ? <Text variant="meta">These exams were already saved.</Text> : null}
+        {alreadySaved ? (
+          <>
+            <Text variant="meta">These exams were already saved.</Text>
+            <Button label="Done" onPress={() => leaveImport('/exams')} />
+          </>
+        ) : null}
         {failed ? <Text style={styles.warning}>Couldn’t save. Try again.</Text> : null}
       </View>
     </FormScreen>
