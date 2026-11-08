@@ -69,6 +69,14 @@ Open Homework and tap Import from Classroom (or Settings, Google Classroom). Tap
 
 Students can pick any Google account, such as a university one. It does not have to be the account you sign in to the planner with. That account then appears in Firebase Authentication's user list. Importing a second time adds nothing new: only new or changed assignments show up.
 
+- What comes in: assignments with no due date, due today or later, and overdue ones you haven't turned in. When a semester is set up, assignments due before its first day are left out, so old courses don't flood Today.
+- Homework you delete stays deleted: importing again doesn't bring it back. Assignments deleted in Classroom stay in the planner until you delete them.
+- To change which subject a course goes to, or to import a course you set to "Don't import", tap Change course links on the list before saving. Courses with no matching subject and nothing to import start on "Don't import".
+- "This Google account has no Classroom courses" usually means you picked a personal account: tap Try again and choose your university account.
+- If one course can't be read (for example, you were removed from it), the rest are still imported and the list names that course.
+- "Your browser blocked the Google window": allow pop-ups for the planner's site and tap Try again.
+- In the installed app, Classroom import works only after setup step 6 (auth domain on `<project-id>.web.app`); don't try it on a dev server or before step 6. The installed app doesn't share Safari's sign-ins, so Google may ask for your university password each time.
+
 One-time Google Cloud setup (the project behind your Firebase project):
 
 1. In Google Cloud Console, open APIs & Services, Library, and enable the Google Classroom API.
