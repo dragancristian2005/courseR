@@ -70,9 +70,15 @@ export function initClassroomAuth(): Auth {
   if (classroomAuth) return classroomAuth;
   const existing = getApps().find((a) => a.name === CLASSROOM_APP);
   const app = existing ?? initializeApp(firebaseConfig(), CLASSROOM_APP);
-  classroomAuth = initializeAuth(app, {
-    persistence: browserSessionPersistence,
-    popupRedirectResolver: browserPopupRedirectResolver,
-  });
+  try {
+    classroomAuth = initializeAuth(app, {
+      persistence: browserSessionPersistence,
+      popupRedirectResolver: browserPopupRedirectResolver,
+    });
+  } catch (e) {
+    // The app already has its auth (e.g. after a hot reload emptied this module's cache).
+    if ((e as { code?: unknown } | null)?.code !== 'auth/already-initialized') throw e;
+    classroomAuth = getAuth(app);
+  }
   return classroomAuth;
 }

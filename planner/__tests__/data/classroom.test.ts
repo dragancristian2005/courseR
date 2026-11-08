@@ -3,6 +3,7 @@ import {
   ClassroomError,
   fetchClassroom,
   getClassroomToken,
+  prepareClassroomSignIn,
   takeClassroomToken,
 } from '../../src/data/classroom';
 
@@ -31,8 +32,9 @@ jest.mock('firebase/auth', () => ({
     { credentialFromResult: (...a: unknown[]) => mockFb.credentialFromResult(...a) },
   ),
 }));
+const mockInit = jest.fn(() => classroomAuth);
 jest.mock('../../src/data/firebase', () => ({
-  initClassroomAuth: () => classroomAuth,
+  initClassroomAuth: () => mockInit(),
   initFirebase: () => ({ auth: mainAuth }),
 }));
 
@@ -56,6 +58,7 @@ beforeEach(() => {
   Platform.OS = 'web';
   mockFb.signOut.mockResolvedValue(undefined);
   mockFb.credentialFromResult.mockReturnValue({ accessToken: 'tok' });
+  mockInit.mockImplementation(() => classroomAuth);
 });
 
 const authError = (code: string) => Object.assign(new Error(code), { code });
@@ -76,6 +79,30 @@ describe('getClassroomToken', () => {
     for (const call of [...mockFb.signInWithPopup.mock.calls, ...mockFb.signOut.mock.calls]) {
       expect(call[0]).not.toBe(mainAuth);
     }
+    expect(store[FLAG]).toBeUndefined();
+  });
+
+  it('popup: opens the Google window in the same tick as the tap', async () => {
+    mockFb.signInWithPopup.mockResolvedValue({});
+    const pending = getClassroomToken();
+    // Safari only allows a popup opened before anything is awaited after the tap.
+    expect(mockFb.signInWithPopup).toHaveBeenCalledTimes(1);
+    await expect(pending).resolves.toBe('tok');
+  });
+
+  it('popup: a blocked popup has its own message', async () => {
+    mockFb.signInWithPopup.mockRejectedValue(authError('auth/popup-blocked'));
+    const e = await getClassroomToken().catch((x) => x);
+    expect(e).toMatchObject({ kind: 'popupBlocked' });
+    expect(e.message).toBe(
+      'Your browser blocked the Google window. Allow pop-ups for this site and try again.',
+    );
+  });
+
+  it('standalone: clears the flag when the redirect cannot start', async () => {
+    g.matchMedia = () => ({ matches: true });
+    mockFb.signInWithRedirect.mockRejectedValue(authError('auth/network-request-failed'));
+    await expect(getClassroomToken()).rejects.toMatchObject({ kind: 'network' });
     expect(store[FLAG]).toBeUndefined();
   });
 
@@ -115,6 +142,26 @@ describe('getClassroomToken', () => {
   it('maps an OAuth access_denied message to denied', async () => {
     mockFb.signInWithPopup.mockRejectedValue(new Error('access_denied'));
     await expect(getClassroomToken()).rejects.toMatchObject({ kind: 'denied' });
+  });
+});
+
+describe('prepareClassroomSignIn', () => {
+  it('sets up the Classroom auth ahead of the tap on the web', () => {
+    prepareClassroomSignIn();
+    expect(mockInit).toHaveBeenCalledTimes(1);
+  });
+
+  it('does nothing off the web', () => {
+    Platform.OS = 'ios';
+    prepareClassroomSignIn();
+    expect(mockInit).not.toHaveBeenCalled();
+  });
+
+  it('never throws, so a missing config only shows up on Connect', () => {
+    mockInit.mockImplementation(() => {
+      throw new Error('Firebase is not configured');
+    });
+    expect(() => prepareClassroomSignIn()).not.toThrow();
   });
 });
 

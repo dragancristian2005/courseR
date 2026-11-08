@@ -60,6 +60,28 @@ describe('initClassroomAuth', () => {
     expect(mockAuth.initializeAuth).toHaveBeenCalledWith(existing, expect.anything());
   });
 
+  it('falls back to the existing auth when the classroom app already has one', () => {
+    const existing = { name: 'classroom' };
+    mockApp.getApps.mockReturnValue([{ name: '[DEFAULT]' }, existing]);
+    mockAuth.initializeAuth.mockImplementation(() => {
+      throw Object.assign(new Error('already'), { code: 'auth/already-initialized' });
+    });
+    mockAuth.getAuth.mockReturnValue({ id: 'old-auth' });
+    const { initClassroomAuth } = require('../../src/data/firebase');
+    expect(initClassroomAuth()).toEqual({ id: 'old-auth' });
+    expect(mockAuth.getAuth).toHaveBeenCalledWith(existing);
+    expect(initClassroomAuth()).toEqual({ id: 'old-auth' });
+    expect(mockAuth.initializeAuth).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes on other initializeAuth errors', () => {
+    mockAuth.initializeAuth.mockImplementation(() => {
+      throw Object.assign(new Error('bad'), { code: 'auth/invalid-api-key' });
+    });
+    const { initClassroomAuth } = require('../../src/data/firebase');
+    expect(() => initClassroomAuth()).toThrow('bad');
+  });
+
   it('throws when Firebase is not configured', () => {
     delete process.env.EXPO_PUBLIC_FIREBASE_API_KEY;
     const { initClassroomAuth } = require('../../src/data/firebase');

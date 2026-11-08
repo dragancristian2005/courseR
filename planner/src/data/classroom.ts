@@ -17,11 +17,13 @@ const SCOPES = [
 const API = 'https://classroom.googleapis.com/v1';
 const REDIRECT_FLAG = 'planner.classroomRedirect';
 
-export type ClassroomErrorKind = 'denied' | 'blocked' | 'network' | 'other';
+export type ClassroomErrorKind = 'denied' | 'blocked' | 'popupBlocked' | 'network' | 'other';
 
 const MESSAGES: Record<ClassroomErrorKind, string> = {
   denied: 'Classroom access wasn’t allowed.',
   blocked: 'Your school’s Google account doesn’t allow this app to read Classroom.',
+  popupBlocked:
+    'Your browser blocked the Google window. Allow pop-ups for this site and try again.',
   network: 'Couldn’t reach Google Classroom. Check your connection and try again.',
   other: 'Something went wrong reading Classroom. Try again.',
 };
@@ -46,6 +48,7 @@ function mapAuthError(e: unknown): ClassroomError {
   const message = e instanceof Error ? e.message : '';
   if (typeof code === 'string' && DENIED_CODES.includes(code)) return new ClassroomError('denied');
   if (message.includes('access_denied')) return new ClassroomError('denied');
+  if (code === 'auth/popup-blocked') return new ClassroomError('popupBlocked');
   if (code === 'auth/network-request-failed') return new ClassroomError('network');
   return new ClassroomError('other');
 }
@@ -74,6 +77,20 @@ async function signOutQuietly(auth: Auth) {
 }
 
 /**
+ * Sets up the Classroom auth before the student taps Connect. Safari opens the Google window
+ * only straight from the tap, and Firebase would otherwise load its helper frame first.
+ * Never throws: a setup problem shows up when Connect is tapped.
+ */
+export function prepareClassroomSignIn(): void {
+  if (Platform.OS !== 'web') return;
+  try {
+    initClassroomAuth();
+  } catch {
+    // reported by getClassroomToken
+  }
+}
+
+/**
  * Asks Google for read-only Classroom access, as any Google account, on a separate Firebase
  * app so the planner sign-in is untouched. Returns the token, or 'redirecting' when the page
  * is leaving (installed app); the token then comes back through takeClassroomToken().
@@ -96,9 +113,19 @@ export async function getClassroomToken(): Promise<string | 'redirecting'> {
       } catch {
         // without the flag the token cannot be picked up; the redirect still proceeds
       }
-      await signInWithRedirect(auth, provider());
+      try {
+        await signInWithRedirect(auth, provider());
+      } catch (e) {
+        try {
+          storage()?.removeItem(REDIRECT_FLAG);
+        } catch {
+          // a stale flag only costs one empty getRedirectResult later
+        }
+        throw e;
+      }
       return 'redirecting';
     }
+    // Nothing may be awaited before this call, or Safari blocks the window.
     const result = await signInWithPopup(auth, provider());
     const token = GoogleAuthProvider.credentialFromResult(result)?.accessToken;
     await signOutQuietly(auth);
