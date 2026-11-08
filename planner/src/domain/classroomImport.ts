@@ -32,7 +32,11 @@ export interface ClassroomItem {
 }
 
 export interface ClassroomPlan {
-  unlinkedCourses: { id: string; name: string; suggestion: string | null }[];
+  /**
+   * Courses that need a subject. importable: linking it would bring in at least one assignment
+   * (or touch homework already imported from it).
+   */
+  unlinkedCourses: { id: string; name: string; suggestion: string | null; importable: boolean }[];
   items: ClassroomItem[];
 }
 
@@ -108,17 +112,36 @@ function compareDue(a: ISODate | null, b: ISODate | null): number {
   return compareDates(a, b);
 }
 
+/**
+ * Whether an assignment not imported yet is brought in: overdue work the student turned in is
+ * skipped, and so is work due before the semester's first day (no semester, no cutoff).
+ */
+function takesNew(
+  due: ISODate | null,
+  turnedIn: boolean,
+  today: ISODate,
+  cutoff: ISODate | null,
+): boolean {
+  if (due === null) return true;
+  if (cutoff !== null && compareDates(due, cutoff) < 0) return false;
+  return !(compareDates(due, today) < 0 && turnedIn);
+}
+
 export function planClassroomImport(
   fetched: ClassroomFetched,
   data: PlannerData,
   today: ISODate,
 ): ClassroomPlan {
-  const links = new Map<string, ClassroomCourse>();
-  for (const c of data.classroomCourses) if (!c.deleted) links.set(c.id, c);
+  const subjects = new Map<string, Subject>();
+  for (const s of data.subjects) if (!s.deleted) subjects.set(s.id, s);
 
-  const unlinkedCourses = fetched.courses
-    .filter((c) => !links.has(c.id))
-    .map((c) => ({ id: c.id, name: c.name, suggestion: suggestSubject(c.name, data.subjects) }));
+  // A link to a subject that no longer exists counts as no link, so the course is asked again.
+  const links = new Map<string, ClassroomCourse>();
+  for (const c of data.classroomCourses) {
+    if (c.deleted) continue;
+    if (c.subjectId !== null && !subjects.has(c.subjectId)) continue;
+    links.set(c.id, c);
+  }
 
   const live = new Map<string, Homework>();
   const dead = new Set<string>();
@@ -128,20 +151,39 @@ export function planClassroomImport(
     else live.set(h.externalId, h);
   }
 
+  const cutoff = data.semester && !data.semester.deleted ? data.semester.firstDay : null;
+  const local = (w: ClassroomFetched['work'][number]) => toLocalDue(w.dueDate, w.dueTime);
+  const counts = (w: ClassroomFetched['work'][number]): boolean => {
+    if (live.has(w.id)) return true;
+    if (dead.has(w.id)) return false;
+    return takesNew(local(w).due, fetched.turnedIn.has(w.id), today, cutoff);
+  };
+
+  const unlinkedCourses = fetched.courses
+    .filter((c) => !links.has(c.id))
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      suggestion: suggestSubject(c.name, data.subjects),
+      importable: fetched.work.some((w) => w.courseId === c.id && counts(w)),
+    }));
+
   const items: ClassroomItem[] = [];
   for (const w of fetched.work) {
     const subjectId = links.get(w.courseId)?.subjectId ?? null;
     if (subjectId === null) continue;
+    // Switched-off subjects are hidden everywhere, so their course imports nothing.
+    if (!subjects.get(subjectId)?.attending) continue;
     if (!fetched.courses.some((c) => c.id === w.courseId)) continue;
     const existing = live.get(w.id);
     if (existing === undefined && dead.has(w.id)) continue;
 
-    const { due, dueTime } = toLocalDue(w.dueDate, w.dueTime);
+    const { due, dueTime } = local(w);
     const turnedIn = fetched.turnedIn.has(w.id);
     const base = { workId: w.id, courseId: w.courseId, subjectId, title: w.title, due, dueTime };
 
     if (existing === undefined) {
-      if (due !== null && compareDates(due, today) < 0 && turnedIn) continue;
+      if (!takesNew(due, turnedIn, today, cutoff)) continue;
       items.push({ ...base, done: turnedIn, action: 'new' });
       continue;
     }
@@ -151,7 +193,9 @@ export function planClassroomImport(
     const imported: Fields = existing.imported ?? existing;
     let action: ClassroomItem['action'];
     if (sameFields(existing, next)) {
-      action = done === existing.done ? 'unchanged' : 'update';
+      // The student's fields already match Classroom; a stale snapshot is refreshed, or a later
+      // Classroom change would look like a conflict.
+      action = done === existing.done && sameFields(existing, imported) ? 'unchanged' : 'update';
     } else {
       const studentEdited = !sameFields(existing, imported);
       const classroomChanged = !sameFields(next, imported);

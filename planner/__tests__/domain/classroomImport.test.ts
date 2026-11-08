@@ -6,7 +6,7 @@ import {
   toLocalDue,
   type ClassroomFetched,
 } from '../../src/domain/classroomImport';
-import type { Homework, PlannerData, Subject } from '../../src/domain/types';
+import type { Homework, PlannerData, Semester, Subject } from '../../src/domain/types';
 
 const _check: ClassroomFetched = {} as ClassroomFetch;
 void _check;
@@ -44,6 +44,17 @@ const fetched = (w: ReturnType<typeof work>[], turnedIn: string[] = []): Classro
 
 const TODAY = '2026-11-08';
 
+const semester = (firstDay: string): Semester =>
+  ({
+    id: 'semester',
+    updatedAt: 1,
+    name: 'Autumn',
+    firstDay,
+    lastDay: '2027-01-20',
+    breaks: [],
+    parityOverrides: {},
+  }) as Semester;
+
 const hw = (over: Partial<Homework> = {}): Homework => ({
   id: 'h1',
   title: 'T w1',
@@ -77,6 +88,22 @@ describe('toLocalDue', () => {
       dueTime: null,
     });
     expect(toLocalDue(null, null)).toEqual({ due: null, dueTime: null });
+  });
+  it('converts on the autumn DST switch day (EEST to EET at 01:00Z)', () => {
+    const day = { year: 2026, month: 10, day: 25 };
+    expect(toLocalDue(day, { hours: 0, minutes: 59 })).toEqual({
+      due: '2026-10-25',
+      dueTime: '03:59',
+    });
+    expect(toLocalDue(day, { hours: 1 })).toEqual({ due: '2026-10-25', dueTime: '03:00' });
+  });
+  it('converts on the spring DST switch day (EET to EEST at 01:00Z)', () => {
+    const day = { year: 2027, month: 3, day: 28 };
+    expect(toLocalDue(day, { hours: 0, minutes: 30 })).toEqual({
+      due: '2027-03-28',
+      dueTime: '02:30',
+    });
+    expect(toLocalDue(day, { hours: 1 })).toEqual({ due: '2027-03-28', dueTime: '04:00' });
   });
   it('treats missing minutes as 0', () => {
     expect(toLocalDue({ year: 2026, month: 11, day: 12 }, { minutes: 30 })).toEqual({
@@ -117,7 +144,7 @@ describe('planClassroomImport', () => {
     };
     const p = planClassroomImport(f, data(), TODAY);
     expect(p.unlinkedCourses).toEqual([
-      { id: 'c9', name: 'Testarea Sistemelor Software', suggestion: 's2' },
+      { id: 'c9', name: 'Testarea Sistemelor Software', suggestion: 's2', importable: true },
     ]);
     expect(p.items).toEqual([]);
   });
@@ -128,6 +155,72 @@ describe('planClassroomImport', () => {
     const p = planClassroomImport(fetched([work('w1')]), d, TODAY);
     expect(p.unlinkedCourses.map((c) => c.id)).toEqual(['c1']);
     expect(p.items).toEqual([]);
+  });
+  it('treats a link to a deleted or missing subject as unlinked, with a suggestion', () => {
+    const d = data({
+      subjects: [
+        subj('s1', 'Baze de date', 'BD', { deleted: true }),
+        subj('s3', 'Baze de date', 'BD2'),
+      ],
+      classroomCourses: [
+        { id: 'c1', name: 'Baze de date', subjectId: 's1', updatedAt: 1 },
+        { id: 'c2', name: 'Gone', subjectId: 'nope', updatedAt: 1 },
+      ],
+    });
+    const f: ClassroomFetched = {
+      courses: [
+        { id: 'c1', name: 'Baze de date', section: null },
+        { id: 'c2', name: 'Gone', section: null },
+      ],
+      work: [work('w1'), work('w2', { courseId: 'c2' })],
+      turnedIn: new Set(),
+    };
+    const p = planClassroomImport(f, d, TODAY);
+    expect(p.unlinkedCourses).toEqual([
+      { id: 'c1', name: 'Baze de date', suggestion: 's3', importable: true },
+      { id: 'c2', name: 'Gone', suggestion: null, importable: true },
+    ]);
+    expect(p.items).toEqual([]);
+  });
+  it('plans nothing for a course linked to a subject that is switched off', () => {
+    const d = data({ subjects: [subj('s1', 'Baze de date', 'BD', { attending: false })] });
+    const p = planClassroomImport(fetched([work('w1')]), d, TODAY);
+    expect(p.unlinkedCourses).toEqual([]);
+    expect(p.items).toEqual([]);
+  });
+  it('tells whether an unlinked course has anything to import', () => {
+    const past = { dueDate: { year: 2026, month: 9, day: 1 } };
+    const f: ClassroomFetched = {
+      courses: [
+        { id: 'old', name: 'Old', section: null },
+        { id: 'undated', name: 'Undated', section: null },
+        { id: 'future', name: 'Future', section: null },
+        { id: 'overdue', name: 'Overdue', section: null },
+        { id: 'empty', name: 'Empty', section: null },
+      ],
+      work: [
+        work('o1', { courseId: 'old', ...past }),
+        work('o2', { courseId: 'old', dueDate: { year: 2026, month: 11, day: 1 } }),
+        work('u1', { courseId: 'undated', dueDate: null }),
+        work('f1', { courseId: 'future' }),
+        work('v1', { courseId: 'overdue', dueDate: { year: 2026, month: 10, day: 2 } }),
+      ],
+      turnedIn: new Set(['o2', 'u1']),
+    };
+    const d = data({ semester: semester('2026-10-01'), classroomCourses: [] });
+    const p = planClassroomImport(f, d, TODAY);
+    expect(Object.fromEntries(p.unlinkedCourses.map((c) => [c.id, c.importable]))).toEqual({
+      old: false,
+      undated: true,
+      future: true,
+      overdue: true,
+      empty: false,
+    });
+  });
+  it('a course whose only work the student deleted has nothing to import', () => {
+    const d = data({ classroomCourses: [], homework: [hw({ deleted: true })] });
+    const p = planClassroomImport(fetched([work('w1')]), d, TODAY);
+    expect(p.unlinkedCourses[0].importable).toBe(false);
   });
   it("skips courses set to Don't import", () => {
     const d = data({ classroomCourses: [{ id: 'c1', name: 'BD', subjectId: null, updatedAt: 1 }] });
@@ -148,6 +241,43 @@ describe('planClassroomImport', () => {
     );
     const ids = planClassroomImport(f, data(), TODAY).items.map((i) => i.workId);
     expect(ids.sort()).toEqual(['future', 'none', 'overdue']);
+  });
+  it('skips new work due before the semester’s first day', () => {
+    const f = fetched([
+      work('before', { dueDate: { year: 2026, month: 9, day: 30 } }),
+      work('first', { dueDate: { year: 2026, month: 10, day: 1 } }),
+      work('none', { dueDate: null }),
+      work('future'),
+    ]);
+    const ids = planClassroomImport(f, data({ semester: semester('2026-10-01') }), TODAY).items;
+    expect(ids.map((i) => i.workId).sort()).toEqual(['first', 'future', 'none']);
+  });
+  it('compares the cutoff with the local due date', () => {
+    // 22:30Z on 30 September is 01:30 on 1 October in Bucharest.
+    const f = fetched([
+      work('late', {
+        dueDate: { year: 2026, month: 9, day: 30 },
+        dueTime: { hours: 22, minutes: 30 },
+      }),
+    ]);
+    const p = planClassroomImport(f, data({ semester: semester('2026-10-01') }), TODAY);
+    expect(p.items.map((i) => i.workId)).toEqual(['late']);
+  });
+  it('has no cutoff without a semester', () => {
+    const f = fetched([work('old', { dueDate: { year: 2025, month: 3, day: 1 } })]);
+    expect(planClassroomImport(f, data(), TODAY).items.map((i) => i.workId)).toEqual(['old']);
+  });
+  it('still evaluates imported homework due before the cutoff', () => {
+    const old = { title: 'T w1', due: '2026-09-01', dueTime: null };
+    const d = data({
+      semester: semester('2026-10-01'),
+      homework: [hw({ due: '2026-09-01', imported: old as Homework['imported'] })],
+    });
+    const f = fetched([work('w1', { dueDate: { year: 2026, month: 9, day: 1 } })], ['w1']);
+    expect(planClassroomImport(f, d, TODAY).items[0]).toMatchObject({
+      action: 'update',
+      done: true,
+    });
   });
   it('marks turned-in work done', () => {
     const p = planClassroomImport(fetched([work('w1')], ['w1']), data(), TODAY);
@@ -194,6 +324,26 @@ describe('planClassroomImport', () => {
     const f = fetched([work('w1', { dueDate: { year: 2026, month: 11, day: 1 } })], ['w1']);
     const p = planClassroomImport(f, d, TODAY);
     expect(p.items[0]).toMatchObject({ action: 'update', done: true });
+  });
+  it('edited and then turned in: update, keeps the edit, sets done', () => {
+    const d = data({ homework: [hw({ title: 'Mine' })] });
+    const plan = planClassroomImport(fetched([work('w1')], ['w1']), d, TODAY);
+    expect(plan.items[0]).toMatchObject({ action: 'update', done: true });
+    const [h] = applyClassroomImport(plan, { conflicts: {} }, [], d, 100, () => 'x').homework;
+    expect(h).toMatchObject({ title: 'Mine', done: true });
+  });
+  it('refreshes a stale snapshot when the student’s edit matches Classroom’s new values', () => {
+    const d = data({ homework: [hw({ title: 'New' })] });
+    const plan = planClassroomImport(fetched([work('w1', { title: 'New' })]), d, TODAY);
+    expect(plan.items[0].action).toBe('update');
+    const [h] = applyClassroomImport(plan, { conflicts: {} }, [], d, 100, () => 'x').homework;
+    expect(h).toMatchObject({ title: 'New', imported: { title: 'New' } });
+    const later = planClassroomImport(
+      fetched([work('w1', { title: 'Newer' })]),
+      data({ homework: [h] }),
+      TODAY,
+    );
+    expect(later.items[0].action).toBe('update');
   });
   it('never un-does a homework the student ticked', () => {
     const d = data({ homework: [hw({ done: true })] });
@@ -298,6 +448,34 @@ describe('applyClassroomImport', () => {
       newId,
     ).homework;
     expect(h.title).toBe('New');
+  });
+  it('treats a missing conflict answer as "mine"', () => {
+    const d = data({ homework: [hw({ title: 'Mine' })] });
+    const plan = planClassroomImport(fetched([work('w1', { title: 'New' })]), d, TODAY);
+    const [h] = applyClassroomImport(plan, { conflicts: {} }, [], d, 100, newId).homework;
+    expect(h).toMatchObject({ title: 'Mine', imported: { title: 'New' } });
+  });
+  it('re-planning after apply leaves everything unchanged', () => {
+    const d = data({
+      homework: [
+        hw({ id: 'h2', externalId: 'w2', title: 'T w2', imported: undefined }),
+        hw({ id: 'h3', externalId: 'w3', title: 'Mine' }),
+      ],
+    });
+    const f = fetched([work('w1'), work('w2', { title: 'Changed' }), work('w3', { title: 'X' })]);
+    const plan = planClassroomImport(f, d, TODAY);
+    expect(plan.items.map((i) => [i.workId, i.action]).sort()).toEqual([
+      ['w1', 'new'],
+      ['w2', 'update'],
+      ['w3', 'conflict'],
+    ]);
+    const out = applyClassroomImport(plan, { conflicts: { w3: 'classroom' } }, [], d, 100, newId);
+    const after = data({ homework: out.homework });
+    expect(planClassroomImport(f, after, TODAY).items.map((i) => i.action)).toEqual([
+      'unchanged',
+      'unchanged',
+      'unchanged',
+    ]);
   });
   it('returns the course links', () => {
     const links = [{ id: 'c9', name: 'X', subjectId: 's2', updatedAt: 7 }];
