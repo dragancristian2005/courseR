@@ -146,6 +146,8 @@ export interface ClassroomFetch {
   work: ClassroomWork[];
   /** CourseWork ids the student has turned in (TURNED_IN or RETURNED). */
   turnedIn: Set<string>;
+  /** Names of courses that could not be read; they are left out of courses and work. */
+  failedCourses: string[];
 }
 
 async function getPage(url: string, token: string): Promise<any> {
@@ -158,6 +160,12 @@ async function getPage(url: string, token: string): Promise<any> {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const status = body?.error?.status;
+    const details: unknown = body?.error?.details;
+    // Google's consent screen lets the student untick a scope: that is a denial, not a block.
+    const scopeMissing =
+      Array.isArray(details) &&
+      details.some((d) => d?.reason === 'ACCESS_TOKEN_SCOPE_INSUFFICIENT');
+    if (res.status === 403 && scopeMissing) throw new ClassroomError('denied');
     throw new ClassroomError(
       res.status === 403 && status === 'PERMISSION_DENIED' ? 'blocked' : 'other',
     );
@@ -181,34 +189,75 @@ async function getAll<T>(base: string, key: string, token: string): Promise<T[]>
   return items;
 }
 
+const PARALLEL_COURSES = 4;
+
+/** Runs task over items, at most limit at a time; results keep the order of items. */
+async function inPool<T, R>(items: T[], limit: number, task: (item: T) => Promise<R>) {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await task(items[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+}
+
+type CourseRead = { ok: true; work: any[]; subs: any[] } | { ok: false; error: ClassroomError };
+
 export async function fetchClassroom(token: string): Promise<ClassroomFetch> {
   const rawCourses = await getAll<any>(
     `${API}/courses?studentId=me&courseStates=ACTIVE&pageSize=100`,
     'courses',
     token,
   );
-  const courses = rawCourses.map((c) => ({
+  const listed = rawCourses.map((c) => ({
     id: String(c.id),
     name: String(c.name ?? ''),
     section: c.section ? String(c.section) : null,
   }));
+  const reads = await inPool(listed, PARALLEL_COURSES, async (c): Promise<CourseRead> => {
+    const id = encodeURIComponent(c.id);
+    try {
+      const [work, subs] = await Promise.all([
+        getAll<any>(
+          `${API}/courses/${id}/courseWork?courseWorkStates=PUBLISHED&pageSize=100`,
+          'courseWork',
+          token,
+        ),
+        getAll<any>(
+          `${API}/courses/${id}/courseWork/-/studentSubmissions?userId=me&pageSize=100`,
+          'studentSubmissions',
+          token,
+        ),
+      ]);
+      return { ok: true, work, subs };
+    } catch (e) {
+      return { ok: false, error: e instanceof ClassroomError ? e : new ClassroomError('other') };
+    }
+  });
+
+  // No connection fails everything; a course that can't be read (removed, another school's)
+  // is skipped and named, unless no course could be read at all.
+  const network = reads.find((r) => !r.ok && r.error.kind === 'network');
+  if (network && !network.ok) throw network.error;
+  const firstFailure = reads.find((r) => !r.ok);
+  if (firstFailure && !firstFailure.ok && reads.every((r) => !r.ok)) throw firstFailure.error;
+
+  const courses: ClassroomCourseInfo[] = [];
+  const failedCourses: string[] = [];
   const work: ClassroomWork[] = [];
   const turnedIn = new Set<string>();
-  for (const c of courses) {
-    const id = encodeURIComponent(c.id);
-    const [cw, subs] = await Promise.all([
-      getAll<any>(
-        `${API}/courses/${id}/courseWork?courseWorkStates=PUBLISHED&pageSize=100`,
-        'courseWork',
-        token,
-      ),
-      getAll<any>(
-        `${API}/courses/${id}/courseWork/-/studentSubmissions?userId=me&pageSize=100`,
-        'studentSubmissions',
-        token,
-      ),
-    ]);
-    for (const w of cw) {
+  listed.forEach((c, i) => {
+    const read = reads[i];
+    if (!read.ok) {
+      failedCourses.push(c.name);
+      return;
+    }
+    courses.push(c);
+    for (const w of read.work) {
       work.push({
         id: String(w.id),
         courseId: c.id,
@@ -217,9 +266,9 @@ export async function fetchClassroom(token: string): Promise<ClassroomFetch> {
         dueTime: w.dueTime ?? null,
       });
     }
-    for (const s of subs) {
+    for (const s of read.subs) {
       if (s.state === 'TURNED_IN' || s.state === 'RETURNED') turnedIn.add(String(s.courseWorkId));
     }
-  }
-  return { courses, work, turnedIn };
+  });
+  return { courses, work, turnedIn, failedCourses };
 }

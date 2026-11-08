@@ -259,7 +259,116 @@ describe('fetchClassroom', () => {
   it('returns empty results when there are no courses', async () => {
     route({ [`${BASE}/courses`]: [{}] });
     const r = await fetchClassroom('t');
-    expect(r).toEqual({ courses: [], work: [], turnedIn: new Set() });
+    expect(r).toEqual({ courses: [], work: [], turnedIn: new Set(), failedCourses: [] });
+  });
+
+  it('skips a course that fails and names it, keeping the others', async () => {
+    route({
+      [`${BASE}/courses`]: [
+        {
+          courses: [
+            { id: 'c1', name: 'Math' },
+            { id: 'c2', name: 'Bio' },
+          ],
+        },
+      ],
+      [`${BASE}/courses/c1/courseWork`]: [{ courseWork: [{ id: 'w1', title: 'HW1' }] }],
+      [`${BASE}/courses/c1/courseWork/-/studentSubmissions`]: [
+        { studentSubmissions: [{ courseWorkId: 'w1', state: 'TURNED_IN' }] },
+      ],
+      [`${BASE}/courses/c2/courseWork`]: [{ courseWork: [{ id: 'w2', title: 'HW2' }] }],
+    });
+    const routed = g.fetch as jest.Mock;
+    g.fetch = jest.fn(async (url: string) =>
+      url.startsWith(`${BASE}/courses/c2/courseWork/-/studentSubmissions`)
+        ? fail(404, { code: 404, status: 'NOT_FOUND', message: 'gone' })
+        : routed(url),
+    );
+    const r = await fetchClassroom('t');
+    expect(r.courses.map((c) => c.id)).toEqual(['c1']);
+    expect(r.work.map((w) => w.id)).toEqual(['w1']);
+    expect([...r.turnedIn]).toEqual(['w1']);
+    expect(r.failedCourses).toEqual(['Bio']);
+  });
+
+  it('still fails when every course fails', async () => {
+    route({
+      [`${BASE}/courses`]: [{ courses: [{ id: 'c1', name: 'Math' }] }],
+    });
+    const routed = g.fetch as jest.Mock;
+    g.fetch = jest.fn(async (url: string) =>
+      url.startsWith(`${BASE}/courses/c1/`)
+        ? fail(403, { code: 403, status: 'PERMISSION_DENIED', message: 'no' })
+        : routed(url),
+    );
+    await expect(fetchClassroom('t')).rejects.toMatchObject({ kind: 'blocked' });
+  });
+
+  it('fails the whole import on a network error in one course', async () => {
+    route({
+      [`${BASE}/courses`]: [
+        {
+          courses: [
+            { id: 'c1', name: 'Math' },
+            { id: 'c2', name: 'Bio' },
+          ],
+        },
+      ],
+      [`${BASE}/courses/c1/courseWork`]: [{}],
+      [`${BASE}/courses/c1/courseWork/-/studentSubmissions`]: [{}],
+    });
+    const routed = g.fetch as jest.Mock;
+    g.fetch = jest.fn(async (url: string) => {
+      if (url.startsWith(`${BASE}/courses/c2/`)) throw new TypeError('Failed to fetch');
+      return routed(url);
+    });
+    await expect(fetchClassroom('t')).rejects.toMatchObject({ kind: 'network' });
+  });
+
+  it('reads up to four courses at once and keeps course order', async () => {
+    const ids = ['c1', 'c2', 'c3', 'c4', 'c5'];
+    const waiting: { url: string; resolve: (v: unknown) => void }[] = [];
+    g.fetch = jest.fn((url: string) => {
+      if (url.startsWith(`${BASE}/courses?`)) {
+        return Promise.resolve(ok({ courses: ids.map((id) => ({ id, name: id })) }));
+      }
+      return new Promise((resolve) => waiting.push({ url, resolve }));
+    });
+    const result = fetchClassroom('t');
+    await new Promise((r) => setTimeout(r, 0));
+    const started = () => new Set(waiting.map((w) => w.url.split('/')[5]));
+    expect([...started()].sort()).toEqual(['c1', 'c2', 'c3', 'c4']);
+    // Finish the courses in reverse order.
+    for (const id of ['c4', 'c3', 'c2', 'c1']) {
+      for (const w of waiting.filter((x) => x.url.split('/')[5] === id)) {
+        w.resolve(
+          ok(w.url.includes('studentSubmissions') ? {} : { courseWork: [{ id: `w-${id}` }] }),
+        );
+      }
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    expect(started().has('c5')).toBe(true);
+    for (const w of waiting.filter((x) => x.url.split('/')[5] === 'c5')) {
+      w.resolve(ok(w.url.includes('studentSubmissions') ? {} : { courseWork: [{ id: 'w-c5' }] }));
+    }
+    const r = await result;
+    expect(r.work.map((w) => w.id)).toEqual(['w-c1', 'w-c2', 'w-c3', 'w-c4', 'w-c5']);
+  });
+
+  it('maps 403 with an insufficient scope to denied', async () => {
+    g.fetch = jest.fn().mockResolvedValue(
+      fail(403, {
+        code: 403,
+        status: 'PERMISSION_DENIED',
+        details: [
+          {
+            '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+            reason: 'ACCESS_TOKEN_SCOPE_INSUFFICIENT',
+          },
+        ],
+      }),
+    );
+    await expect(fetchClassroom('t')).rejects.toMatchObject({ kind: 'denied' });
   });
 
   it('maps a fetch TypeError to network', async () => {
