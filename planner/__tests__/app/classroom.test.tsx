@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { router } from 'expo-router';
@@ -8,6 +8,7 @@ import {
   ClassroomError,
   fetchClassroom,
   getClassroomToken,
+  prepareClassroomSignIn,
   takeClassroomToken,
 } from '../../src/data/classroom';
 import { createMemoryRepository } from '../../src/data/memoryRepository';
@@ -21,6 +22,8 @@ jest.mock('../../src/data/classroom', () => {
   const messages: Record<string, string> = {
     denied: 'Classroom access wasn’t allowed.',
     blocked: 'Your school’s Google account doesn’t allow this app to read Classroom.',
+    popupBlocked:
+      'Your browser blocked the Google window. Allow pop-ups for this site and try again.',
     network: 'Couldn’t reach Google Classroom. Check your connection and try again.',
     other: 'Something went wrong reading Classroom. Try again.',
   };
@@ -34,6 +37,7 @@ jest.mock('../../src/data/classroom', () => {
   return {
     ClassroomError,
     getClassroomToken: jest.fn(),
+    prepareClassroomSignIn: jest.fn(),
     takeClassroomToken: jest.fn(),
     fetchClassroom: jest.fn(),
   };
@@ -42,6 +46,7 @@ jest.mock('../../src/data/classroom', () => {
 const getToken = getClassroomToken as jest.Mock;
 const takeToken = takeClassroomToken as jest.Mock;
 const fetchC = fetchClassroom as jest.Mock;
+const prepare = prepareClassroomSignIn as jest.Mock;
 
 const alg: Subject = {
   id: 'alg',
@@ -65,6 +70,7 @@ const fetched = (over: Record<string, unknown> = {}) => ({
     { id: 'w2', courseId: 'c1', title: 'Read ch. 2', dueDate: null, dueTime: null },
   ],
   turnedIn: new Set<string>(['w2']),
+  failedCourses: [],
   ...over,
 });
 
@@ -78,6 +84,13 @@ async function setup(initial: Partial<PlannerData> = { subjects: [alg, web] }) {
   );
   return { repo, upsert };
 }
+const group = (name: string) => {
+  const found = screen
+    .getAllByLabelText(name)
+    .find((e) => e.props.accessibilityRole === 'radiogroup');
+  if (!found) throw new Error(`no choice for ${name}`);
+  return found;
+};
 const press = async (name: string) =>
   await fireEvent.press(await screen.findByRole('button', { name }));
 
@@ -125,7 +138,10 @@ describe('Import from Classroom', () => {
 
   it('Continue stays disabled until every course has a choice; Don’t import links nothing', async () => {
     fetchC.mockResolvedValue(
-      fetched({ courses: [{ id: 'c9', name: 'Gym', section: null }], work: [] }),
+      fetched({
+        courses: [{ id: 'c9', name: 'Gym', section: null }],
+        work: [{ ...fetched().work[0], courseId: 'c9' }],
+      }),
     );
     const { upsert } = await setup();
     await press('Connect to Classroom');
@@ -154,6 +170,10 @@ describe('Import from Classroom', () => {
   it.each([
     ['denied', 'Classroom access wasn’t allowed.'],
     ['blocked', 'Your school’s Google account doesn’t allow this app to read Classroom.'],
+    [
+      'popupBlocked',
+      'Your browser blocked the Google window. Allow pop-ups for this site and try again.',
+    ],
     ['network', 'Couldn’t reach Google Classroom. Check your connection and try again.'],
     ['other', 'Something went wrong reading Classroom. Try again.'],
   ])('shows the %s error with Try again', async (kind, message) => {
@@ -276,6 +296,134 @@ describe('Import from Classroom', () => {
     expect(router.replace).not.toHaveBeenCalled();
     await press('Save');
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/homework'));
+  });
+
+  it('sets up the Classroom sign-in when the screen opens', async () => {
+    await setup();
+    expect(prepare).toHaveBeenCalledTimes(1);
+    expect(getToken).not.toHaveBeenCalled();
+  });
+
+  it('says it is opening Google while the page redirects', async () => {
+    getToken.mockResolvedValue('redirecting');
+    await setup();
+    await press('Connect to Classroom');
+    expect(await screen.findByText('Opening Google…')).toBeTruthy();
+  });
+
+  it('returns to Connect when the page comes back from the back-forward cache', async () => {
+    const win = (globalThis as any).window;
+    const handlers: Record<string, (e: { persisted?: boolean }) => void> = {};
+    win.addEventListener = jest.fn((t: string, fn: (e: { persisted?: boolean }) => void) => {
+      handlers[t] = fn;
+    });
+    win.removeEventListener = jest.fn();
+    try {
+      getToken.mockResolvedValue('redirecting');
+      await setup();
+      await press('Connect to Classroom');
+      await screen.findByText('Opening Google…');
+      expect(takeToken).toHaveBeenCalledTimes(1);
+      await act(async () => handlers.pageshow({ persisted: false }));
+      expect(screen.getByText('Opening Google…')).toBeTruthy();
+      await act(async () => handlers.pageshow({ persisted: true }));
+      expect(await screen.findByRole('button', { name: 'Connect to Classroom' })).toBeTruthy();
+      expect(takeToken).toHaveBeenCalledTimes(2);
+    } finally {
+      delete win.addEventListener;
+      delete win.removeEventListener;
+    }
+  });
+
+  it('says so when the Google account has no Classroom courses', async () => {
+    fetchC.mockResolvedValue(fetched({ courses: [], work: [] }));
+    await setup();
+    await press('Connect to Classroom');
+    expect(
+      await screen.findByText(
+        'This Google account has no Classroom courses. Try again and choose your university account.',
+      ),
+    ).toBeTruthy();
+    fetchC.mockResolvedValue(fetched());
+    await press('Try again');
+    expect(await screen.findByText('Which subject is each course?')).toBeTruthy();
+  });
+
+  it('names the courses it could not read', async () => {
+    fetchC.mockResolvedValue(fetched({ failedCourses: ['Bio', 'Chem'] }));
+    await setup();
+    await press('Connect to Classroom');
+    await press('Continue');
+    expect(await screen.findByText('Couldn’t read 2 courses: Bio, Chem.')).toBeTruthy();
+  });
+
+  it('preselects Don’t import only for a course with no suggestion and nothing to import', async () => {
+    fetchC.mockResolvedValue(
+      fetched({
+        courses: [
+          { id: 'c8', name: 'Old club', section: null },
+          { id: 'c9', name: 'Gym', section: null },
+        ],
+        work: [
+          {
+            id: 'old',
+            courseId: 'c8',
+            title: 'Last year',
+            dueDate: { year: 2025, month: 3, day: 1 },
+            dueTime: null,
+          },
+          { ...fetched().work[0], courseId: 'c9' },
+        ],
+        turnedIn: new Set(['old']),
+      }),
+    );
+    await setup();
+    await press('Connect to Classroom');
+    await screen.findByText('Which subject is each course?');
+    const club = group('Old club');
+    const gym = group('Gym');
+    expect(within(club).getByRole('radio', { name: 'Don’t import', selected: true })).toBeTruthy();
+    expect(within(gym).queryByRole('radio', { selected: true })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+  });
+
+  it('changes course links from the review, starting from the current ones', async () => {
+    fetchC.mockResolvedValue(
+      fetched({
+        courses: [
+          { id: 'c1', name: 'Algebra', section: null },
+          { id: 'c2', name: 'Web dev', section: null },
+        ],
+        work: [fetched().work[0], { ...fetched().work[0], id: 'w9', courseId: 'c2' }],
+        turnedIn: new Set(),
+      }),
+    );
+    const { upsert } = await setup({
+      subjects: [alg, web],
+      classroomCourses: [
+        { id: 'c1', name: 'Algebra', subjectId: 'alg', updatedAt: 1 },
+        { id: 'c2', name: 'Web dev', subjectId: null, updatedAt: 1 },
+      ],
+    });
+    await press('Connect to Classroom');
+    expect(await screen.findByText('1 new, 0 updated')).toBeTruthy();
+    await press('Change course links');
+    expect(await screen.findByText('Which subject is each course?')).toBeTruthy();
+    const algebra = group('Algebra');
+    const webDev = group('Web dev');
+    expect(within(algebra).getByRole('radio', { name: 'Algebra', selected: true })).toBeTruthy();
+    expect(
+      within(webDev).getByRole('radio', { name: 'Don’t import', selected: true }),
+    ).toBeTruthy();
+    await fireEvent.press(within(webDev).getByRole('radio', { name: 'Web' }));
+    await press('Continue');
+    expect(await screen.findByText('2 new, 0 updated')).toBeTruthy();
+    await press('Save');
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/homework'));
+    const courses = upsert.mock.calls.filter((c) => c[0] === 'classroomCourses');
+    expect(courses).toHaveLength(1);
+    expect(courses[0][1]).toMatchObject({ id: 'c2', subjectId: 'web' });
+    expect((courses[0][1] as { updatedAt: number }).updatedAt).toBeGreaterThan(1);
   });
 
   it('no longer has the spike route', () => {
