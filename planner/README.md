@@ -62,3 +62,17 @@ Nothing is saved until you tap Save. Exams work the same way: choose the exams i
 ## Add to your calendar
 
 Open Settings, tap Add to calendar, choose Classes and Exams, and tap Add to calendar. It adds your classes from this week to the end of the semester, and your upcoming exams, as a copy; if your timetable changes, add it again. On iPhone or iPad, tap Add All, and when asked which calendar, choose New Calendar and name it "Study Planner". In Google Calendar, on a computer, create a calendar called "Study Planner" (Settings, Add calendar), then Settings, Import, and choose the `study-planner.ics` file; to update later, delete the "Study Planner" calendar and add it again.
+
+## Import homework from Google Classroom
+
+Open Homework and tap Import from Classroom (or Settings, Google Classroom). Tap Connect to Classroom, pick a Google account, match each course to a subject, check the list and tap Save. Nothing is saved until you tap Save.
+
+Students can pick any Google account, such as a university one. It does not have to be the account you sign in to the planner with. That account then appears in Firebase Authentication's user list. Importing a second time adds nothing new: only new or changed assignments show up.
+
+One-time Google Cloud setup (the project behind your Firebase project):
+
+1. In Google Cloud Console, open APIs & Services, Library, and enable the Google Classroom API.
+2. Open APIs & Services, OAuth consent screen, and add these two scopes as full URLs:
+   - `https://www.googleapis.com/auth/classroom.courses.readonly`
+   - `https://www.googleapis.com/auth/classroom.coursework.me.readonly`
+3. While the app is in Testing, add each student's Google account under Test users.

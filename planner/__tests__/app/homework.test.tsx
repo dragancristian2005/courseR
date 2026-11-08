@@ -144,6 +144,12 @@ describe('Homework tab', () => {
     expect(upsert.mock.calls[0][1].updatedAt).toBe(Date.now());
   });
 
+  it('opens the Classroom import from the header', async () => {
+    await setup(HomeworkTab);
+    await press('Import from Classroom');
+    expect(router.push).toHaveBeenCalledWith('/classroom');
+  });
+
   it('shows the empty state and Add homework', async () => {
     await setup(HomeworkTab, { subjects: [tss] });
     expect(screen.getByText('Nothing due. Add homework when you get it.')).toBeTruthy();

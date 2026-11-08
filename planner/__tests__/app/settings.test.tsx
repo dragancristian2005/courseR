@@ -17,6 +17,7 @@ describe('settings index', () => {
       Semester: '/settings/semester',
       Subjects: '/settings/subjects',
       Exams: '/exams',
+      'Google Classroom': '/classroom',
       Backup: '/settings/backup',
     };
     for (const [label, href] of Object.entries(targets)) {

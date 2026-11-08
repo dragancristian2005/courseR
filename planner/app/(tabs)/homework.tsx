@@ -45,6 +45,7 @@ export default function HomeworkTab() {
         actionLabel="Add homework"
         onAction={() => router.push('/homework/edit')}
       />
+      <TextButton label="Import from Classroom" onPress={() => router.push('/classroom')} />
       {total === 0 ? (
         <Text style={styles.empty}>Nothing due. Add homework when you get it.</Text>
       ) : (

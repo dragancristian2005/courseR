@@ -14,6 +14,7 @@ const ROWS: { label: string; href: Href; startsImport?: boolean }[] = [
   { label: 'Add to calendar', href: '/settings/calendar' },
   { label: 'Import timetable', href: '/import/prompt?kind=timetable', startsImport: true },
   { label: 'Import exams', href: '/import/prompt?kind=exams', startsImport: true },
+  { label: 'Google Classroom', href: '/classroom' },
   { label: 'Backup', href: '/settings/backup' },
 ];
 
