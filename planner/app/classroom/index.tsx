@@ -289,7 +289,9 @@ export default function ClassroomImport() {
     );
   }
 
-  const actionable = plan.items.filter((i) => i.action !== 'unchanged');
+  // Refresh items only update the stored snapshot: never shown or counted, and they don't
+  // enable Save on their own; they are saved with the next real save.
+  const actionable = plan.items.filter((i) => i.action !== 'unchanged' && i.action !== 'refresh');
   const nothing = actionable.length === 0;
   const added = actionable.filter((i) => i.action === 'new').length;
   const updated = actionable.filter((i) => i.action === 'update').length;

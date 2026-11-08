@@ -255,6 +255,51 @@ describe('Import from Classroom', () => {
     expect(upsert).not.toHaveBeenCalled();
   });
 
+  it('a snapshot-only refresh is not shown, and rides along with the next real save', async () => {
+    const edited: Homework = {
+      id: 'h1',
+      updatedAt: 1,
+      title: 'Problem set',
+      subjectId: 'alg',
+      due: '2026-11-20',
+      dueTime: null,
+      done: false,
+      source: 'classroom',
+      externalId: 'w1',
+      imported: { title: 'Old title', due: '2026-11-20', dueTime: null },
+    };
+    const links = [{ id: 'c1', name: 'Algebra', subjectId: 'alg', updatedAt: 1 }];
+    fetchC.mockResolvedValue(fetched({ work: [fetched().work[0]], turnedIn: new Set() }));
+    const first = await setup({ subjects: [alg], homework: [edited], classroomCourses: links });
+    await press('Connect to Classroom');
+    expect(
+      await screen.findByText('Everything from Classroom is already in your homework.'),
+    ).toBeTruthy();
+    expect(screen.queryByText('Updated')).toBeNull();
+    expect(screen.queryByText('Problem set')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Nothing to add' })).toBeDisabled();
+    expect(first.upsert).not.toHaveBeenCalled();
+    await screen.unmount();
+
+    fetchC.mockResolvedValue(fetched({ turnedIn: new Set() }));
+    const { upsert } = await setup({
+      subjects: [alg],
+      homework: [edited],
+      classroomCourses: links,
+    });
+    await press('Connect to Classroom');
+    expect(await screen.findByText('1 new, 0 updated')).toBeTruthy();
+    expect(screen.queryByText('Updated')).toBeNull();
+    await press('Save');
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/homework'));
+    const saved = upsert.mock.calls.map((c) => c[1] as Homework);
+    expect(saved).toHaveLength(2);
+    expect(saved.find((h) => h.id === 'h1')).toMatchObject({
+      title: 'Problem set',
+      imported: { title: 'Problem set' },
+    });
+  });
+
   it('needs a choice for each conflict before Save, and applies it', async () => {
     const existing: Homework = {
       id: 'h1',

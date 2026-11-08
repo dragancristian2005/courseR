@@ -27,7 +27,11 @@ export interface ClassroomItem {
   due: ISODate | null;
   dueTime: HHMM | null;
   done: boolean;
-  action: 'new' | 'update' | 'unchanged' | 'conflict';
+  /**
+   * refresh: the homework already matches Classroom and only the stored snapshot is stale; it is
+   * saved quietly with the next real save and never shown.
+   */
+  action: 'new' | 'update' | 'unchanged' | 'conflict' | 'refresh';
   existing?: Homework;
 }
 
@@ -193,9 +197,10 @@ export function planClassroomImport(
     const imported: Fields = existing.imported ?? existing;
     let action: ClassroomItem['action'];
     if (sameFields(existing, next)) {
-      // The student's fields already match Classroom; a stale snapshot is refreshed, or a later
-      // Classroom change would look like a conflict.
-      action = done === existing.done && sameFields(existing, imported) ? 'unchanged' : 'update';
+      // The student's fields already match Classroom. A stale snapshot is refreshed quietly, or a
+      // later Classroom change would look like a conflict.
+      if (done !== existing.done) action = 'update';
+      else action = sameFields(existing, imported) ? 'unchanged' : 'refresh';
     } else {
       const studentEdited = !sameFields(existing, imported);
       const classroomChanged = !sameFields(next, imported);
@@ -258,6 +263,8 @@ export function applyClassroomImport(
         imported: snapshot,
         updatedAt: stamp(ex),
       });
+    } else if (item.action === 'refresh') {
+      homework.push({ ...ex, imported: snapshot, updatedAt: stamp(ex) });
     } else if (item.action === 'conflict') {
       const takeClassroom = answers.conflicts[item.workId] === 'classroom';
       homework.push({

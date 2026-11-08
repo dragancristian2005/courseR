@@ -335,15 +335,25 @@ describe('planClassroomImport', () => {
   it('refreshes a stale snapshot when the student’s edit matches Classroom’s new values', () => {
     const d = data({ homework: [hw({ title: 'New' })] });
     const plan = planClassroomImport(fetched([work('w1', { title: 'New' })]), d, TODAY);
-    expect(plan.items[0].action).toBe('update');
-    const [h] = applyClassroomImport(plan, { conflicts: {} }, [], d, 100, () => 'x').homework;
-    expect(h).toMatchObject({ title: 'New', imported: { title: 'New' } });
+    expect(plan.items[0].action).toBe('refresh');
+    const [h] = applyClassroomImport(plan, { conflicts: {} }, [], d, 10 ** 16, () => 'x').homework;
+    expect(h).toEqual({
+      ...hw({ title: 'New' }),
+      imported: { title: 'New', due: '2026-11-20', dueTime: null },
+      updatedAt: expect.any(Number),
+    });
+    expect(h.updatedAt).toBeGreaterThan(5);
     const later = planClassroomImport(
       fetched([work('w1', { title: 'Newer' })]),
       data({ homework: [h] }),
       TODAY,
     );
     expect(later.items[0].action).toBe('update');
+  });
+  it('a done change with matching fields is still a visible update, not a refresh', () => {
+    const d = data({ homework: [hw({ title: 'New' })] });
+    const plan = planClassroomImport(fetched([work('w1', { title: 'New' })], ['w1']), d, TODAY);
+    expect(plan.items[0]).toMatchObject({ action: 'update', done: true });
   });
   it('never un-does a homework the student ticked', () => {
     const d = data({ homework: [hw({ done: true })] });
