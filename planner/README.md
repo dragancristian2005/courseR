@@ -21,7 +21,7 @@ npm ci
 npx expo start --web
 ```
 
-Run the checks with `npx jest` and `npx tsc --noEmit`. Regenerate the app icons with `npm run icons`.
+Run the checks with `npx jest` and `npm run typecheck`. Regenerate the app icons with `npm run icons`.
 
 ### Firestore rules tests
 

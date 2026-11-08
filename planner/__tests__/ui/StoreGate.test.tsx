@@ -1,6 +1,5 @@
 import React from 'react';
-import { Text as RNText } from 'react-native';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Text as RNText } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { useAuth } from '../../src/data/auth';

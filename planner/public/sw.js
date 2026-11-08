@@ -1,8 +1,8 @@
 /* Service worker for the installed web app. Plain JS, no build step.
  * Firestore keeps its own offline data; this only caches the app shell. */
-// Bump on each release that changes this file's caching: activate then drops every older planner-*
-// cache, which is what clears bundles from earlier builds.
-var CACHE_NAME = 'planner-v2';
+// scripts/stamp-sw.js replaces this name with planner-<hash of the built bundles> after export, so
+// each build gets a new worker whose activate drops every older planner-* cache.
+var CACHE_NAME = 'planner-dev';
 var CACHE_PREFIX = 'planner-';
 var PRECACHE = ['/', '/manifest.json'];
 var STATIC_PREFIXES = ['/_expo/static/', '/assets/'];

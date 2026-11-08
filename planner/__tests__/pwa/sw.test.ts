@@ -21,8 +21,8 @@ const req = (method = 'GET', mode = 'same-origin') => ({ method, mode });
 describe('service worker strategyFor', () => {
   const { strategyFor, CACHE } = load();
 
-  it('names the cache planner-v2', () => {
-    expect(CACHE).toBe('planner-v2');
+  it('names the cache with the planner- prefix the activate cleanup matches', () => {
+    expect(CACHE).toMatch(/^planner-/);
   });
   it('is network-first for navigations', () => {
     expect(strategyFor(new URL(origin + '/week'), req('GET', 'navigate'), origin)).toBe(
@@ -136,7 +136,7 @@ describe('service worker activate and cache-first', () => {
 
   it('deletes older planner caches on activate and keeps the current one', async () => {
     const { listeners, caches, claim } = setup({
-      keys: ['planner-v1', 'planner-v2', 'other-app'],
+      keys: ['planner-v1', 'planner-dev', 'other-app'],
     });
     let waited: Promise<unknown> | undefined;
     listeners.activate({ waitUntil: (p: Promise<unknown>) => (waited = p) });
