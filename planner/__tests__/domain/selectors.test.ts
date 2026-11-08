@@ -227,6 +227,24 @@ describe('homeworkGroups', () => {
     expect(r.later).toEqual([]);
   });
 
+  it('puts undated open homework in noDue by title, and done undated last', () => {
+    const d = make({
+      homework: [
+        hw({ id: 'n2', due: null, title: 'B' }),
+        hw({ id: 'n1', due: null, title: 'A' }),
+        hw({ id: 'dated', due: '2026-11-03' }),
+        hw({ id: 'dn', due: null, done: true }),
+        hw({ id: 'dd', due: '2026-10-01', done: true }),
+        hw({ id: 'del', due: null, deleted: true }),
+      ],
+    });
+    const r = homeworkGroups(d, TODAY);
+    expect(r.noDue.map((h) => h.id)).toEqual(['n1', 'n2']);
+    expect(r.thisWeek.map((h) => h.id)).toEqual(['dated']);
+    expect(r.later).toEqual([]);
+    expect(r.done.map((h) => h.id)).toEqual(['dd', 'dn']);
+  });
+
   it('sorts by due, then dueTime (null last), then title; skips deleted', () => {
     const d = make({
       homework: [
@@ -351,5 +369,9 @@ describe('dueLabel', () => {
     ['2027-01-03', '3 Jan'],
   ])('%s -> %s', (due, label) => {
     expect(dueLabel(due, TODAY)).toBe(label);
+  });
+
+  it('is empty for no due date', () => {
+    expect(dueLabel(null, TODAY)).toBe('');
   });
 });

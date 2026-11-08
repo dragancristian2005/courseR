@@ -94,6 +94,25 @@ describe('Homework tab', () => {
     expect(screen.queryByText('Quiz prep')).toBeNull();
   });
 
+  it('shows undated homework under No due date after Later, without due text', async () => {
+    await setup(HomeworkTab, {
+      ...base,
+      homework: [...base.homework!, hw({ id: 'h4', title: 'Read chapter', due: null })],
+    });
+    const headings = ['This week', 'Later', 'No due date'].map((t) => screen.getByText(t));
+    expect(headings).toHaveLength(3);
+    expect(screen.getByText('Read chapter')).toBeTruthy();
+    const order = screen
+      .getAllByText(/^(Later|No due date|Read chapter|Essay)$/)
+      .map((n) => n.props.children);
+    expect(order).toEqual(['Later', 'Essay', 'No due date', 'Read chapter']);
+  });
+
+  it('hides the No due date section when empty', async () => {
+    await setup(HomeworkTab);
+    expect(screen.queryByText('No due date')).toBeNull();
+  });
+
   it('expands Done and unticking upserts done:false', async () => {
     const { upsert } = await setup(HomeworkTab);
     await press('Done (1) ›');
@@ -166,6 +185,32 @@ describe('Homework form', () => {
     });
     expect(saved.id.length).toBeGreaterThan(5);
     expect(router.back).toHaveBeenCalled();
+  });
+
+  it('saves homework with an empty due date as null', async () => {
+    const { upsert } = await setup(EditHomework);
+    await type('Title', 'Read chapter');
+    await press('Save homework');
+    expect(upsert).toHaveBeenCalledTimes(1);
+    expect(upsert.mock.calls[0][1]).toMatchObject({
+      title: 'Read chapter',
+      due: null,
+      dueTime: null,
+    });
+  });
+
+  it('needs a due date before a due time', async () => {
+    const { upsert } = await setup(EditHomework);
+    await type('Title', 'Read chapter');
+    await type('Due time', '09:40');
+    expect(screen.getByText('Add a due date first.')).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'Save homework' }).props.accessibilityState.disabled,
+    ).toBe(true);
+    await type('Due date', '2026-11-09');
+    expect(screen.queryByText('Add a due date first.')).toBeNull();
+    await press('Save homework');
+    expect(upsert.mock.calls[0][1]).toMatchObject({ due: '2026-11-09', dueTime: '09:40' });
   });
 
   it('lets the subject be cleared', async () => {

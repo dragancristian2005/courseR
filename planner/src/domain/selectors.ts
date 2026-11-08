@@ -61,24 +61,31 @@ export function nextExam(
 
 function byDueThenTimeThenTitle(a: Homework, b: Homework): number {
   return (
-    compareDates(a.due, b.due) ||
+    compareDates(a.due as ISODate, b.due as ISODate) ||
     (a.dueTime === null ? 1 : 0) - (b.dueTime === null ? 1 : 0) ||
     (a.dueTime !== null && b.dueTime !== null ? cmpStr(a.dueTime, b.dueTime) : 0) ||
     cmpStr(a.title, b.title)
   );
 }
 
+function byDueDescNullLast(a: Homework, b: Homework): number {
+  if (a.due === null || b.due === null) return (a.due === null ? 1 : 0) - (b.due === null ? 1 : 0);
+  return compareDates(b.due, a.due);
+}
+
 export function homeworkGroups(
   data: PlannerData,
   today: ISODate,
-): { thisWeek: Homework[]; later: Homework[]; done: Homework[] } {
+): { thisWeek: Homework[]; later: Homework[]; noDue: Homework[]; done: Homework[] } {
   const sunday = addDays(mondayOf(today), 6);
   const all = alive(data.homework);
-  const open = all.filter((h) => !h.done).sort(byDueThenTimeThenTitle);
+  const open = all.filter((h) => !h.done);
+  const dated = open.filter((h) => h.due !== null).sort(byDueThenTimeThenTitle);
   return {
-    thisWeek: open.filter((h) => compareDates(h.due, sunday) <= 0),
-    later: open.filter((h) => compareDates(h.due, sunday) > 0),
-    done: all.filter((h) => h.done).sort((a, b) => compareDates(b.due, a.due)),
+    thisWeek: dated.filter((h) => compareDates(h.due as ISODate, sunday) <= 0),
+    later: dated.filter((h) => compareDates(h.due as ISODate, sunday) > 0),
+    noDue: open.filter((h) => h.due === null).sort((a, b) => cmpStr(a.title, b.title)),
+    done: all.filter((h) => h.done).sort(byDueDescNullLast),
   };
 }
 
@@ -126,7 +133,8 @@ export function linksBySubject(data: PlannerData): {
   };
 }
 
-export function dueLabel(due: ISODate, today: ISODate): string {
+export function dueLabel(due: ISODate | null, today: ISODate): string {
+  if (due === null) return '';
   const diff = daysBetween(today, due);
   if (diff < 0) return 'Overdue';
   if (diff === 0) return 'Today';

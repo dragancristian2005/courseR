@@ -46,6 +46,13 @@ describe('backup', () => {
     expect(result).toEqual({ ok: true, data });
   });
 
+  it('round trips homework without a due date', () => {
+    const data = sample();
+    data.homework[0] = { ...data.homework[0], due: null };
+    const result = parseBackup(exportBackup(data, new Date('2026-11-04T10:00:00Z')));
+    expect(result).toEqual({ ok: true, data });
+  });
+
   it('writes envelope with exportedAt and 2-space indent', () => {
     const text = exportBackup(emptyPlannerData(), new Date('2026-11-04T10:00:00Z'));
     const obj = JSON.parse(text);

@@ -77,7 +77,7 @@ export interface Exam extends Base {
 export interface Homework extends Base {
   title: string;
   subjectId: string | null;
-  due: ISODate;
+  due: ISODate | null;
   dueTime: HHMM | null;
   done: boolean;
 }

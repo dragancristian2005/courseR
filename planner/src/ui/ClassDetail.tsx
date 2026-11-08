@@ -112,7 +112,9 @@ export function ClassDetail({
   const links =
     linksBySubject(data).bySubject.find((x) => x.subject.id === subject.id)?.links ?? [];
   const groups = homeworkGroups(data, today);
-  const homework = [...groups.thisWeek, ...groups.later].filter((h) => h.subjectId === subject.id);
+  const homework = [...groups.thisWeek, ...groups.later, ...groups.noDue].filter(
+    (h) => h.subjectId === subject.id,
+  );
   const notes = notesFor(data, { sessionId: session.id });
   const q = `subjectId=${encodeURIComponent(subject.id)}`;
 
@@ -306,9 +308,11 @@ export function ClassDetail({
                   <View style={styles.checkbox} />
                 </Pressable>
                 <Text style={styles.rowTitle}>{h.title}</Text>
-                <Text variant="meta" style={urgent ? styles.urgent : undefined}>
-                  {label}
-                </Text>
+                {label ? (
+                  <Text variant="meta" style={urgent ? styles.urgent : undefined}>
+                    {label}
+                  </Text>
+                ) : null}
               </View>
               <Rule weight="hair" />
             </View>

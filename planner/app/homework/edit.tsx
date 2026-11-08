@@ -31,8 +31,15 @@ function HomeworkForm() {
 
   const errors = {
     title: title.trim() === '' ? 'Give the homework a title.' : undefined,
-    due: isDate(due) ? undefined : MSG_DATE,
-    dueTime: dueTime === '' || isTime(dueTime) ? undefined : MSG_TIME,
+    due: due === '' || isDate(due) ? undefined : MSG_DATE,
+    dueTime:
+      dueTime === ''
+        ? undefined
+        : !isTime(dueTime)
+          ? MSG_TIME
+          : due === ''
+            ? 'Add a due date first.'
+            : undefined,
   };
   const shown = (k: keyof typeof errors) => (touched.includes(k) ? errors[k] : undefined);
   const valid = !errors.title && !errors.due && !errors.dueTime;
@@ -42,7 +49,7 @@ function HomeworkForm() {
       id: existing?.id ?? newId(),
       title: title.trim(),
       subjectId: subject === '' ? null : subject,
-      due,
+      due: due === '' ? null : due,
       dueTime: dueTime === '' ? null : dueTime,
       done: existing?.done ?? false,
       updatedAt: stamp(existing),

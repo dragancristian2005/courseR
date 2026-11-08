@@ -445,6 +445,15 @@ describe('Class detail', () => {
           updatedAt: 1,
         },
         {
+          id: 'h4',
+          title: 'Undated task',
+          subjectId: 'tss',
+          due: null,
+          dueTime: null,
+          done: false,
+          updatedAt: 1,
+        },
+        {
           id: 'h3',
           title: 'Other',
           subjectId: 'alg',
@@ -478,6 +487,10 @@ describe('Class detail', () => {
     expect(screen.getByText('Sheet 3')).toBeTruthy();
     expect(screen.getByText('Later')).toBeTruthy();
     expect(screen.queryByText('Other')).toBeNull();
+    const hwTitles = screen
+      .getAllByText(/^(Sheet 3|Later|Undated task)$/)
+      .map((n) => n.props.children);
+    expect(hwTitles).toEqual(['Sheet 3', 'Later', 'Undated task']);
     expect(screen.getByText('Tomorrow')).toBeTruthy();
     expect(screen.getByText('New note')).toBeTruthy();
     const texts = screen.getAllByText(/^(New|Old) note$/).map((n) => n.props.children);
