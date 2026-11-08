@@ -32,6 +32,7 @@ const empty = (): PlannerData => ({
   homework: [],
   notes: [],
   links: [],
+  classroomCourses: [],
 });
 const counter = () => {
   let n = 0;

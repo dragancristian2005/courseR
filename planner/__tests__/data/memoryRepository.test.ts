@@ -36,11 +36,24 @@ describe('emptyPlannerData', () => {
       homework: [],
       notes: [],
       links: [],
+      classroomCourses: [],
     });
   });
 });
 
 describe('memory repository', () => {
+  it('upserts, updates and tombstones classroomCourses', async () => {
+    const repo = createMemoryRepository();
+    const s = latest(repo);
+    const course = { id: 'c1', updatedAt: 1, name: 'Algebra', subjectId: null };
+    await repo.upsert('classroomCourses', course);
+    expect(s.get().classroomCourses).toEqual([course]);
+    await repo.upsert('classroomCourses', { ...course, updatedAt: 2, subjectId: 's1' });
+    expect(s.get().classroomCourses[0].subjectId).toBe('s1');
+    await repo.remove('classroomCourses', 'c1');
+    expect(s.get().classroomCourses).toEqual([]);
+  });
+
   it('subscribe calls back immediately with current data', () => {
     const repo = createMemoryRepository({ subjects: [subj('a', 1)] });
     const s = latest(repo);

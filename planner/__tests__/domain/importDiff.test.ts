@@ -41,6 +41,7 @@ const dataWith = (patterns: ClassPattern[]): PlannerData => ({
   homework: [],
   notes: [],
   links: [],
+  classroomCourses: [],
 });
 
 describe('diffImport', () => {

@@ -9,6 +9,7 @@ const COLLECTIONS: Collection[] = [
   'homework',
   'notes',
   'links',
+  'classroomCourses',
 ];
 
 function clone(data: PlannerData): PlannerData {

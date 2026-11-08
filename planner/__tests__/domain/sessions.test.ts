@@ -43,6 +43,7 @@ function make(over: Partial<PlannerData> = {}): PlannerData {
     homework: [],
     notes: [],
     links: [],
+    classroomCourses: [],
     ...over,
   };
 }

@@ -1,7 +1,14 @@
 import type { Base, PlannerData, Semester } from '../domain/types';
 
 export type Collection =
-  'subjects' | 'patterns' | 'overrides' | 'exams' | 'homework' | 'notes' | 'links';
+  | 'subjects'
+  | 'patterns'
+  | 'overrides'
+  | 'exams'
+  | 'homework'
+  | 'notes'
+  | 'links'
+  | 'classroomCourses';
 
 export interface Repository {
   /**
@@ -37,5 +44,6 @@ export function emptyPlannerData(): PlannerData {
     homework: [],
     notes: [],
     links: [],
+    classroomCourses: [],
   };
 }

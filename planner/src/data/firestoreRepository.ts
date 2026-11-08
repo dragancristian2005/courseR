@@ -20,6 +20,7 @@ const COLLECTIONS: Collection[] = [
   'homework',
   'notes',
   'links',
+  'classroomCourses',
 ];
 
 const BATCH_LIMIT = 450;

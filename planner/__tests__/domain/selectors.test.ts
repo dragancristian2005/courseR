@@ -70,6 +70,7 @@ function make(over: Partial<PlannerData> = {}): PlannerData {
     homework: [],
     notes: [],
     links: [],
+    classroomCourses: [],
     ...over,
   };
 }
@@ -83,6 +84,7 @@ const empty = (): PlannerData => ({
   homework: [],
   notes: [],
   links: [],
+  classroomCourses: [],
 });
 
 const TODAY = '2026-11-02';
