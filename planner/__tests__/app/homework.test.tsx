@@ -5,6 +5,8 @@ import HomeworkTab from '../../app/(tabs)/homework';
 import EditHomework from '../../app/homework/edit';
 import { createMemoryRepository } from '../../src/data/memoryRepository';
 import { StoreProvider } from '../../src/data/StoreProvider';
+import { emptyPlannerData } from '../../src/data/repository';
+import { planClassroomImport } from '../../src/domain/classroomImport';
 import type { Homework, PlannerData, Subject } from '../../src/domain/types';
 
 let mockParams: { id?: string; subjectId?: string } = {};
@@ -239,6 +241,49 @@ describe('Homework form', () => {
       'homework',
       expect.objectContaining({ id: 'h1', dueTime: '09:40', subjectId: 'tss' }),
     );
+  });
+
+  it('editing an imported homework keeps its Classroom link, so a later change is a conflict', async () => {
+    mockParams = { id: 'h1' };
+    const imported = { title: 'Problem set 3', due: '2026-11-03' as const, dueTime: null };
+    const { upsert } = await setup(EditHomework, {
+      subjects: [tss],
+      homework: [hw({ source: 'classroom', externalId: 'w1', imported })],
+    });
+    await type('Title', 'Problem set 3 (odd ones)');
+    await press('Save homework');
+    const saved = upsert.mock.calls[0][1] as Homework;
+    expect(saved).toMatchObject({
+      id: 'h1',
+      title: 'Problem set 3 (odd ones)',
+      source: 'classroom',
+      externalId: 'w1',
+      imported,
+    });
+
+    const plan = planClassroomImport(
+      {
+        courses: [{ id: 'c1', name: 'TSS', section: null }],
+        work: [
+          {
+            id: 'w1',
+            courseId: 'c1',
+            title: 'Problem set 3',
+            dueDate: { year: 2026, month: 11, day: 5 },
+            dueTime: null,
+          },
+        ],
+        turnedIn: new Set(),
+      },
+      {
+        ...emptyPlannerData(),
+        subjects: [tss],
+        homework: [saved],
+        classroomCourses: [{ id: 'c1', name: 'TSS', subjectId: 'tss', updatedAt: 1 }],
+      },
+      '2026-11-02',
+    );
+    expect(plan.items.map((i) => i.action)).toEqual(['conflict']);
   });
 
   it('deletes with confirmation, or keeps it', async () => {

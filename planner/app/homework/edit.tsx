@@ -45,7 +45,9 @@ function HomeworkForm() {
   const valid = !errors.title && !errors.due && !errors.dueTime;
 
   const save = () => {
+    // Spreading existing keeps a Classroom import's source, externalId and imported snapshot.
     const hw: Homework = {
+      ...existing,
       id: existing?.id ?? newId(),
       title: title.trim(),
       subjectId: subject === '' ? null : subject,
