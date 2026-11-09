@@ -281,6 +281,12 @@ export default function ClassroomImport() {
               ]}
               value={choices[c.id] ?? null}
               onChange={(v) => setChoices((all) => ({ ...all, [c.id]: v }))}
+              onClear={() =>
+                setChoices((all) => {
+                  const { [c.id]: _cleared, ...rest } = all;
+                  return rest;
+                })
+              }
             />
           );
         })}

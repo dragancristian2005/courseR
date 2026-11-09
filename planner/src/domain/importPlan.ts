@@ -227,14 +227,42 @@ export function planSubjectFor(plan: ImportPlan, text: string): PlanSubject | un
   );
 }
 
-/** True once every choice is made and every kept block has a type. Notes about unsure fields don't count. */
-export function isComplete(plan: ImportPlan, answers: ImportAnswers): boolean {
+/**
+ * Blocks whose subject the student switched off (or that is already off in the planner).
+ * Matches the default the attending toggles show: the answer, else the planner, else on.
+ */
+export function offBlocks(
+  plan: ImportPlan,
+  answers: ImportAnswers,
+  data: PlannerData,
+): Set<number> {
+  const off = new Set<number>();
+  plan.blocks.forEach((_, i) => {
+    const text = effectiveBlock(plan, answers, i).subject;
+    const entry = planSubjectFor(plan, text);
+    const abbreviation = entry?.abbreviation ?? text;
+    const existing =
+      entry?.existingId == null
+        ? undefined
+        : data.subjects.find((x) => x.id === entry.existingId && !x.deleted);
+    if (!(answers.attending[abbreviation] ?? existing?.attending ?? true)) off.add(i);
+  });
+  return off;
+}
+
+/**
+ * True once every choice is made and every kept block has a type. Notes about unsure fields
+ * don't count, and nothing is asked about classes of a subject that is switched off.
+ */
+export function isComplete(plan: ImportPlan, answers: ImportAnswers, data: PlannerData): boolean {
+  const off = offBlocks(plan, answers, data);
   for (const q of plan.questions) {
-    if (q.kind === 'choose-one' && !q.options.includes(answers.chosen[q.id])) return false;
+    if (q.kind !== 'choose-one' || q.options.every((i) => off.has(i))) continue;
+    if (!q.options.includes(answers.chosen[q.id])) return false;
   }
   const dropped = droppedBlocks(plan, answers);
   for (const q of plan.questions) {
-    if (q.kind !== 'type' || dropped.has(q.block)) continue;
+    if (q.kind !== 'type' || dropped.has(q.block) || off.has(q.block)) continue;
     const t = answers.types[q.block] ?? answers.edits[q.block]?.type ?? null;
     if (t === null) return false;
   }

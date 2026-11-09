@@ -136,6 +136,24 @@ describe('Import from Classroom', () => {
     expect(link).toMatchObject({ id: 'c1', name: 'Algebra', subjectId: 'alg' });
   });
 
+  it('tapping a chosen subject or Don’t import again clears the choice', async () => {
+    fetchC.mockResolvedValue(
+      fetched({
+        courses: [{ id: 'c9', name: 'Gym', section: null }],
+        work: [{ ...fetched().work[0], courseId: 'c9' }],
+      }),
+    );
+    await setup();
+    await press('Connect to Classroom');
+    await screen.findByText('Which subject is each course?');
+    const skip = () => screen.getByRole('radio', { name: 'Don’t import' });
+    await fireEvent.press(skip());
+    expect(screen.getByRole('radio', { name: 'Don’t import', selected: true })).toBeTruthy();
+    await fireEvent.press(skip());
+    expect(screen.getByRole('radio', { name: 'Don’t import', selected: false })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+  });
+
   it('Continue stays disabled until every course has a choice; Don’t import links nothing', async () => {
     fetchC.mockResolvedValue(
       fetched({

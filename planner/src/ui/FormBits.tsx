@@ -62,11 +62,14 @@ export function Chips<T extends string | number>({
   options,
   value,
   onChange,
+  onClear,
 }: {
   label: string;
   options: { value: T; label: string }[];
   value: T | null;
   onChange: (v: T) => void;
+  /** When given, tapping the selected chip again clears the choice. */
+  onClear?: () => void;
 }) {
   return (
     <View style={styles.field}>
@@ -80,7 +83,7 @@ export function Chips<T extends string | number>({
               accessibilityRole="radio"
               accessibilityLabel={o.label}
               accessibilityState={{ selected, checked: selected }}
-              onPress={() => onChange(o.value)}
+              onPress={() => (selected && onClear ? onClear() : onChange(o.value))}
               style={[styles.chip, selected && styles.chipOn]}
             >
               <Text style={[styles.chipText, selected && styles.chipTextOn]}>{o.label}</Text>

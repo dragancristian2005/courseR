@@ -19,6 +19,7 @@ export function ImportClassRow({
   plan,
   answers,
   dropped,
+  choiceOff = false,
   rowKey,
   invalid,
   onAnswers,
@@ -28,6 +29,8 @@ export function ImportClassRow({
   plan: ImportPlan;
   answers: ImportAnswers;
   dropped: boolean;
+  /** Its choose-one only offers classes of switched-off subjects, so it isn't asked. */
+  choiceOff?: boolean;
   /** Identifies the row across group changes, so its local edit state starts over. */
   rowKey: string;
   /** Its inline edit holds values that can't be saved. */
@@ -40,7 +43,7 @@ export function ImportClassRow({
     (q): q is Extract<ImportQuestion, { kind: 'choose-one' }> =>
       q.kind === 'choose-one' && q.options.includes(i),
   );
-  const choiceOpen = choice !== undefined && answers.chosen[choice.id] === undefined;
+  const choiceOpen = choice !== undefined && !choiceOff && answers.chosen[choice.id] === undefined;
   const typeQ = !dropped && plan.questions.some((q) => q.kind === 'type' && q.block === i);
   const unsureQ = plan.questions.find((q) => q.kind === 'unsure' && q.block === i);
   const open =
@@ -60,7 +63,7 @@ export function ImportClassRow({
       open={open}
       dimmed={dropped}
     >
-      {choice !== undefined && choice.options[0] === i ? (
+      {choice !== undefined && !choiceOff && choice.options[0] === i ? (
         <ChooseOneQuestion
           options={choice.options.map((index) => ({
             index,
