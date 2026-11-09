@@ -21,8 +21,8 @@ const req = (method = 'GET', mode = 'same-origin') => ({ method, mode });
 describe('service worker strategyFor', () => {
   const { strategyFor, CACHE } = load();
 
-  it('names the cache planner-v1', () => {
-    expect(CACHE).toBe('planner-v1');
+  it('names the cache with the planner- prefix the activate cleanup matches', () => {
+    expect(CACHE).toMatch(/^planner-/);
   });
   it('is network-first for navigations', () => {
     expect(strategyFor(new URL(origin + '/week'), req('GET', 'navigate'), origin)).toBe(
@@ -62,6 +62,7 @@ describe('service worker strategyFor', () => {
 });
 
 describe('service worker fetch handler', () => {
+  let fetchMock: jest.Mock;
   function setup(cached: unknown) {
     const listeners: Record<string, (e: any) => void> = {};
     const caches = {
@@ -73,11 +74,8 @@ describe('service worker fetch handler', () => {
       location: { origin },
       addEventListener: (t: string, fn: (e: any) => void) => (listeners[t] = fn),
     };
-    load({
-      self,
-      caches,
-      fetch: jest.fn().mockRejectedValue(new Error('offline')),
-    });
+    fetchMock = jest.fn().mockRejectedValue(new Error('offline'));
+    load({ self, caches, fetch: fetchMock });
     return listeners;
   }
   const navigate = () => {
@@ -104,11 +102,103 @@ describe('service worker fetch handler', () => {
     );
   });
 
+  it('revalidates navigations past the browser HTTP cache', async () => {
+    const l = setup(undefined);
+    const n = navigate();
+    l.fetch(n.event);
+    await n.get();
+    expect(fetchMock).toHaveBeenCalledWith(n.event.request, { cache: 'no-cache' });
+  });
+
   it('falls back to the cached shell when offline', async () => {
     const shell = new Response('shell');
     const l = setup(shell);
     const n = navigate();
     l.fetch(n.event);
     expect(await n.get()).toBe(shell);
+  });
+});
+
+describe('service worker activate and cache-first', () => {
+  function setup(opts: { keys?: string[]; cached?: unknown; response?: Response } = {}) {
+    const listeners: Record<string, (e: any) => void> = {};
+    const put = jest.fn().mockResolvedValue(undefined);
+    const caches = {
+      keys: jest.fn().mockResolvedValue(opts.keys ?? []),
+      delete: jest.fn().mockResolvedValue(true),
+      match: jest.fn().mockResolvedValue(opts.cached),
+      open: jest.fn().mockResolvedValue({ put }),
+    };
+    const claim = jest.fn().mockResolvedValue(undefined);
+    const self: any = {
+      registration: {},
+      location: { origin },
+      clients: { claim },
+      addEventListener: (t: string, fn: (e: any) => void) => (listeners[t] = fn),
+    };
+    load({ self, caches, fetch: jest.fn().mockResolvedValue(opts.response) });
+    return { listeners, caches, put, claim };
+  }
+
+  it('deletes older planner caches on activate and keeps the current one', async () => {
+    const { listeners, caches, claim } = setup({
+      keys: ['planner-v1', 'planner-dev', 'other-app'],
+    });
+    let waited: Promise<unknown> | undefined;
+    listeners.activate({ waitUntil: (p: Promise<unknown>) => (waited = p) });
+    await waited;
+    expect(caches.delete).toHaveBeenCalledTimes(1);
+    expect(caches.delete).toHaveBeenCalledWith('planner-v1');
+    expect(claim).toHaveBeenCalled();
+  });
+
+  it('stores a fetched bundle inside waitUntil', async () => {
+    const { listeners, put } = setup({ response: new Response('js') });
+    let responded: Promise<Response> | undefined;
+    const waits: Promise<unknown>[] = [];
+    const request = {
+      url: origin + '/_expo/static/js/web/entry-abc.js',
+      method: 'GET',
+      mode: 'no-cors',
+    };
+    listeners.fetch({
+      request,
+      respondWith: (p: Promise<Response>) => (responded = p),
+      waitUntil: (p: Promise<unknown>) => waits.push(p),
+    });
+    await responded;
+    expect(waits).toHaveLength(1);
+    await Promise.all(waits);
+    expect(put).toHaveBeenCalledWith(request, expect.any(Response));
+  });
+});
+
+describe('service worker install', () => {
+  it('precaches the shell with Requests that skip the HTTP cache', async () => {
+    const listeners: Record<string, (e: any) => void> = {};
+    const addAll = jest.fn().mockResolvedValue(undefined);
+    const caches = { open: jest.fn().mockResolvedValue({ addAll }) };
+    const skipWaiting = jest.fn().mockResolvedValue(undefined);
+    const self: any = {
+      registration: {},
+      location: { origin },
+      skipWaiting,
+      addEventListener: (t: string, fn: (e: any) => void) => (listeners[t] = fn),
+    };
+    // Node's Request needs absolute URLs; a worker resolves relative ones against its scope.
+    const ScopedRequest = function (u: string, init?: RequestInit) {
+      return new Request(new URL(u, origin).href, init);
+    };
+    load({ self, caches, Request: ScopedRequest });
+    let waited: Promise<unknown> | undefined;
+    listeners.install({ waitUntil: (p: Promise<unknown>) => (waited = p) });
+    await waited;
+    const arg = addAll.mock.calls[0][0] as Request[];
+    expect(arg.map((r) => new URL(r.url).pathname)).toEqual(['/', '/manifest.json']);
+    for (const r of arg) {
+      expect(r).toBeInstanceOf(Request);
+      expect(r.cache).toBe('reload');
+    }
+    expect(skipWaiting).toHaveBeenCalled();
   });
 });

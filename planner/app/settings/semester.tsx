@@ -155,6 +155,7 @@ function SemesterSetup() {
         Holidays don’t count as weeks. If your faculty numbers a week differently, change its
         odd/even here.
       </Text>
+      <Text variant="meta">A break week counts as a whole week, even if it starts mid-week.</Text>
       {rows.length > 0 ? (
         <View>
           <Rule weight="hair" />

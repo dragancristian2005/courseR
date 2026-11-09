@@ -109,8 +109,14 @@ function requiredGroups(v: unknown): string[] | null {
   return out.length === v.length ? out : null;
 }
 
-const show = (v: unknown): string =>
-  v === undefined || v === null ? '' : typeof v === 'string' ? v : String(v);
+const MAX_SHOWN = 40;
+
+/** A value echoed in an error message: at most 40 characters, then an ellipsis. */
+const show = (v: unknown): string => {
+  const text = v === undefined || v === null ? '' : typeof v === 'string' ? v : String(v);
+  const chars = Array.from(text);
+  return chars.length > MAX_SHOWN ? `${chars.slice(0, MAX_SHOWN).join('')}…` : text;
+};
 
 function readSubjects(v: unknown): ImportSubject[] {
   if (!Array.isArray(v)) return [];

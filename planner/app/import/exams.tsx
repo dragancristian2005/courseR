@@ -8,6 +8,9 @@ import { examGroupOptions, planExamImport, type ExamPlan } from '../../src/domai
 import type { ExamImport } from '../../src/domain/importFormat';
 import type { Exam } from '../../src/domain/types';
 import { Button } from '../../src/ui/Button';
+import { leaveImport } from '../../src/ui/leaveImport';
+import { NothingToReview } from '../../src/ui/NothingToReview';
+import { useSaveLock } from '../../src/ui/useSaveLock';
 import { Chips, Field, isDate, isTime, MSG_TIME } from '../../src/ui/FormBits';
 import { shortDate } from '../../src/ui/format';
 import { FormScreen } from '../../src/ui/FormScreen';
@@ -17,6 +20,8 @@ import { TextButton } from '../../src/ui/TextButton';
 import { theme } from '../../src/ui/theme';
 
 const MSG_EXAM_DATE = 'Enter a date like 2027-01-20.';
+const MSG_COLLISION = 'Two exams have the same date and time. Change one of them.';
+const MSG_DUPLICATE = 'Already saved. It won’t be added again.';
 const TITLE = 'Check your exams';
 
 interface Edit {
@@ -48,13 +53,7 @@ export default function ImportExams() {
     return p !== null && p.kind === 'exams' ? p : null;
   });
   if (file === null) {
-    return (
-      <FormScreen title={TITLE}>
-        <Rule weight="heavy" />
-        <Text>Nothing to review. Start an import from Settings.</Text>
-        <Button label="Go to import" onPress={() => router.push('/import')} />
-      </FormScreen>
-    );
+    return <NothingToReview title={TITLE} onGo={() => router.push('/import')} />;
   }
   return <Review file={file} />;
 }
@@ -65,11 +64,10 @@ function Review({ file }: { file: ExamImport }) {
   const [group, setGroup] = useState<string | null>(groups.length === 1 ? groups[0] : null);
   const [edits, setEdits] = useState<Record<string, Edit>>({});
   const [open, setOpen] = useState<Record<string, boolean>>({});
-  const [saving, setSaving] = useState(false);
-  const saveLock = useRef(false);
+  const { saving, failed, run } = useSaveLock();
+  const [alreadySaved, setAlreadySaved] = useState(false);
   // Real ids given at save time, kept so a retry after a failure writes the same records.
   const realIds = useRef<Record<string, string>>({});
-  const [failed, setFailed] = useState(false);
 
   const effGroup = groups.length === 0 ? 'all' : group;
   // The list is planned once, when the group is chosen: later store snapshots must not reshuffle
@@ -116,6 +114,12 @@ function Review({ file }: { file: ExamImport }) {
     .map(apply)
     .sort((a, b) => a.date.localeCompare(b.date) || (a.start ?? '').localeCompare(b.start ?? ''));
   const anyInvalid = Object.values(edits).some((e) => editInvalid(e));
+  // Same identity as the duplicate check: subject (or title) + date + start.
+  const keyOf = (e: Exam) => `${e.subjectId ?? e.title}|${e.date}|${e.start ?? ''}`;
+  const keyCount: Record<string, number> = {};
+  for (const e of rows) keyCount[keyOf(e)] = (keyCount[keyOf(e)] ?? 0) + 1;
+  const collides = (e: Exam) => keyCount[keyOf(e)] > 1;
+  const anyCollision = rows.some(collides);
   const nameOf = (e: Exam) =>
     (e.subjectId === null ? undefined : data.subjects.find((s) => s.id === e.subjectId)?.name) ??
     e.title;
@@ -129,28 +133,37 @@ function Review({ file }: { file: ExamImport }) {
       },
     }));
 
-  const save = async () => {
-    if (saveLock.current) return;
-    saveLock.current = true;
-    setSaving(true);
-    setFailed(false);
-    try {
+  // Re-check against the date and start the user sees, not the sheet's. Save and the per-row
+  // note share this, so the note matches exactly what Save will skip.
+  const stillNewSources = (now: number, makeId: () => string) => {
+    const edited: Record<number, { date: string; start: string | null }> = {};
+    for (const e of rows) edited[plan.sources[e.id]] = { date: e.date, start: e.start };
+    const fresh = planExamImport(file, data, effGroup ?? 'all', now, makeId, edited);
+    return new Set(Object.values(fresh.sources));
+  };
+  let seen = 0;
+  const stillNewNow = stillNewSources(0, () => `chk-${seen++}`);
+  const duplicate = (e: Exam) => !collides(e) && !stillNewNow.has(plan.sources[e.id]);
+
+  const save = () =>
+    run(async () => {
       const now = Date.now();
-      const fresh = planExamImport(file, data, effGroup ?? 'all', now, newId);
-      const stillNew = new Set(Object.values(fresh.sources));
+      const stillNew = stillNewSources(now, newId);
+      let written = 0;
       for (const e of rows) {
         if (!stillNew.has(plan.sources[e.id])) continue;
         realIds.current[e.id] ??= newId();
         await repo.upsert('exams', { ...e, id: realIds.current[e.id], updatedAt: now });
+        written++;
       }
       clearPending();
-      router.replace('/exams');
-    } catch {
-      setFailed(true);
-      saveLock.current = false;
-      setSaving(false);
-    }
-  };
+      if (written === 0) {
+        // Stay so the message can be read; Done leaves like a normal save. Save stays locked.
+        setAlreadySaved(true);
+        return;
+      }
+      leaveImport('/exams');
+    });
 
   const nothing = rows.length === 0;
   if (plan.exams.length + plan.skipped === 0) {
@@ -158,7 +171,11 @@ function Review({ file }: { file: ExamImport }) {
       <FormScreen title={TITLE}>
         <Rule weight="heavy" />
         {picker}
-        <Text>{`No exams for ${effGroup} on this sheet. Pick another group, or ask Claude to copy the group headers exactly.`}</Text>
+        <Text>
+          {groups.length === 0
+            ? 'No exams found on this sheet.'
+            : `No exams for ${effGroup} on this sheet. Pick another group, or ask Claude to copy the group headers exactly.`}
+        </Text>
         <View style={styles.footer}>
           <Rule weight="heavy" />
           <Button label="Save exams" disabled onPress={() => undefined} />
@@ -189,6 +206,8 @@ function Review({ file }: { file: ExamImport }) {
                   {nameOf(e)}
                 </Text>
                 <Text variant="meta">{meta}</Text>
+                {collides(e) ? <Text style={styles.warning}>{MSG_COLLISION}</Text> : null}
+                {duplicate(e) ? <Text variant="meta">{MSG_DUPLICATE}</Text> : null}
               </View>
               {flagged ? (
                 <View style={styles.question}>
@@ -240,10 +259,16 @@ function Review({ file }: { file: ExamImport }) {
         <Rule weight="heavy" />
         <Button
           label={nothing ? 'Nothing to add' : 'Save exams'}
-          disabled={nothing || anyInvalid || saving}
+          disabled={nothing || anyInvalid || anyCollision || saving}
           onPress={() => void save()}
         />
         {nothing ? <Text variant="meta">These exams are already in your planner.</Text> : null}
+        {alreadySaved ? (
+          <>
+            <Text variant="meta">These exams were already saved.</Text>
+            <Button label="Done" onPress={() => leaveImport('/exams')} />
+          </>
+        ) : null}
         {failed ? <Text style={styles.warning}>Couldn’t save. Try again.</Text> : null}
       </View>
     </FormScreen>

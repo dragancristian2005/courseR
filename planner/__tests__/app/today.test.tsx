@@ -1,4 +1,5 @@
 import React from 'react';
+import { AppState } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import Today from '../../app/(tabs)/index';
@@ -75,6 +76,23 @@ async function setup(initial: Partial<PlannerData> = base) {
   );
   return { repo, upsert };
 }
+
+const movedIntoBreak = {
+  id: 'ov_p1_2026-11-02',
+  updatedAt: 5,
+  sessionId: 'p1:2026-11-02',
+  kind: 'moved' as const,
+  date: '2026-11-10',
+  start: '12:00',
+  end: '13:30',
+  room: '7',
+};
+const cancelledOv = {
+  id: 'ov_p1_2026-11-02',
+  updatedAt: 5,
+  sessionId: 'p1:2026-11-02',
+  kind: 'cancelled' as const,
+};
 
 beforeEach(() => {
   jest.useFakeTimers();
@@ -248,5 +266,74 @@ describe('Today screen', () => {
     expect(screen.getByText('Add each class once and it repeats every week.')).toBeTruthy();
     await fireEvent.press(screen.getByText('Add a class'));
     expect(router.push).toHaveBeenCalledWith('/class/edit');
+  });
+
+  it('marks a moved class with a Moved label', async () => {
+    jest.setSystemTime(new Date(2026, 10, 10, 10, 25));
+    await setup({ ...base, overrides: [movedIntoBreak] });
+    expect(screen.getByText('Moved')).toBeTruthy();
+  });
+
+  it('shows no Moved label for an unmoved class', async () => {
+    await setup();
+    expect(screen.queryByText('Moved')).toBeNull();
+  });
+
+  it('shows a class moved into a break week, instead of the break copy', async () => {
+    jest.setSystemTime(new Date(2026, 10, 10, 10, 25));
+    await setup({ ...base, overrides: [movedIntoBreak] });
+    expect(
+      screen.getByRole('button', { name: /Teoria Sistemelor, course, 12:00 to 13:30/ }),
+    ).toBeTruthy();
+    expect(screen.queryByText('No classes this week, it’s a break.')).toBeNull();
+    expect(screen.getByText('Break')).toBeTruthy();
+  });
+
+  it('hides a cancelled class', async () => {
+    await setup({ ...base, overrides: [cancelledOv] });
+    expect(screen.queryByText(/Teoria Sistemelor/)).toBeNull();
+  });
+
+  it.each([
+    ['19:40', 'Free after 19:40'],
+    ['21:20', 'Free after 21:20'],
+  ])('shows Free after when the last class ends at %s', async (end, line) => {
+    await setup({ ...base, patterns: [pat({ start: '18:00', end })] });
+    expect(screen.getByText(line)).toBeTruthy();
+  });
+
+  it('refreshes the now line when the app becomes active again', async () => {
+    let handler: ((s: string) => void) | undefined;
+    const remove = jest.fn();
+    jest.spyOn(AppState, 'addEventListener').mockImplementation(((_: string, h: any) => {
+      handler = h;
+      return { remove };
+    }) as any);
+    jest.setSystemTime(new Date(2026, 10, 2, 9, 0));
+    await setup();
+    expect(screen.queryAllByTestId('slot-now-line')).toHaveLength(0);
+    jest.setSystemTime(new Date(2026, 10, 2, 10, 25));
+    await act(async () => handler?.('active'));
+    expect(screen.getAllByTestId('slot-now-line')).toHaveLength(1);
+  });
+
+  it('refreshes the now line on web visibilitychange', async () => {
+    const listeners: Record<string, () => void> = {};
+    const doc = {
+      visibilityState: 'visible',
+      addEventListener: (n: string, h: () => void) => (listeners[n] = h),
+      removeEventListener: jest.fn(),
+    };
+    (global as any).document = doc;
+    try {
+      jest.setSystemTime(new Date(2026, 10, 2, 9, 0));
+      await setup();
+      expect(screen.queryAllByTestId('slot-now-line')).toHaveLength(0);
+      jest.setSystemTime(new Date(2026, 10, 2, 10, 25));
+      await act(async () => listeners.visibilitychange());
+      expect(screen.getAllByTestId('slot-now-line')).toHaveLength(1);
+    } finally {
+      delete (global as any).document;
+    }
   });
 });

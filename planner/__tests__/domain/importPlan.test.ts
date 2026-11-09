@@ -333,6 +333,56 @@ describe('applyAnswers', () => {
     expect(data.subjects[0].attending).toBe(false);
   });
 
+  describe('two sheet entries on one existing subject', () => {
+    const block = (subject: string, day: 1 | 2): TimetableImport['blocks'][number] => ({
+      ...uvt.blocks[0],
+      day,
+      start: '08:00',
+      end: '09:30',
+      subject,
+      type: 'course',
+      groups: ['all'],
+      semigroup: null,
+      choiceGroup: null,
+      unsure: [],
+    });
+    const file: TimetableImport = {
+      ...uvt,
+      subjects: [
+        { abbreviation: 'AL1', name: 'Algebra' },
+        { abbreviation: 'AL2', name: 'Algebra' },
+      ],
+      blocks: [block('AL1', 1), block('AL2', 2)],
+    };
+    const dataWith = (attending: boolean) => {
+      const d = empty();
+      d.subjects = [{ id: 'ex', name: 'Algebra', abbreviation: 'ALG', attending, updatedAt: 7 }];
+      return d;
+    };
+    const run = (attending: boolean, answered: Record<string, boolean>) => {
+      const data = dataWith(attending);
+      const p = planTimetableImport(file, data, 'all', null);
+      expect(p.subjects).toHaveLength(2);
+      expect(p.subjects.every((s) => s.existingId === 'ex')).toBe(true);
+      return applyAnswers(p, { ...noAnswers(), attending: answered }, data, 1000, counter());
+    };
+    it('turns the subject on when any entry is on', () => {
+      expect(run(false, { AL1: false, AL2: true }).subjects[0]?.attending).toBe(true);
+      expect(run(false, { AL1: true, AL2: false }).subjects[0]?.attending).toBe(true);
+    });
+    it('turns it off only when every entry is off', () => {
+      expect(run(true, { AL1: false, AL2: false }).subjects[0]?.attending).toBe(false);
+      expect(run(true, { AL1: false }).subjects).toHaveLength(0);
+    });
+    it('keeps it on when one entry is on and the other off', () => {
+      expect(run(true, { AL1: true, AL2: false }).subjects).toHaveLength(0);
+      expect(run(true, { AL1: false, AL2: true }).subjects).toHaveLength(0);
+    });
+    it('leaves it alone when no entry differs', () => {
+      expect(run(false, { AL1: false, AL2: false }).subjects).toHaveLength(0);
+    });
+  });
+
   it('a switched-off new subject is created with attending false; default is true', () => {
     const plan = planTimetableImport(uvt, empty(), 'Grupa 1', null);
     const r = applyAnswers(plan, { ...answers, attending: { ITB: false } }, empty(), 1, counter());

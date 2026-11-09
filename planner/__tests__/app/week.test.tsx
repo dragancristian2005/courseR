@@ -1,6 +1,8 @@
+import { theme } from '../../src/ui/theme';
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
+import { StyleSheet } from 'react-native';
 import Week from '../../app/(tabs)/week';
 import { createMemoryRepository } from '../../src/data/memoryRepository';
 import { StoreProvider } from '../../src/data/StoreProvider';
@@ -75,6 +77,23 @@ async function setup(initial: Partial<PlannerData> = base) {
   );
   return { repo };
 }
+
+const movedIntoBreak = {
+  id: 'ov_p1_2026-11-02',
+  updatedAt: 5,
+  sessionId: 'p1:2026-11-02',
+  kind: 'moved' as const,
+  date: '2026-11-10',
+  start: '12:00',
+  end: '13:30',
+  room: '7',
+};
+const cancelledOv = {
+  id: 'ov_p1_2026-11-02',
+  updatedAt: 5,
+  sessionId: 'p1:2026-11-02',
+  kind: 'cancelled' as const,
+};
 
 beforeEach(() => {
   mockLayout = 'phone';
@@ -274,5 +293,53 @@ describe('Week screen', () => {
       expect(screen.queryByRole('button', { name: 'Save move' })).toBeNull();
       expect(screen.getByText('14:40 to 16:10')).toBeTruthy();
     });
+  });
+
+  it('marks a moved class and labels it for screen readers', async () => {
+    await setup({
+      ...base,
+      overrides: [{ ...movedIntoBreak, date: '2026-11-04' }],
+    });
+    expect(screen.getByText('Moved')).toBeTruthy();
+    expect(screen.getByTestId('cell-p1:2026-11-02')).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: /Teoria Sistemelor.*Wed 12:00 to 13:30.*moved/ }),
+    ).toBeTruthy();
+  });
+
+  it('shows a cancelled class struck through and muted', async () => {
+    await setup({ ...base, overrides: [cancelledOv] });
+    const cell = screen.getByRole('button', {
+      name: /Teoria Sistemelor.*Mon 10:00 to 11:30.*cancelled/,
+    });
+    expect(cell).toBeTruthy();
+    const name = screen.getByText('TSS');
+    expect(StyleSheet.flatten(name.props.style).textDecorationLine).toBe('line-through');
+    const cellStyle = StyleSheet.flatten(cell.props.style);
+    expect(cellStyle.opacity ?? 1).toBe(1);
+    expect(cellStyle.borderStyle).toBe('dashed');
+    expect(cellStyle.borderColor).not.toBe(theme.color.paper);
+    expect(screen.queryByText('Moved')).toBeNull();
+    await fireEvent.press(cell);
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/class/[sessionId]',
+      params: { sessionId: 'p1:2026-11-02' },
+    });
+  });
+
+  it('shows a class moved into a break week on the break week', async () => {
+    await setup({ ...base, overrides: [movedIntoBreak] });
+    await fireEvent.press(screen.getByRole('button', { name: 'Next week' }));
+    expect(screen.getByText('Break')).toBeTruthy();
+    expect(screen.getByText('9 to 13 November, break')).toBeTruthy();
+    expect(screen.getByTestId('cell-p1:2026-11-02')).toBeTruthy();
+    expect(screen.getByText('Moved')).toBeTruthy();
+    expect(screen.queryByText('No classes this week, it’s a break.')).toBeNull();
+  });
+
+  it('still says break for a break week with nothing moved in', async () => {
+    await setup();
+    await fireEvent.press(screen.getByRole('button', { name: 'Next week' }));
+    expect(screen.getByText('No classes this week, it’s a break.')).toBeTruthy();
   });
 });

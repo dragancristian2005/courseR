@@ -18,12 +18,13 @@ export const OPEN_START: ISODate = '0000-01-01';
 /**
  * Timestamp for an edit: now, but always strictly newer than the record being replaced, so
  * last-write-wins accepts the edit even when the clock is behind or two edits share a millisecond.
+ * Pass every record the edit may collide with, e.g. a live override and a tombstone with its id.
  */
-export function stamp(prev?: { updatedAt: number }): number {
-  return Math.max(Date.now(), (prev?.updatedAt ?? 0) + 1);
+export function stamp(...prevs: ({ updatedAt: number } | undefined)[]): number {
+  return Math.max(Date.now(), ...prevs.map((p) => (p?.updatedAt ?? 0) + 1));
 }
 
-function overrideId(session: Session): string {
+export function overrideIdOf(session: Session): string {
   return `ov_${session.id.replace(':', '_')}`;
 }
 
@@ -33,7 +34,7 @@ export function moveThisWeek(
   now: number,
 ): SessionOverride {
   const o: SessionOverride = {
-    id: overrideId(session),
+    id: overrideIdOf(session),
     sessionId: session.id,
     kind: 'moved',
     date: to.date,
@@ -46,7 +47,7 @@ export function moveThisWeek(
 }
 
 export function cancelThisWeek(session: Session, now: number): SessionOverride {
-  return { id: overrideId(session), sessionId: session.id, kind: 'cancelled', updatedAt: now };
+  return { id: overrideIdOf(session), sessionId: session.id, kind: 'cancelled', updatedAt: now };
 }
 
 type PatternChanges = Partial<

@@ -60,6 +60,11 @@ export function ImportReimportPanel({
           <Text style={styles.bold}>
             {`${diff.added.length} new, ${diff.removed.length} removed, ${diff.unchanged.length} unchanged`}
           </Text>
+          {diff.reteached.length > 0 ? (
+            <Text variant="meta">
+              {`${diff.reteached.length} ${diff.reteached.length === 1 ? 'teacher' : 'teachers'} updated`}
+            </Text>
+          ) : null}
           {diff.added.length > 0 ? (
             <View>
               <Text variant="meta">New classes</Text>

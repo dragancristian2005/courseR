@@ -47,7 +47,10 @@ export function ImportClassRow({
     invalid ||
     choiceOpen ||
     (!dropped && block.type === null) ||
-    (!dropped && unsureQ !== undefined && answers.edits[i] === undefined);
+    (!dropped &&
+      unsureQ !== undefined &&
+      answers.edits[i] === undefined &&
+      answers.checked?.[i] !== true);
   const setType = (t: ClassType) => onAnswers((a) => ({ ...a, types: { ...a.types, [i]: t } }));
   return (
     <ImportBlockRow
@@ -77,6 +80,7 @@ export function ImportClassRow({
           onValidChange={onValidChange}
           fields={unsureQ.fields}
           block={block}
+          onDone={() => onAnswers((a) => ({ ...a, checked: { ...a.checked, [i]: true } }))}
           showType={!typeQ}
           type={block.type}
           onType={setType}

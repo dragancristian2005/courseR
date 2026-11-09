@@ -94,4 +94,32 @@ describe('parseImport', () => {
       error: 'This isn’t a Study Planner import. Copy the whole JSON block from Claude’s answer.',
     });
   });
+  it('retries from the next brace when the first block is not an import', () => {
+    expect(parseImport(`{note} ${json}`).ok).toBe(true);
+    expect(parseImport(`{"a":1} then ${json}`).ok).toBe(true);
+    expect(parseImport(`{ oops ${json}`).ok).toBe(true);
+  });
+  it('reports the first problem when no block works', () => {
+    expect(parseImport('{"a":1} {"b":2}')).toEqual({
+      ok: false,
+      error: 'This isn’t a Study Planner import. Copy the whole JSON block from Claude’s answer.',
+    });
+    expect(parseImport('{ {')).toEqual({ ok: false, error: BROKEN });
+  });
+  it('falls back to the rest of the text when the fence holds no import', () => {
+    expect(parseImport(`\`\`\`json\n{"a":1}\n\`\`\`\n${json}`).ok).toBe(true);
+  });
+  it('gives up after a bounded number of retries', () => {
+    expect(parseImport('{'.repeat(5000)).ok).toBe(false);
+  });
+});
+
+describe('fence lines', () => {
+  it('trims indented fences and whitespace around them', () => {
+    expect(extractJson('  \t```json  \n{"a":1}\n   ```   \n')).toBe('{"a":1}');
+    expect(extractJson('> x\n    ~~~\n{"a":1}\n    ~~~\t')).toBe('{"a":1}');
+  });
+  it('closes on a fence line that is only whitespace around the marker', () => {
+    expect(extractJson('```json\n{"a":1}\n \u00a0```\u00a0 \nafter {"b":2}')).toBe('{"a":1}');
+  });
 });

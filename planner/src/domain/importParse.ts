@@ -39,10 +39,8 @@ function fencedJson(text: string): string | null {
   return null;
 }
 
-/** From the first `{` through its matching `}`; the rest of the text if never closed. */
-function scanObject(text: string): string | null {
-  const start = text.indexOf('{');
-  if (start === -1) return null;
+/** From the `{` at `start` through its matching `}`; the rest of the text if never closed. */
+function scanObject(text: string, start: number): string {
   let depth = 0;
   let inString = false;
   for (let i = start; i < text.length; i++) {
@@ -57,22 +55,45 @@ function scanObject(text: string): string | null {
   return text.slice(start);
 }
 
+const clean = (text: string): string => text.replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+
 /** Pull the JSON out of a pasted answer: a ```json fence if there is one, else the first {...}. */
 export function extractJson(text: string): string | null {
-  const clean = text.replace(/^﻿/, '').replace(/\r\n?/g, '\n');
-  return fencedJson(clean) ?? scanObject(clean);
+  const t = clean(text);
+  const fenced = fencedJson(t);
+  if (fenced !== null) return fenced;
+  const start = t.indexOf('{');
+  return start === -1 ? null : scanObject(t, start);
+}
+
+/** Most `{` starts tried, so a long paste of braces can't make parsing quadratic. */
+const MAX_TRIES = 25;
+
+/** Where to look, best first: the fence, then the object at each `{` of the text. */
+function* candidates(text: string): Generator<string> {
+  const t = clean(text);
+  const fenced = fencedJson(t);
+  if (fenced !== null) yield fenced;
+  let tries = 0;
+  for (let at = t.indexOf('{'); at !== -1 && tries < MAX_TRIES; at = t.indexOf('{', at + 1)) {
+    yield scanObject(t, at);
+    tries++;
+  }
 }
 
 /** Turn Claude’s pasted answer into a validated import. Never evaluates the text. */
 export function parseImport(text: string): ImportResult {
   if (text.length > MAX_LENGTH) return { ok: false, error: TOO_LONG };
-  const raw = extractJson(text);
-  if (raw === null) return { ok: false, error: NO_JSON };
-  let value: unknown;
-  try {
-    value = JSON.parse(raw);
-  } catch {
-    return { ok: false, error: BROKEN };
+  let first: ImportResult | null = null;
+  for (const raw of candidates(text)) {
+    let result: ImportResult;
+    try {
+      result = validateImport(JSON.parse(raw));
+    } catch {
+      result = { ok: false, error: BROKEN };
+    }
+    if (result.ok) return result;
+    first ??= result;
   }
-  return validateImport(value);
+  return first ?? { ok: false, error: NO_JSON };
 }

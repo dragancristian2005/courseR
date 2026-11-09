@@ -1,4 +1,9 @@
-import { resolveSession, sessionById, sessionsBetween } from '../../src/domain/sessions';
+import {
+  resolveSession,
+  sessionById,
+  sessionsBetween,
+  sessionsWithCancelled,
+} from '../../src/domain/sessions';
 import type { ClassPattern, PlannerData, SessionOverride, Subject } from '../../src/domain/types';
 
 const subject: Subject = {
@@ -258,5 +263,43 @@ describe('resolveSession', () => {
   it('returns null for malformed or unknown ids', () => {
     expect(resolveSession(make(), 'nope')).toBeNull();
     expect(resolveSession(make(), 'p1:2026-11-03')).toBeNull();
+  });
+});
+
+describe('moves into a break week', () => {
+  const moved = ov({
+    kind: 'moved',
+    sessionId: 'p1:2026-12-14',
+    date: '2026-12-22',
+    start: '09:00',
+    end: '10:30',
+  });
+
+  it('keeps a session moved into a break week', () => {
+    const r = sessionsBetween(make({ overrides: [moved] }), '2026-12-21', '2026-12-27');
+    expect(r.map((s) => [s.id, s.date, s.moved])).toEqual([['p1:2026-12-14', '2026-12-22', true]]);
+  });
+
+  it('does not generate regular sessions in the break, and parity is unchanged', () => {
+    const d = make({ overrides: [moved] });
+    expect(sessionsBetween(d, '2026-12-21', '2026-12-27')).toHaveLength(1);
+    const after = sessionsBetween(d, '2027-01-04', '2027-01-04');
+    expect(after.map((s) => s.id)).toEqual(['p1:2027-01-04']);
+  });
+});
+
+describe('sessionsWithCancelled', () => {
+  it('returns live and cancelled occurrences, cancelled ones at their original slot', () => {
+    const d = make({ overrides: [ov({})] });
+    const r = sessionsWithCancelled(d, '2026-11-02', '2026-11-08');
+    expect(r).toHaveLength(1);
+    expect(r[0].cancelled).toBe(true);
+    expect(r[0].session).toMatchObject({ id: 'p1:2026-11-02', date: '2026-11-02', start: '11:20' });
+    expect(sessionsBetween(d, '2026-11-02', '2026-11-08')).toHaveLength(0);
+  });
+
+  it('flags uncancelled ones false and keeps order', () => {
+    const r = sessionsWithCancelled(make(), '2026-11-02', '2026-11-16');
+    expect(r.map((g) => g.cancelled)).toEqual([false, false, false]);
   });
 });

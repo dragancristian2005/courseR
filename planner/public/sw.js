@@ -1,6 +1,8 @@
 /* Service worker for the installed web app. Plain JS, no build step.
  * Firestore keeps its own offline data; this only caches the app shell. */
-var CACHE_NAME = 'planner-v1';
+// scripts/stamp-sw.js replaces this name with planner-<hash of the built bundles> after export, so
+// each build gets a new worker whose activate drops every older planner-* cache.
+var CACHE_NAME = 'planner-dev';
 var CACHE_PREFIX = 'planner-';
 var PRECACHE = ['/', '/manifest.json'];
 var STATIC_PREFIXES = ['/_expo/static/', '/assets/'];
@@ -43,7 +45,12 @@ if (typeof self !== 'undefined' && self.registration) {
       caches
         .open(CACHE_NAME)
         .then(function (cache) {
-          return cache.addAll(PRECACHE);
+          // 'reload' skips the browser HTTP cache so a stale index.html (max-age) is never stored.
+          return cache.addAll(
+            PRECACHE.map(function (u) {
+              return new Request(u, { cache: 'reload' });
+            }),
+          );
         })
         .then(function () {
           return self.skipWaiting();
@@ -80,7 +87,7 @@ if (typeof self !== 'undefined' && self.registration) {
 
     if (strategy === 'network-first') {
       event.respondWith(
-        fetch(request)
+        fetch(request, { cache: 'no-cache' })
           .then(function (response) {
             if (response && response.ok) {
               var copy = response.clone();
@@ -134,9 +141,11 @@ if (typeof self !== 'undefined' && self.registration) {
         return fetch(request).then(function (response) {
           if (response && response.ok) {
             var copy = response.clone();
-            caches.open(CACHE_NAME).then(function (cache) {
-              return cache.put(request, copy);
-            });
+            event.waitUntil(
+              caches.open(CACHE_NAME).then(function (cache) {
+                return cache.put(request, copy);
+              }),
+            );
           }
           return response;
         });

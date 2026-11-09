@@ -172,6 +172,17 @@ describe('validateImport', () => {
 
   it('checks exam start time', () => {
     expect(err(exams([exam({ start: '9:00' })]))).toBe('Exam 1: “9:00” isn’t a time like 09:40.');
+    const long = 'x'.repeat(60);
+    expect(err(timetable([block({ start: long })]))).toBe(
+      `Block 1: “${'x'.repeat(40)}…” isn’t a time like 09:40.`,
+    );
+    expect(err(exams([exam({ date: long })]))).toBe(
+      `Exam 1: “${'x'.repeat(40)}…” isn’t a date like 2027-01-20.`,
+    );
+    const exact = 'y'.repeat(40);
+    expect(err(exams([exam({ date: exact })]))).toBe(
+      `Exam 1: “${exact}” isn’t a date like 2027-01-20.`,
+    );
   });
 
   it('rejects empty imports', () => {

@@ -111,6 +111,7 @@ export function UnsureQuestion({
   onType,
   onEdit,
   onValidChange,
+  onDone,
 }: {
   fields: string[];
   /** The block as it stands, with edits applied. */
@@ -122,6 +123,8 @@ export function UnsureQuestion({
   onEdit: (patch: Partial<ImportBlock>) => void;
   /** Told whenever the typed values become valid or invalid (true again once unmounted). */
   onValidChange: (valid: boolean) => void;
+  /** The student tapped Done: the note has been checked. */
+  onDone: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [start, setStart] = useState(block.start);
@@ -181,7 +184,15 @@ export function UnsureQuestion({
             value={block.weeks}
             onChange={(w) => onEdit({ weeks: w })}
           />
-          {valid ? <TextButton label="Done" onPress={() => setEditing(false)} /> : null}
+          {valid ? (
+            <TextButton
+              label="Done"
+              onPress={() => {
+                setEditing(false);
+                onDone();
+              }}
+            />
+          ) : null}
         </View>
       ) : (
         <TextButton label="Edit" onPress={() => setEditing(true)} />

@@ -21,6 +21,8 @@ export interface WeekGridProps {
   onPressSession: (s: Session) => void;
   density: 'compact' | 'full';
   selectedSessionId?: string;
+  /** Ids of cancelled occurrences in `sessions`, drawn muted and struck through. */
+  cancelledIds?: ReadonlySet<string>;
 }
 
 /** Number of columns shown: Monday to Friday, extended to the last weekend day with a class. */
@@ -87,6 +89,7 @@ export function WeekGrid({
   onPressSession,
   density,
   selectedSessionId,
+  cancelledIds,
 }: WeekGridProps) {
   const days = Array.from({ length: lastShownDay(sessions, monday) }, (_, i) => addDays(monday, i));
   const nowVisible = nowMinutes >= GRID_START && nowMinutes < GRID_END;
@@ -137,12 +140,14 @@ export function WeekGrid({
                 const name = subject?.name ?? 'Class';
                 const room = s.online ? 'online' : s.room;
                 const selected = s.id === selectedSessionId;
+                const cancelled = cancelledIds?.has(s.id) ?? false;
+                const strike = cancelled ? styles.cancelledText : undefined;
                 return (
                   <Pressable
                     key={s.id}
                     testID={`cell-${s.id}`}
                     accessibilityRole="button"
-                    accessibilityLabel={`${name}, ${s.type}, ${WEEKDAYS_SHORT[col]} ${s.start} to ${s.end}, room ${room}`}
+                    accessibilityLabel={`${name}, ${s.type}, ${WEEKDAYS_SHORT[col]} ${s.start} to ${s.end}, room ${room}${s.moved ? ', moved' : ''}${cancelled ? ', cancelled' : ''}`}
                     accessibilityState={{ selected }}
                     onPress={() => onPressSession(s)}
                     style={{
@@ -151,29 +156,49 @@ export function WeekGrid({
                       height: (last - first + 1) * ROW_HEIGHT,
                       left: `${(lane / lanes) * 100}%`,
                       width: `${100 / lanes}%`,
-                      backgroundColor: typeFill(s.type),
+                      backgroundColor: cancelled ? theme.color.paper : typeFill(s.type),
                       borderWidth: selected ? 2 : 1,
-                      borderColor: selected ? theme.color.ink : theme.color.paper,
+                      borderStyle: cancelled && !selected ? 'dashed' : 'solid',
+                      borderColor: selected
+                        ? theme.color.ink
+                        : cancelled
+                          ? theme.color.muted
+                          : theme.color.paper,
                       padding: 4,
                       overflow: 'hidden',
                     }}
                   >
                     {full ? (
                       <>
-                        <Text style={styles.cellName}>{name}</Text>
-                        <Text style={styles.cellMeta}>{TYPE_LABEL[s.type]}</Text>
-                        <Text style={styles.cellMeta}>{s.online ? 'Online' : s.room}</Text>
+                        <Text style={[styles.cellName, strike]}>{name}</Text>
+                        <Text style={[styles.cellMeta, strike]}>{TYPE_LABEL[s.type]}</Text>
+                        <Text style={[styles.cellMeta, strike]}>
+                          {s.online ? 'Online' : s.room}
+                        </Text>
                       </>
                     ) : (
                       <>
-                        <Text numberOfLines={1} ellipsizeMode="tail" style={styles.cellName}>
+                        <Text
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                          style={[styles.cellName, strike]}
+                        >
                           {subject?.abbreviation ?? name}
                         </Text>
-                        <Text numberOfLines={1} ellipsizeMode="tail" style={styles.cellMeta}>
+                        <Text
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                          style={[styles.cellMeta, strike]}
+                        >
                           {s.online ? 'Online' : s.room}
                         </Text>
                       </>
                     )}
+                    {s.moved && !cancelled ? (
+                      <Text numberOfLines={1} style={styles.movedLabel}>
+                        Moved
+                      </Text>
+                    ) : null}
                   </Pressable>
                 );
               })}
@@ -257,6 +282,8 @@ const styles = StyleSheet.create({
     color: theme.color.ink,
     fontVariant: ['tabular-nums'],
   },
+  cancelledText: { textDecorationLine: 'line-through', color: theme.color.muted },
+  movedLabel: { fontSize: 11, color: theme.color.muted, fontFamily: theme.font.appBold },
   legend: {
     flexDirection: 'row',
     gap: theme.space(4),
