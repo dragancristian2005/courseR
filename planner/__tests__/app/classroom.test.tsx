@@ -436,33 +436,75 @@ describe('Import from Classroom', () => {
     expect(await screen.findByText('Couldn’t read 2 courses: Bio, Chem.')).toBeTruthy();
   });
 
-  it('preselects Don’t import only for a course with no suggestion and nothing to import', async () => {
+  const oldCourse = {
+    id: 'old',
+    courseId: 'c8',
+    title: 'Last year',
+    dueDate: { year: 2025, month: 3, day: 1 },
+    dueTime: null,
+  };
+
+  it('hides a course with nothing to import, such as last year’s class', async () => {
     fetchC.mockResolvedValue(
       fetched({
         courses: [
-          { id: 'c8', name: 'Old club', section: null },
+          { id: 'c8', name: 'CPOC 2024-2025 FMI', section: null },
           { id: 'c9', name: 'Gym', section: null },
         ],
-        work: [
-          {
-            id: 'old',
-            courseId: 'c8',
-            title: 'Last year',
-            dueDate: { year: 2025, month: 3, day: 1 },
-            dueTime: null,
-          },
-          { ...fetched().work[0], courseId: 'c9' },
-        ],
+        work: [oldCourse, { ...fetched().work[0], courseId: 'c9' }],
         turnedIn: new Set(['old']),
       }),
     );
     await setup();
     await press('Connect to Classroom');
     await screen.findByText('Which subject is each course?');
-    const club = group('Old club');
-    const gym = group('Gym');
-    expect(within(club).getByRole('radio', { name: 'Don’t import', selected: true })).toBeTruthy();
-    expect(within(gym).queryByRole('radio', { selected: true })).toBeNull();
+    expect(screen.queryByText('CPOC 2024-2025 FMI')).toBeNull();
+    expect(screen.getByText('Gym')).toBeTruthy();
+  });
+
+  it('skips the subject step when every new course has nothing to import', async () => {
+    fetchC.mockResolvedValue(
+      fetched({
+        courses: [{ id: 'c8', name: 'CPOC 2024-2025 FMI', section: null }],
+        work: [oldCourse],
+        turnedIn: new Set(['old']),
+      }),
+    );
+    const { upsert } = await setup();
+    await press('Connect to Classroom');
+    expect(
+      await screen.findByText('Everything from Classroom is already in your homework.'),
+    ).toBeTruthy();
+    expect(screen.queryByText('Which subject is each course?')).toBeNull();
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it('Change course links hides inactive courses unless linked to a subject', async () => {
+    fetchC.mockResolvedValue(
+      fetched({
+        courses: [
+          { id: 'c1', name: 'Algebra', section: null },
+          { id: 'c7', name: 'Old linked', section: null },
+          { id: 'c8', name: 'CPOC 2024-2025 FMI', section: null },
+        ],
+        work: [fetched().work[0], { ...oldCourse, id: 'old7', courseId: 'c7' }, oldCourse],
+        turnedIn: new Set(['old', 'old7']),
+      }),
+    );
+    await setup({
+      subjects: [alg],
+      classroomCourses: [
+        { id: 'c1', name: 'Algebra', subjectId: 'alg', updatedAt: 1 },
+        { id: 'c7', name: 'Old linked', subjectId: 'alg', updatedAt: 1 },
+        { id: 'c8', name: 'CPOC 2024-2025 FMI', subjectId: null, updatedAt: 1 },
+      ],
+    });
+    await press('Connect to Classroom');
+    await press('Change course links');
+    await screen.findByText('Which subject is each course?');
+    expect(group('Algebra')).toBeTruthy();
+    expect(group('Old linked')).toBeTruthy();
+    expect(screen.queryByText('CPOC 2024-2025 FMI')).toBeNull();
   });
 
   it('changes course links from the review, starting from the current ones', async () => {

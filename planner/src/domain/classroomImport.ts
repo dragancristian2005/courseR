@@ -41,6 +41,11 @@ export interface ClassroomPlan {
    * (or touch homework already imported from it).
    */
   unlinkedCourses: { id: string; name: string; suggestion: string | null; importable: boolean }[];
+  /**
+   * Courses with at least one assignment that would come in (or homework already imported), in
+   * fetch order, whatever their link. The rest, e.g. last year's never-archived classes, are hidden.
+   */
+  activeCourseIds: string[];
   items: ClassroomItem[];
 }
 
@@ -163,6 +168,10 @@ export function planClassroomImport(
     return takesNew(local(w).due, fetched.turnedIn.has(w.id), today, cutoff);
   };
 
+  const activeCourseIds = fetched.courses
+    .filter((c) => fetched.work.some((w) => w.courseId === c.id && counts(w)))
+    .map((c) => c.id);
+
   const unlinkedCourses = fetched.courses
     .filter((c) => !links.has(c.id))
     .map((c) => ({
@@ -222,7 +231,7 @@ export function planClassroomImport(
       a.title.localeCompare(b.title),
   );
 
-  return { unlinkedCourses, items };
+  return { unlinkedCourses, activeCourseIds, items };
 }
 
 /** Nothing is saved here: the caller stores the returned records. Unchanged items yield nothing. */
