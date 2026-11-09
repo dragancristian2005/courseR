@@ -203,6 +203,8 @@ export default function ClassroomImport() {
     const pending = new Map(links.map((c) => [c.id, c]));
     for (const c of linking) {
       const pick = choices[c.id];
+      // No choice: leave it as it is (unlinked courses are asked again next time).
+      if (pick === undefined) continue;
       const subjectId = pick === SKIP ? null : pick;
       const saved = data.classroomCourses.find((x) => x.id === c.id);
       pending.delete(c.id);
@@ -256,7 +258,6 @@ export default function ClassroomImport() {
   }
 
   if (phase === 'link') {
-    const ready = linking.every((c) => choices[c.id] !== undefined);
     const current = currentLinks(links);
     return (
       <FormScreen title={TITLE}>
@@ -290,7 +291,7 @@ export default function ClassroomImport() {
             />
           );
         })}
-        <Button label="Continue" disabled={!ready} onPress={carryOn} />
+        <Button label="Continue" onPress={carryOn} />
       </FormScreen>
     );
   }

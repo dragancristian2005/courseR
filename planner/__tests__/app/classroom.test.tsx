@@ -151,10 +151,9 @@ describe('Import from Classroom', () => {
     expect(screen.getByRole('radio', { name: 'Don’t import', selected: true })).toBeTruthy();
     await fireEvent.press(skip());
     expect(screen.getByRole('radio', { name: 'Don’t import', selected: false })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
   });
 
-  it('Continue stays disabled until every course has a choice; Don’t import links nothing', async () => {
+  it('Continue is always enabled; a course left without a choice is skipped and not linked', async () => {
     fetchC.mockResolvedValue(
       fetched({
         courses: [{ id: 'c9', name: 'Gym', section: null }],
@@ -164,7 +163,24 @@ describe('Import from Classroom', () => {
     const { upsert } = await setup();
     await press('Connect to Classroom');
     await screen.findByText('Which subject is each course?');
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Continue' })).not.toBeDisabled();
+    await press('Continue');
+    expect(
+      await screen.findByText('Everything from Classroom is already in your homework.'),
+    ).toBeTruthy();
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it('Don’t import links the course to nothing', async () => {
+    fetchC.mockResolvedValue(
+      fetched({
+        courses: [{ id: 'c9', name: 'Gym', section: null }],
+        work: [{ ...fetched().work[0], courseId: 'c9' }],
+      }),
+    );
+    const { upsert } = await setup();
+    await press('Connect to Classroom');
+    await screen.findByText('Which subject is each course?');
     await fireEvent.press(screen.getByRole('radio', { name: 'Don’t import' }));
     await press('Continue');
     expect(
@@ -447,7 +463,6 @@ describe('Import from Classroom', () => {
     const gym = group('Gym');
     expect(within(club).getByRole('radio', { name: 'Don’t import', selected: true })).toBeTruthy();
     expect(within(gym).queryByRole('radio', { selected: true })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
   });
 
   it('changes course links from the review, starting from the current ones', async () => {
