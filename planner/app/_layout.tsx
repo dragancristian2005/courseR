@@ -12,6 +12,7 @@ import { initFirebase } from '../src/data/firebase';
 import { createFirestoreRepository } from '../src/data/firestoreRepository';
 import { StoreProvider } from '../src/data/StoreProvider';
 import { BackLink } from '../src/ui/BackLink';
+import { fontsSettled } from '../src/ui/fonts';
 import { StoreGate } from '../src/ui/StoreGate';
 import { theme } from '../src/ui/theme';
 import SignIn from './sign-in';
@@ -34,15 +35,17 @@ export default function RootLayout() {
     Newsreader_400Regular_Italic,
   });
 
+  const fontsReady = fontsSettled(loaded, error);
+
   useEffect(() => {
-    if (error) throw error;
+    if (error) console.warn('Font failed to load; using the system font.', error);
   }, [error]);
 
   useEffect(() => {
-    if (loaded) SplashScreen.hideAsync();
-  }, [loaded]);
+    if (fontsReady) SplashScreen.hideAsync();
+  }, [fontsReady]);
 
-  if (!loaded || loading) return null;
+  if (!fontsReady || loading) return null;
   if (!repository) return <SignIn />;
 
   return (
