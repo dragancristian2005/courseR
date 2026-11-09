@@ -137,6 +137,15 @@ export async function getClassroomToken(): Promise<string | 'redirecting'> {
 }
 
 /** Token from a Classroom redirect that just returned, at most once; otherwise null. */
+/** True while a Classroom sign-in by redirect is on its way back (read without clearing it). */
+export function classroomRedirectPending(): boolean {
+  try {
+    return storage()?.getItem(REDIRECT_FLAG) === '1';
+  } catch {
+    return false;
+  }
+}
+
 export async function takeClassroomToken(): Promise<string | null> {
   try {
     const store = storage();
