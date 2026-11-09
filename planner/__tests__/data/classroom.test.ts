@@ -309,6 +309,26 @@ describe('fetchClassroom', () => {
     expect(r).toEqual({ courses: [], work: [], turnedIn: new Set(), failedCourses: [] });
   });
 
+  it('leaves out a course Google reports as archived (or in any non-active state)', async () => {
+    route({
+      [`${BASE}/courses`]: [
+        {
+          courses: [
+            { id: 'c1', name: 'Math', courseState: 'ACTIVE' },
+            { id: 'c2', name: 'Old', courseState: 'ARCHIVED' },
+            { id: 'c3', name: 'Gone', courseState: 'DECLINED' },
+          ],
+        },
+      ],
+      [`${BASE}/courses/c1/courseWork`]: [{ courseWork: [{ id: 'w1', title: 'HW1' }] }],
+      [`${BASE}/courses/c1/courseWork/-/studentSubmissions`]: [{}],
+    });
+    const r = await fetchClassroom('t');
+    expect(r.courses.map((c) => c.id)).toEqual(['c1']);
+    const urls = (g.fetch as jest.Mock).mock.calls.map((c) => String(c[0]));
+    expect(urls.some((u) => u.includes('/courses/c2/'))).toBe(false);
+  });
+
   it('skips a course that fails and names it, keeping the others', async () => {
     route({
       [`${BASE}/courses`]: [

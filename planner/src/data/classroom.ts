@@ -240,11 +240,15 @@ export async function fetchClassroom(token: string): Promise<ClassroomFetch> {
     'courses',
     token,
   );
-  const listed = rawCourses.map((c) => ({
-    id: String(c.id),
-    name: String(c.name ?? ''),
-    section: c.section ? String(c.section) : null,
-  }));
+  // The request already asks for ACTIVE courses; drop anything Google still labels otherwise
+  // (ARCHIVED, PROVISIONED, DECLINED, SUSPENDED). A course without a state is kept.
+  const listed = rawCourses
+    .filter((c) => c.courseState === undefined || c.courseState === 'ACTIVE')
+    .map((c) => ({
+      id: String(c.id),
+      name: String(c.name ?? ''),
+      section: c.section ? String(c.section) : null,
+    }));
   const reads = await inPool(listed, PARALLEL_COURSES, async (c): Promise<CourseRead> => {
     const id = encodeURIComponent(c.id);
     try {
