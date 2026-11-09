@@ -7,6 +7,8 @@ const TYPE_WORD: Record<ClassType, string> = { course: 'course', seminar: 'semin
 
 const EXAM_MINUTES = 120;
 const LAST_MINUTE = 23 * 60 + 59;
+/** Classes are generated only inside the semester, but a move can carry one past its last day. */
+const NO_END: ISODate = '9999-12-31';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const minutesToTime = (m: number): HHMM => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
@@ -22,7 +24,17 @@ export function calendarEvents(data: PlannerData, from: ISODate, opts: ExportOpt
 
   if (opts.classes && data.semester) {
     const names = new Map(data.subjects.map((s) => [s.id, s.name]));
-    for (const s of sessionsBetween(data, from, data.semester.lastDay)) {
+    const patternEdited = new Map(data.patterns.map((p) => [p.id, p.updatedAt]));
+    const overrideEdited = new Map<string, number>();
+    for (const o of data.overrides) {
+      if (!o.deleted) {
+        overrideEdited.set(
+          o.sessionId,
+          Math.max(overrideEdited.get(o.sessionId) ?? 0, o.updatedAt),
+        );
+      }
+    }
+    for (const s of sessionsBetween(data, from, NO_END)) {
       const lines: string[] = [];
       if (s.teacher) lines.push(`Teacher: ${s.teacher}`);
       if (s.moved) lines.push('Moved this week');
@@ -36,6 +48,8 @@ export function calendarEvents(data: PlannerData, from: ISODate, opts: ExportOpt
         end: s.end,
       };
       if (lines.length) e.description = lines.join('\n');
+      const edited = Math.max(patternEdited.get(s.patternId) ?? 0, overrideEdited.get(s.id) ?? 0);
+      if (edited > 0) e.lastModified = edited;
       if (e.location === undefined) delete e.location;
       events.push(e);
     }
@@ -52,6 +66,7 @@ export function calendarEvents(data: PlannerData, from: ISODate, opts: ExportOpt
         uid: `exam-${x.id}@study-planner`,
         summary: subject ? `${subject.name}: ${x.title}` : x.title,
         ...(x.room ? { location: x.room } : {}),
+        ...(x.updatedAt > 0 ? { lastModified: x.updatedAt } : {}),
         date: x.date,
       };
       events.push(

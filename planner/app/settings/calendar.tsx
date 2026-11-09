@@ -121,7 +121,7 @@ export default function AddToCalendar() {
         To update later, delete the “Study Planner” calendar and add it again.
       </Text>
       {outcome === 'downloaded' ? (
-        <Text>Downloaded study-planner.ics. Import it into your calendar as described below.</Text>
+        <Text>Downloaded study-planner.ics. Import it into your calendar as described above.</Text>
       ) : null}
       {outcome === 'shared' ? (
         <Text>Saved. Open the file from where you saved it to add it to your calendar.</Text>

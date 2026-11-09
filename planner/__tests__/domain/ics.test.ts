@@ -109,3 +109,35 @@ describe('buildCalendar', () => {
     );
   });
 });
+
+describe('LAST-MODIFIED and SEQUENCE', () => {
+  const base: IcsEvent = {
+    uid: 'c@study-planner',
+    summary: 'X',
+    kind: 'allDay',
+    date: '2026-12-31',
+  };
+
+  it('writes both when lastModified is set', () => {
+    const ms = Date.UTC(2026, 10, 9, 12, 30, 5);
+    const out = buildCalendar([{ ...base, lastModified: ms }], { name: 'S', now: NOW });
+    expect(out).toContain('\r\nLAST-MODIFIED:20261109T123005Z\r\n');
+    expect(out).toContain(`\r\nSEQUENCE:${Math.floor((ms - Date.UTC(2024, 0, 1)) / 1000)}\r\n`);
+  });
+
+  it('a later edit gives a higher SEQUENCE', () => {
+    const seq = (ms: number) =>
+      Number(
+        /SEQUENCE:(\d+)/.exec(
+          buildCalendar([{ ...base, lastModified: ms }], { name: 'S', now: NOW }),
+        )![1],
+      );
+    expect(seq(Date.UTC(2026, 10, 9, 12))).toBeGreaterThan(seq(Date.UTC(2026, 10, 9, 11)));
+  });
+
+  it('writes neither when lastModified is missing', () => {
+    const out = buildCalendar([base], { name: 'S', now: NOW });
+    expect(out).not.toContain('LAST-MODIFIED');
+    expect(out).not.toContain('SEQUENCE');
+  });
+});

@@ -181,7 +181,7 @@ describe('add to calendar screen', () => {
     save.mockReturnValue('downloaded');
     await setup();
     await fireEvent.press(button());
-    const msg = 'Downloaded study-planner.ics. Import it into your calendar as described below.';
+    const msg = 'Downloaded study-planner.ics. Import it into your calendar as described above.';
     await waitFor(() => expect(screen.getByText(msg)).toBeTruthy());
     await fireEvent.press(screen.getByRole('checkbox', { name: 'Exams' }));
     expect(screen.queryByText(msg)).toBeNull();
