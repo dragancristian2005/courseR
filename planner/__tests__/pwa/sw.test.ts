@@ -171,6 +171,21 @@ describe('service worker activate and cache-first', () => {
     await Promise.all(waits);
     expect(put).toHaveBeenCalledWith(request, expect.any(Response));
   });
+
+  it('never stores an HTML page as a static file (a missing asset rewritten to index.html)', async () => {
+    const html = new Response('<!doctype html>', { headers: { 'Content-Type': 'text/html' } });
+    const { listeners, put } = setup({ response: html });
+    let responded: Promise<Response> | undefined;
+    const waits: Promise<unknown>[] = [];
+    listeners.fetch({
+      request: { url: origin + '/assets/fonts/a.ttf', method: 'GET', mode: 'cors' },
+      respondWith: (p: Promise<Response>) => (responded = p),
+      waitUntil: (p: Promise<unknown>) => waits.push(p),
+    });
+    await responded;
+    await Promise.all(waits);
+    expect(put).not.toHaveBeenCalled();
+  });
 });
 
 describe('service worker install', () => {

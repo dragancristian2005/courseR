@@ -139,7 +139,9 @@ if (typeof self !== 'undefined' && self.registration) {
       caches.match(request).then(function (cached) {
         if (cached) return cached;
         return fetch(request).then(function (response) {
-          if (response && response.ok) {
+          // A missing asset comes back as index.html through the hosting rewrite; never keep it.
+          var type = (response && response.headers.get('Content-Type')) || '';
+          if (response && response.ok && type.indexOf('text/html') !== 0) {
             var copy = response.clone();
             event.waitUntil(
               caches.open(CACHE_NAME).then(function (cache) {
