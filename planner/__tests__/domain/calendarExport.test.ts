@@ -136,6 +136,34 @@ describe('calendarEvents classes', () => {
     expect(e.description).toBe('Moved this week');
   });
 
+  it('includes a session moved past the last day of the semester', () => {
+    const d = make({
+      overrides: [ov({ sessionId: 'p1:2027-01-11', kind: 'moved', date: '2027-01-20' })],
+    });
+    const es = calendarEvents(d, '2026-11-02', both);
+    expect(es[es.length - 1]).toMatchObject({
+      uid: 'p1-2027-01-11@study-planner',
+      date: '2027-01-20',
+    });
+  });
+
+  it('a session moved before the export start is left out', () => {
+    const d = make({
+      overrides: [ov({ sessionId: 'p1:2026-11-09', kind: 'moved', date: '2026-10-30' })],
+    });
+    expect(dates(calendarEvents(d, '2026-11-02', both))).not.toContain('2026-10-30');
+  });
+
+  it('lastModified is the newest of the pattern and its override', () => {
+    const d = make({
+      patterns: [{ ...p1, updatedAt: 5000 }],
+      overrides: [ov({ kind: 'moved', date: '2026-11-03', updatedAt: 9000 })],
+    });
+    const es = calendarEvents(d, '2026-11-02', both);
+    expect(es.find((x) => x.uid === 'p1-2026-11-02@study-planner')!.lastModified).toBe(9000);
+    expect(es.find((x) => x.uid === 'p1-2026-11-09@study-planner')!.lastModified).toBe(5000);
+  });
+
   it('cancelled session is absent', () => {
     const es = calendarEvents(make({ overrides: [ov({})] }), '2026-11-02', both);
     expect(dates(es)).not.toContain('2026-11-02');
@@ -214,6 +242,13 @@ describe('calendarEvents exams', () => {
       'exam-late@study-planner',
     ]);
     expect(es.some((e) => e.date === '2026-11-02' && !e.uid.startsWith('exam-'))).toBe(true);
+  });
+
+  it('exam lastModified comes from the exam', () => {
+    const d = make({ exams: [exam({ updatedAt: 7000 })] });
+    expect(calendarEvents(d, '2026-11-02', { classes: false, exams: true })[0].lastModified).toBe(
+      7000,
+    );
   });
 
   it('exams still exported without semester', () => {

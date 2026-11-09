@@ -6,10 +6,14 @@ export type IcsEvent = {
   summary: string;
   location?: string;
   description?: string;
+  /** ms since epoch of the newest edit behind this event; writes LAST-MODIFIED and SEQUENCE. */
+  lastModified?: number;
 } & ({ kind: 'timed'; date: ISODate; start: HHMM; end: HHMM } | { kind: 'allDay'; date: ISODate });
 
 const TZID = 'Europe/Bucharest';
 const MAX_OCTETS = 75;
+/** SEQUENCE counts seconds from this point, so a later edit always gives a higher number. */
+const SEQUENCE_EPOCH = Date.UTC(2024, 0, 1);
 
 const VTIMEZONE = [
   'BEGIN:VTIMEZONE',
@@ -76,6 +80,12 @@ function stamp(d: Date): string {
 
 function eventLines(e: IcsEvent, dtstamp: string): string[] {
   const lines = ['BEGIN:VEVENT', `UID:${e.uid}`, `DTSTAMP:${dtstamp}`];
+  if (e.lastModified) {
+    lines.push(
+      `LAST-MODIFIED:${stamp(new Date(e.lastModified))}`,
+      `SEQUENCE:${Math.max(0, Math.floor((e.lastModified - SEQUENCE_EPOCH) / 1000))}`,
+    );
+  }
   if (e.kind === 'timed') {
     lines.push(
       `DTSTART;TZID=${TZID}:${compactDate(e.date)}T${compactTime(e.start)}`,
