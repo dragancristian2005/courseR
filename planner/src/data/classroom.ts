@@ -167,6 +167,8 @@ export interface ClassroomWork {
   title: string;
   dueDate: { year: number; month: number; day: number } | null;
   dueTime: { hours?: number; minutes?: number } | null;
+  /** When the teacher posted it (RFC 3339, UTC), if Classroom says. */
+  created: string | null;
 }
 export interface ClassroomFetch {
   courses: ClassroomCourseInfo[];
@@ -295,6 +297,7 @@ export async function fetchClassroom(token: string): Promise<ClassroomFetch> {
         title: String(w.title ?? ''),
         dueDate: w.dueDate ?? null,
         dueTime: w.dueTime ?? null,
+        created: typeof w.creationTime === 'string' ? w.creationTime : null,
       });
     }
     for (const s of read.subs) {
