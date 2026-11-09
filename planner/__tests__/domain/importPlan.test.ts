@@ -6,6 +6,8 @@ import {
   fold,
   groupOptions,
   isComplete,
+  offBlocks,
+  planSubjectFor,
   matchesGroup,
   planTimetableImport,
   subjectKey,
@@ -173,7 +175,11 @@ describe('planTimetableImport', () => {
       undefined,
     );
     expect(
-      isComplete(p, { ...noAnswers(), types: { 9: 'lab' }, chosen: { 'opt-tue-08': 6, dct: 12 } }),
+      isComplete(
+        p,
+        { ...noAnswers(), types: { 9: 'lab' }, chosen: { 'opt-tue-08': 6, dct: 12 } },
+        empty(),
+      ),
     ).toBe(true);
   });
   it('maps ȘP and SP to one subject with the full name', () => {
@@ -219,17 +225,43 @@ describe('isComplete', () => {
     types: { 10: 'lab' },
   };
   it('is false until every choose-one and type is answered', () => {
-    expect(isComplete(plan, noAnswers())).toBe(false);
-    expect(isComplete(plan, { ...full, types: {} })).toBe(false);
-    expect(isComplete(plan, { ...full, chosen: { ...full.chosen, dct: 99 } })).toBe(false);
-    expect(isComplete(plan, full)).toBe(true);
+    expect(isComplete(plan, noAnswers(), empty())).toBe(false);
+    expect(isComplete(plan, { ...full, types: {} }, empty())).toBe(false);
+    expect(isComplete(plan, { ...full, chosen: { ...full.chosen, dct: 99 } }, empty())).toBe(false);
+    expect(isComplete(plan, full, empty())).toBe(true);
   });
   it('accepts a type given through edits', () => {
-    expect(isComplete(plan, { ...full, types: {}, edits: { 10: { type: 'lab' } } })).toBe(true);
+    expect(isComplete(plan, { ...full, types: {}, edits: { 10: { type: 'lab' } } }, empty())).toBe(
+      true,
+    );
+  });
+  const abbrOf = (i: number) => planSubjectFor(plan, plan.blocks[i].subject)!.abbreviation;
+
+  it('does not ask the type of a class whose subject is switched off', () => {
+    const off = { ...full, types: {}, attending: { [abbrOf(10)]: false } };
+    expect(offBlocks(plan, off, empty()).has(10)).toBe(true);
+    expect(isComplete(plan, off, empty())).toBe(true);
+  });
+  it('does not ask to choose between options that are all switched off', () => {
+    const attending = Object.fromEntries(plan.subjects.map((s) => [s.abbreviation, false]));
+    expect(isComplete(plan, { ...noAnswers(), attending }, empty())).toBe(true);
+  });
+  it('a subject switched back on asks again', () => {
+    const on = { ...full, types: {}, attending: { [abbrOf(10)]: true } };
+    expect(isComplete(plan, on, empty())).toBe(false);
+  });
+  it('a subject already switched off in the planner counts as off', () => {
+    const name = planSubjectFor(plan, plan.blocks[10].subject)!.name;
+    const data = {
+      ...empty(),
+      subjects: [{ id: 's', updatedAt: 1, name, abbreviation: abbrOf(10), attending: false }],
+    };
+    const p2 = planTimetableImport(uvt, data, 'Grupa 1', null);
+    expect(isComplete(p2, { ...full, types: {} }, data)).toBe(true);
   });
   it('unsure notes do not block completion', () => {
     expect(plan.questions.some((q) => q.kind === 'unsure')).toBe(true);
-    expect(isComplete(plan, full)).toBe(true);
+    expect(isComplete(plan, full, empty())).toBe(true);
   });
 });
 

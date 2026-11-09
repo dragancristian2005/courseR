@@ -10,6 +10,7 @@ import { applyDiff, diffImport } from '../../src/domain/importDiff';
 import {
   applyAnswers,
   droppedBlocks,
+  offBlocks,
   effectiveBlock,
   groupOptions,
   isComplete,
@@ -19,6 +20,7 @@ import {
   type ImportAnswers,
   type PlanSubject,
 } from '../../src/domain/importPlan';
+import type { ImportQuestion } from '../../src/domain/importPlan';
 import type { PlannerData } from '../../src/domain/types';
 import { Button } from '../../src/ui/Button';
 import { leaveImport } from '../../src/ui/leaveImport';
@@ -96,7 +98,7 @@ function Review({ file }: { file: TimetableImport }) {
     }),
     [data],
   );
-  const complete = plan !== null && isComplete(plan, answers);
+  const complete = plan !== null && isComplete(plan, answers, data);
   const applied = useMemo(() => {
     if (plan === null || !complete) return null;
     return applyAnswers(
@@ -138,13 +140,19 @@ function Review({ file }: { file: TimetableImport }) {
   if (plan === null) return <FormScreen title="Check your timetable">{pickers}</FormScreen>;
 
   const dropped = droppedBlocks(plan, answers);
+  // Classes of a subject switched off: dimmed, and nothing about them needs an answer.
+  const off = offBlocks(plan, answers, data);
+  const allOff = (q: ImportQuestion) =>
+    q.kind === 'choose-one' && q.options.every((i) => off.has(i));
   const missing =
-    plan.questions.filter((q) => q.kind === 'choose-one' && answers.chosen[q.id] === undefined)
-      .length +
+    plan.questions.filter(
+      (q) => q.kind === 'choose-one' && !allOff(q) && answers.chosen[q.id] === undefined,
+    ).length +
     plan.questions.filter(
       (q) =>
         q.kind === 'type' &&
         !dropped.has(q.block) &&
+        !off.has(q.block) &&
         effectiveBlock(plan, answers, q.block).type === null,
     ).length;
 
@@ -236,7 +244,10 @@ function Review({ file }: { file: TimetableImport }) {
                 index={i}
                 plan={plan}
                 answers={answers}
-                dropped={dropped.has(i)}
+                dropped={dropped.has(i) || off.has(i)}
+                choiceOff={plan.questions.some(
+                  (q) => q.kind === 'choose-one' && q.options.includes(i) && allOff(q),
+                )}
                 rowKey={rowKey}
                 invalid={invalid[rowKey] === true}
                 onAnswers={patch}

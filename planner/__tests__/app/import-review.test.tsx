@@ -191,6 +191,25 @@ describe('import review', () => {
     expect(screen.queryByText(/above to save/)).toBeNull();
   });
 
+  it('asks nothing about classes of a subject switched off', async () => {
+    await setup(uvt);
+    await chooseGroup1();
+    expect(screen.getByText('Answer the 4 questions above to save.')).toBeTruthy();
+    const off = async (name: string) => await fireEvent.press(screen.getByRole('switch', { name }));
+    await off('Algebră liniară și ecuații diferențiale');
+    expect(
+      screen.queryByText('The sheet doesn’t say if this is a course, seminar or lab.'),
+    ).toBeNull();
+    await off('Robotic Process Automation');
+    await off('Introducere în tehnologii blockchain');
+    expect(screen.getByText('Answer the 2 questions above to save.')).toBeTruthy();
+    await radio(/^Șabloane de proiectare, course/);
+    await radio(/^Dezvoltare cu tehnologii cloud, course, Wednesday/);
+    expect(
+      screen.getByRole('button', { name: 'Save timetable' }).props.accessibilityState.disabled,
+    ).toBe(false);
+  });
+
   it('lists only subjects of kept classes, grouping ȘP and SP', async () => {
     await setup(uvt);
     await chooseGroup1();
