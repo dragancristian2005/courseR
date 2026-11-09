@@ -21,6 +21,7 @@ import { theme } from '../../src/ui/theme';
 
 const MSG_EXAM_DATE = 'Enter a date like 2027-01-20.';
 const MSG_COLLISION = 'Two exams have the same date and time. Change one of them.';
+const MSG_DUPLICATE = 'Already saved. It won’t be added again.';
 const TITLE = 'Check your exams';
 
 interface Edit {
@@ -132,14 +133,22 @@ function Review({ file }: { file: ExamImport }) {
       },
     }));
 
+  // Re-check against the date and start the user sees, not the sheet's. Save and the per-row
+  // note share this, so the note matches exactly what Save will skip.
+  const stillNewSources = (now: number, makeId: () => string) => {
+    const edited: Record<number, { date: string; start: string | null }> = {};
+    for (const e of rows) edited[plan.sources[e.id]] = { date: e.date, start: e.start };
+    const fresh = planExamImport(file, data, effGroup ?? 'all', now, makeId, edited);
+    return new Set(Object.values(fresh.sources));
+  };
+  let seen = 0;
+  const stillNewNow = stillNewSources(0, () => `chk-${seen++}`);
+  const duplicate = (e: Exam) => !collides(e) && !stillNewNow.has(plan.sources[e.id]);
+
   const save = () =>
     run(async () => {
       const now = Date.now();
-      // Re-check against the date and start the user sees, not the sheet's.
-      const edited: Record<number, { date: string; start: string | null }> = {};
-      for (const e of rows) edited[plan.sources[e.id]] = { date: e.date, start: e.start };
-      const fresh = planExamImport(file, data, effGroup ?? 'all', now, newId, edited);
-      const stillNew = new Set(Object.values(fresh.sources));
+      const stillNew = stillNewSources(now, newId);
       let written = 0;
       for (const e of rows) {
         if (!stillNew.has(plan.sources[e.id])) continue;
@@ -164,7 +173,7 @@ function Review({ file }: { file: ExamImport }) {
         {picker}
         <Text>
           {groups.length === 0
-            ? 'No exams found in this sheet.'
+            ? 'No exams found on this sheet.'
             : `No exams for ${effGroup} on this sheet. Pick another group, or ask Claude to copy the group headers exactly.`}
         </Text>
         <View style={styles.footer}>
@@ -198,6 +207,7 @@ function Review({ file }: { file: ExamImport }) {
                 </Text>
                 <Text variant="meta">{meta}</Text>
                 {collides(e) ? <Text style={styles.warning}>{MSG_COLLISION}</Text> : null}
+                {duplicate(e) ? <Text variant="meta">{MSG_DUPLICATE}</Text> : null}
               </View>
               {flagged ? (
                 <View style={styles.question}>

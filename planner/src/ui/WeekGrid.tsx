@@ -157,9 +157,13 @@ export function WeekGrid({
                       left: `${(lane / lanes) * 100}%`,
                       width: `${100 / lanes}%`,
                       backgroundColor: cancelled ? theme.color.paper : typeFill(s.type),
-                      opacity: cancelled ? 0.7 : 1,
                       borderWidth: selected ? 2 : 1,
-                      borderColor: selected ? theme.color.ink : theme.color.paper,
+                      borderStyle: cancelled && !selected ? 'dashed' : 'solid',
+                      borderColor: selected
+                        ? theme.color.ink
+                        : cancelled
+                          ? theme.color.muted
+                          : theme.color.paper,
                       padding: 4,
                       overflow: 'hidden',
                     }}

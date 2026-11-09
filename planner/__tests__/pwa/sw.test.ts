@@ -62,6 +62,7 @@ describe('service worker strategyFor', () => {
 });
 
 describe('service worker fetch handler', () => {
+  let fetchMock: jest.Mock;
   function setup(cached: unknown) {
     const listeners: Record<string, (e: any) => void> = {};
     const caches = {
@@ -73,11 +74,8 @@ describe('service worker fetch handler', () => {
       location: { origin },
       addEventListener: (t: string, fn: (e: any) => void) => (listeners[t] = fn),
     };
-    load({
-      self,
-      caches,
-      fetch: jest.fn().mockRejectedValue(new Error('offline')),
-    });
+    fetchMock = jest.fn().mockRejectedValue(new Error('offline'));
+    load({ self, caches, fetch: fetchMock });
     return listeners;
   }
   const navigate = () => {
@@ -102,6 +100,14 @@ describe('service worker fetch handler', () => {
     expect(await res.text()).toBe(
       'You\u2019re offline and the app hasn\u2019t been saved yet. Open it once while online.',
     );
+  });
+
+  it('revalidates navigations past the browser HTTP cache', async () => {
+    const l = setup(undefined);
+    const n = navigate();
+    l.fetch(n.event);
+    await n.get();
+    expect(fetchMock).toHaveBeenCalledWith(n.event.request, { cache: 'no-cache' });
   });
 
   it('falls back to the cached shell when offline', async () => {
@@ -164,5 +170,35 @@ describe('service worker activate and cache-first', () => {
     expect(waits).toHaveLength(1);
     await Promise.all(waits);
     expect(put).toHaveBeenCalledWith(request, expect.any(Response));
+  });
+});
+
+describe('service worker install', () => {
+  it('precaches the shell with Requests that skip the HTTP cache', async () => {
+    const listeners: Record<string, (e: any) => void> = {};
+    const addAll = jest.fn().mockResolvedValue(undefined);
+    const caches = { open: jest.fn().mockResolvedValue({ addAll }) };
+    const skipWaiting = jest.fn().mockResolvedValue(undefined);
+    const self: any = {
+      registration: {},
+      location: { origin },
+      skipWaiting,
+      addEventListener: (t: string, fn: (e: any) => void) => (listeners[t] = fn),
+    };
+    // Node's Request needs absolute URLs; a worker resolves relative ones against its scope.
+    const ScopedRequest = function (u: string, init?: RequestInit) {
+      return new Request(new URL(u, origin).href, init);
+    };
+    load({ self, caches, Request: ScopedRequest });
+    let waited: Promise<unknown> | undefined;
+    listeners.install({ waitUntil: (p: Promise<unknown>) => (waited = p) });
+    await waited;
+    const arg = addAll.mock.calls[0][0] as Request[];
+    expect(arg.map((r) => new URL(r.url).pathname)).toEqual(['/', '/manifest.json']);
+    for (const r of arg) {
+      expect(r).toBeInstanceOf(Request);
+      expect(r.cache).toBe('reload');
+    }
+    expect(skipWaiting).toHaveBeenCalled();
   });
 });

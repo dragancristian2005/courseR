@@ -25,7 +25,7 @@ Run the checks with `npx jest` and `npm run typecheck`. Regenerate the app icons
 
 ### Firestore rules tests
 
-`npm run test:rules` checks `firestore.rules` against the local Firestore emulator (project `demo-planner`, no login needed). It needs Java (JDK 11 or newer) on your PATH; the first run downloads the emulator jar. These tests are excluded from plain `npx jest`.
+`npm run test:rules` checks `firestore.rules` against the local Firestore emulator (project `demo-planner`, no login needed). It needs Java 21 or newer on your PATH; the first run downloads the emulator jar. These tests are excluded from plain `npx jest`.
 
 ## 3. Deploy
 

@@ -1,3 +1,4 @@
+import { theme } from '../../src/ui/theme';
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
@@ -314,6 +315,10 @@ describe('Week screen', () => {
     expect(cell).toBeTruthy();
     const name = screen.getByText('TSS');
     expect(StyleSheet.flatten(name.props.style).textDecorationLine).toBe('line-through');
+    const cellStyle = StyleSheet.flatten(cell.props.style);
+    expect(cellStyle.opacity ?? 1).toBe(1);
+    expect(cellStyle.borderStyle).toBe('dashed');
+    expect(cellStyle.borderColor).not.toBe(theme.color.paper);
     expect(screen.queryByText('Moved')).toBeNull();
     await fireEvent.press(cell);
     expect(router.push).toHaveBeenCalledWith({

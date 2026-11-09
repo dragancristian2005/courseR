@@ -45,7 +45,12 @@ if (typeof self !== 'undefined' && self.registration) {
       caches
         .open(CACHE_NAME)
         .then(function (cache) {
-          return cache.addAll(PRECACHE);
+          // 'reload' skips the browser HTTP cache so a stale index.html (max-age) is never stored.
+          return cache.addAll(
+            PRECACHE.map(function (u) {
+              return new Request(u, { cache: 'reload' });
+            }),
+          );
         })
         .then(function () {
           return self.skipWaiting();
@@ -82,7 +87,7 @@ if (typeof self !== 'undefined' && self.registration) {
 
     if (strategy === 'network-first') {
       event.respondWith(
-        fetch(request)
+        fetch(request, { cache: 'no-cache' })
           .then(function (response) {
             if (response && response.ok) {
               var copy = response.clone();

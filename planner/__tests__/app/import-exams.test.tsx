@@ -309,6 +309,31 @@ describe('import exams review', () => {
     expect(saved.map((e) => e.date)).toEqual(['2027-01-25']);
   });
 
+  it('notes an edited row that matches a saved exam, and still saves the others', async () => {
+    const { repo, upsert } = await setup(
+      file([exam({ unsure: ['date'] }), exam({ date: '2027-01-25' })]),
+    );
+    expect(screen.queryByText('Already saved. It won’t be added again.')).toBeNull();
+    await press('Edit');
+    await fireEvent.changeText(screen.getByLabelText('Date'), '2027-02-02');
+    await act(async () => {
+      await repo.upsert('exams', {
+        id: 'x1',
+        updatedAt: 1,
+        subjectId: 's1',
+        title: 'Exam',
+        date: '2027-02-02',
+        start: '09:00',
+        room: '',
+      });
+    });
+    expect(screen.getAllByText('Already saved. It won’t be added again.')).toHaveLength(1);
+    upsert.mockClear();
+    await save();
+    const saved = upsert.mock.calls.filter((c) => c[0] === 'exams').map((c) => c[1] as Exam);
+    expect(saved.map((e) => e.date)).toEqual(['2027-01-25']);
+  });
+
   it('says the exams were already saved, stays, and leaves on Done', async () => {
     const { repo, upsert } = await setup(file([exam({})]));
     await act(async () => {
@@ -364,7 +389,7 @@ describe('import exams review', () => {
 
   it('words the empty sheet naturally when it lists no groups', async () => {
     await setup(file([]));
-    expect(screen.getByText('No exams found in this sheet.')).toBeTruthy();
+    expect(screen.getByText('No exams found on this sheet.')).toBeTruthy();
     expect(screen.queryByText(/No exams for all/)).toBeNull();
     expect(screen.getByRole('button', { name: 'Save exams' })).toBeDisabled();
   });
