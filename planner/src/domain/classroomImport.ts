@@ -12,6 +12,8 @@ export interface ClassroomFetched {
     title: string;
     dueDate: { year: number; month: number; day: number } | null;
     dueTime: { hours?: number; minutes?: number } | null;
+    /** When it was posted (RFC 3339, UTC); optional so older callers still fit. */
+    created?: string | null;
   }[];
   turnedIn: Set<string>;
 }
@@ -41,6 +43,11 @@ export interface ClassroomPlan {
    * (or touch homework already imported from it).
    */
   unlinkedCourses: { id: string; name: string; suggestion: string | null; importable: boolean }[];
+  /**
+   * Courses with at least one assignment that would come in (or homework already imported), in
+   * fetch order, whatever their link. The rest, e.g. last year's never-archived classes, are hidden.
+   */
+  activeCourseIds: string[];
   items: ClassroomItem[];
 }
 
@@ -84,6 +91,16 @@ export function toLocalDue(
   return { due: `${p.year}-${p.month}-${p.day}`, dueTime: `${p.hour}:${p.minute}` };
 }
 
+/** The Bucharest date of an RFC 3339 timestamp, or null when missing or unreadable. */
+function localDateOf(timestamp: string | null | undefined): ISODate | null {
+  if (!timestamp) return null;
+  const t = Date.parse(timestamp);
+  if (Number.isNaN(t)) return null;
+  const p: Record<string, string> = {};
+  for (const part of formatter.formatToParts(new Date(t))) p[part.type] = part.value;
+  return `${p.year}-${p.month}-${p.day}`;
+}
+
 function initials(name: string): string {
   return fold(name)
     .split(/[^\p{L}\p{N}]+/u)
@@ -118,15 +135,19 @@ function compareDue(a: ISODate | null, b: ISODate | null): number {
 
 /**
  * Whether an assignment not imported yet is brought in: overdue work the student turned in is
- * skipped, and so is work due before the semester's first day (no semester, no cutoff).
+ * skipped, and so is work due (or, when undated, posted) before the semester's first day.
+ * No semester means no cutoff.
  */
 function takesNew(
   due: ISODate | null,
   turnedIn: boolean,
   today: ISODate,
   cutoff: ISODate | null,
+  created: ISODate | null,
 ): boolean {
-  if (due === null) return true;
+  // Undated work goes by when it was posted, so last year's classes don't come back.
+  if (due === null)
+    return cutoff === null || created === null || compareDates(created, cutoff) >= 0;
   if (cutoff !== null && compareDates(due, cutoff) < 0) return false;
   return !(compareDates(due, today) < 0 && turnedIn);
 }
@@ -160,8 +181,18 @@ export function planClassroomImport(
   const counts = (w: ClassroomFetched['work'][number]): boolean => {
     if (live.has(w.id)) return true;
     if (dead.has(w.id)) return false;
-    return takesNew(local(w).due, fetched.turnedIn.has(w.id), today, cutoff);
+    return takesNew(
+      local(w).due,
+      fetched.turnedIn.has(w.id),
+      today,
+      cutoff,
+      localDateOf(w.created),
+    );
   };
+
+  const activeCourseIds = fetched.courses
+    .filter((c) => fetched.work.some((w) => w.courseId === c.id && counts(w)))
+    .map((c) => c.id);
 
   const unlinkedCourses = fetched.courses
     .filter((c) => !links.has(c.id))
@@ -187,7 +218,7 @@ export function planClassroomImport(
     const base = { workId: w.id, courseId: w.courseId, subjectId, title: w.title, due, dueTime };
 
     if (existing === undefined) {
-      if (!takesNew(due, turnedIn, today, cutoff)) continue;
+      if (!takesNew(due, turnedIn, today, cutoff, localDateOf(w.created))) continue;
       items.push({ ...base, done: turnedIn, action: 'new' });
       continue;
     }
@@ -222,7 +253,7 @@ export function planClassroomImport(
       a.title.localeCompare(b.title),
   );
 
-  return { unlinkedCourses, items };
+  return { unlinkedCourses, activeCourseIds, items };
 }
 
 /** Nothing is saved here: the caller stores the returned records. Unchanged items yield nothing. */

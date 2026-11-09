@@ -93,9 +93,15 @@ export default function ClassroomImport() {
 
   // Preselects: the course's current link; else the suggested subject; else Don't import when
   // the course has nothing to import; else nothing, so the student chooses.
-  const openLinks = (courses: Course[], basis: ClassroomPlan, pending: ClassroomCourse[]) => {
+  const openLinks = (all: Course[], basis: ClassroomPlan, pending: ClassroomCourse[]) => {
     const unlinked = new Map(basis.unlinkedCourses.map((c) => [c.id, c]));
     const current = currentLinks(pending);
+    // A course with nothing to import (e.g. last year's class nobody archived) isn't shown, unless
+    // it is linked to a subject, so that link can still be changed.
+    const active = new Set(basis.activeCourseIds);
+    const courses = all.filter(
+      (c) => active.has(c.id) || (current.get(c.id)?.subjectId ?? null) !== null,
+    );
     const preset: Record<string, string> = {};
     for (const c of courses) {
       const u = unlinked.get(c.id);
@@ -126,8 +132,10 @@ export default function ClassroomImport() {
       setPlan(next);
       setLinks([]);
       setConflicts({});
-      if (next.unlinkedCourses.length > 0) openLinks(next.unlinkedCourses, next, []);
-      else setPhase('review');
+      const active = new Set(next.activeCourseIds);
+      if (next.unlinkedCourses.some((c) => active.has(c.id))) {
+        openLinks(next.unlinkedCourses, next, []);
+      } else setPhase('review');
     } catch (e) {
       setError(messageOf(e));
       setPhase('start');

@@ -217,6 +217,51 @@ describe('planClassroomImport', () => {
       empty: false,
     });
   });
+  it('lists the courses with something to import, linked or not', () => {
+    const past = { dueDate: { year: 2025, month: 3, day: 1 } };
+    const f: ClassroomFetched = {
+      courses: [
+        { id: 'c1', name: 'BD', section: null },
+        { id: 'old', name: 'CPOC 2024-2025', section: null },
+        { id: 'new', name: 'New', section: null },
+      ],
+      work: [work('w1'), work('o1', { courseId: 'old', ...past }), work('n1', { courseId: 'new' })],
+      turnedIn: new Set(['o1']),
+    };
+    const p = planClassroomImport(f, data(), TODAY);
+    expect(p.activeCourseIds).toEqual(['c1', 'new']);
+  });
+  it('undated work posted before the semester started does not count; this semester’s does', () => {
+    const f: ClassroomFetched = {
+      courses: [
+        { id: 'old', name: 'CPOC 2024-2025 FMI', section: null },
+        { id: 'now', name: 'Now', section: null },
+      ],
+      work: [
+        work('o1', { courseId: 'old', dueDate: null, created: '2024-10-15T09:00:00Z' }),
+        work('n1', { courseId: 'now', dueDate: null, created: '2026-10-05T09:00:00Z' }),
+      ],
+      turnedIn: new Set(['o1']),
+    };
+    const d = data({ semester: semester('2026-10-01'), classroomCourses: [] });
+    const p = planClassroomImport(f, d, TODAY);
+    expect(p.activeCourseIds).toEqual(['now']);
+  });
+  it('undated work posted late on the eve of the semester counts by Bucharest date', () => {
+    const f: ClassroomFetched = {
+      courses: [{ id: 'c1', name: 'BD', section: null }],
+      // 22:30 UTC on 30 Sep is 01:30 on 1 Oct in Bucharest (summer time, +3).
+      work: [work('w1', { dueDate: null, created: '2026-09-30T22:30:00Z' })],
+      turnedIn: new Set(),
+    };
+    const d = data({ semester: semester('2026-10-01') });
+    expect(planClassroomImport(f, d, TODAY).items.map((i) => i.workId)).toEqual(['w1']);
+  });
+  it('undated work with no creation time still counts', () => {
+    const d = data({ semester: semester('2026-10-01') });
+    const p = planClassroomImport(fetched([work('w1', { dueDate: null })]), d, TODAY);
+    expect(p.items.map((i) => i.workId)).toEqual(['w1']);
+  });
   it('a course whose only work the student deleted has nothing to import', () => {
     const d = data({ classroomCourses: [], homework: [hw({ deleted: true })] });
     const p = planClassroomImport(fetched([work('w1')]), d, TODAY);

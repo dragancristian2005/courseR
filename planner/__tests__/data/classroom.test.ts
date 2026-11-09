@@ -279,8 +279,9 @@ describe('fetchClassroom', () => {
         title: 'HW1',
         dueDate: { year: 2026, month: 11, day: 9 },
         dueTime: { hours: 21 },
+        created: null,
       },
-      { id: 'w2', courseId: 'c1', title: 'HW2', dueDate: null, dueTime: null },
+      { id: 'w2', courseId: 'c1', title: 'HW2', dueDate: null, dueTime: null, created: null },
     ]);
     expect([...r.turnedIn].sort()).toEqual(['w1', 'w3']);
 
@@ -327,6 +328,23 @@ describe('fetchClassroom', () => {
     expect(r.courses.map((c) => c.id)).toEqual(['c1']);
     const urls = (g.fetch as jest.Mock).mock.calls.map((c) => String(c[0]));
     expect(urls.some((u) => u.includes('/courses/c2/'))).toBe(false);
+  });
+
+  it('keeps each assignment’s creation time', async () => {
+    route({
+      [`${BASE}/courses`]: [{ courses: [{ id: 'c1', name: 'Math' }] }],
+      [`${BASE}/courses/c1/courseWork`]: [
+        {
+          courseWork: [
+            { id: 'w1', title: 'HW1', creationTime: '2024-10-15T09:00:00.123Z' },
+            { id: 'w2', title: 'HW2' },
+          ],
+        },
+      ],
+      [`${BASE}/courses/c1/courseWork/-/studentSubmissions`]: [{}],
+    });
+    const r = await fetchClassroom('t');
+    expect(r.work.map((w) => w.created)).toEqual(['2024-10-15T09:00:00.123Z', null]);
   });
 
   it('skips a course that fails and names it, keeping the others', async () => {
