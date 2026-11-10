@@ -7,6 +7,7 @@ import {
   getClassroomToken,
   prepareClassroomSignIn,
   takeClassroomToken,
+  classroomRedirectPending,
   type ClassroomFetch,
 } from '../../src/data/classroom';
 import { newId } from '../../src/data/ids';
@@ -58,7 +59,11 @@ type BrowserWindow = {
 
 export default function ClassroomImport() {
   const { data, repo } = useStore();
-  const [phase, setPhase] = useState<Phase>('start');
+  // Back from a Classroom sign-in by redirect: say "Reading Classroom…" from the first frame
+  // instead of flashing Connect while the token is picked up.
+  const [phase, setPhase] = useState<Phase>(() =>
+    classroomRedirectPending() ? 'reading' : 'start',
+  );
   const [error, setError] = useState<string | null>(null);
   const [fetched, setFetched] = useState<ClassroomFetch | null>(null);
   const [plan, setPlan] = useState<ClassroomPlan | null>(null);
@@ -162,8 +167,12 @@ export default function ClassroomImport() {
 
   const takeToken = async () => {
     try {
+      // While a redirect was pending the screen shows Reading (no Connect to tap), so a
+      // missing token can safely send it back to Connect.
+      const wasPending = classroomRedirectPending();
       const token = await takeClassroomToken();
       if (token !== null) await read(token);
+      else if (wasPending) setPhase('start');
     } catch (e) {
       setError(messageOf(e));
       setPhase('start');
@@ -191,7 +200,7 @@ export default function ClassroomImport() {
     const onShow = (e: { persisted?: boolean }) => {
       if (!e.persisted) return;
       setError(null);
-      setPhase('start');
+      setPhase(classroomRedirectPending() ? 'reading' : 'start');
       void latestTakeToken.current();
     };
     win.addEventListener('pageshow', onShow);

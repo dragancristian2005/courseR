@@ -5,6 +5,7 @@ import {
   getClassroomToken,
   prepareClassroomSignIn,
   takeClassroomToken,
+  classroomRedirectPending,
 } from '../../src/data/classroom';
 
 const mockFb = {
@@ -162,6 +163,15 @@ describe('prepareClassroomSignIn', () => {
       throw new Error('Firebase is not configured');
     });
     expect(() => prepareClassroomSignIn()).not.toThrow();
+  });
+});
+
+describe('classroomRedirectPending', () => {
+  it('is true only while a Classroom redirect is in progress, and keeps the flag', () => {
+    expect(classroomRedirectPending()).toBe(false);
+    store[FLAG] = '1';
+    expect(classroomRedirectPending()).toBe(true);
+    expect(store[FLAG]).toBe('1');
   });
 });
 

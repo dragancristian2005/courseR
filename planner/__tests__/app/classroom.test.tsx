@@ -10,6 +10,7 @@ import {
   getClassroomToken,
   prepareClassroomSignIn,
   takeClassroomToken,
+  classroomRedirectPending,
 } from '../../src/data/classroom';
 import { createMemoryRepository } from '../../src/data/memoryRepository';
 import { StoreProvider } from '../../src/data/StoreProvider';
@@ -39,6 +40,7 @@ jest.mock('../../src/data/classroom', () => {
     getClassroomToken: jest.fn(),
     prepareClassroomSignIn: jest.fn(),
     takeClassroomToken: jest.fn(),
+    classroomRedirectPending: jest.fn(),
     fetchClassroom: jest.fn(),
   };
 });
@@ -47,6 +49,7 @@ const getToken = getClassroomToken as jest.Mock;
 const takeToken = takeClassroomToken as jest.Mock;
 const fetchC = fetchClassroom as jest.Mock;
 const prepare = prepareClassroomSignIn as jest.Mock;
+const pending = classroomRedirectPending as jest.Mock;
 
 const alg: Subject = {
   id: 'alg',
@@ -101,6 +104,7 @@ beforeEach(() => {
   jest.setSystemTime(new Date(2026, 10, 8, 10, 0));
   jest.clearAllMocks();
   takeToken.mockResolvedValue(null);
+  pending.mockReturnValue(false);
   getToken.mockResolvedValue('tok');
   fetchC.mockResolvedValue(fetched());
 });
@@ -190,6 +194,23 @@ describe('Import from Classroom', () => {
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     expect(upsert).toHaveBeenCalledTimes(1);
     expect(upsert.mock.calls[0][1]).toMatchObject({ id: 'c9', subjectId: null });
+  });
+
+  it('back from Google sign-in, shows Reading Classroom… at once, never Connect', async () => {
+    pending.mockReturnValue(true);
+    let give: (t: string) => void = () => undefined;
+    takeToken.mockReturnValue(new Promise<string>((r) => (give = r)));
+    await setup();
+    expect(screen.getByText('Reading Classroom…')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Connect to Classroom' })).toBeNull();
+    await act(async () => give('back'));
+    expect(await screen.findByText('Which subject is each course?')).toBeTruthy();
+  });
+
+  it('back from Google with no token, falls back to Connect', async () => {
+    pending.mockReturnValue(true);
+    await setup();
+    expect(await screen.findByRole('button', { name: 'Connect to Classroom' })).toBeTruthy();
   });
 
   it('skips Connect when a redirect token is waiting', async () => {
