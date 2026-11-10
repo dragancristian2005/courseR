@@ -8,6 +8,9 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useMemo } from 'react';
 import { useAuth } from '../src/data/auth';
+import { demoData, isDemo } from '../src/data/demo';
+import { createMemoryRepository } from '../src/data/memoryRepository';
+import { todayISO } from '../src/domain/dates';
 import { initFirebase } from '../src/data/firebase';
 import { createFirestoreRepository } from '../src/data/firestoreRepository';
 import { StoreProvider } from '../src/data/StoreProvider';
@@ -25,10 +28,11 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const { user, loading } = useAuth();
   const uid = user?.uid;
-  const repository = useMemo(
-    () => (uid ? createFirestoreRepository(initFirebase().db, uid) : null),
-    [uid],
-  );
+  const demo = isDemo();
+  const repository = useMemo(() => {
+    if (demo) return createMemoryRepository(demoData(todayISO()));
+    return uid ? createFirestoreRepository(initFirebase().db, uid) : null;
+  }, [demo, uid]);
 
   const [loaded, error] = useFonts({
     SchibstedGrotesk_400Regular,
