@@ -69,7 +69,7 @@ function NavBar({ state, layout }: BarProps & { layout: Layout }) {
         </Pressable>
       );
     }
-    const color = active ? theme.color.ink : theme.color.rule;
+    const color = active ? theme.color.barActive : theme.color.barIdle;
     return (
       <PressScale
         key={name}
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   },
   tabRow: {
     flexDirection: 'row',
-    backgroundColor: theme.color.ink,
+    backgroundColor: theme.color.bar,
     borderRadius: 30,
     padding: ROW_PAD,
     gap: ROW_GAP,
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     top: ROW_PAD,
     bottom: ROW_PAD,
     borderRadius: 24,
-    backgroundColor: theme.color.paper,
+    backgroundColor: theme.color.barPill,
   },
   tabItem: {
     flex: 1,
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabItemActive: { backgroundColor: theme.color.paper },
+  tabItemActive: { backgroundColor: theme.color.barPill },
   tabLabel: { fontFamily: theme.font.app, fontSize: 11 },
   tabLabelActive: { fontFamily: theme.font.appBold },
   sidebar: {

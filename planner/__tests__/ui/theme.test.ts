@@ -13,6 +13,10 @@ describe('theme', () => {
       seminar: '#F6D9B0',
       lab: '#BFE3DA',
       now: '#C8302A',
+      bar: '#17213A',
+      barPill: '#F4F6F8',
+      barActive: '#17213A',
+      barIdle: '#C9CFD8',
     });
   });
 
