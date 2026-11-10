@@ -1,7 +1,7 @@
 import { router, Tabs, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Rule } from '../../src/ui/Rule';
+import { tabBarBottomPad } from '../../src/ui/tabBar';
 import { Text } from '../../src/ui/Text';
 import { theme } from '../../src/ui/theme';
 import { useLayout, type Layout } from '../../src/ui/useLayout';
@@ -32,18 +32,26 @@ function NavBar({ state, layout }: BarProps & { layout: Layout }) {
         accessibilityLabel={label}
         accessibilityState={{ selected: active }}
         onPress={() => router.navigate(href)}
-        style={wide ? styles.sideItem : styles.tabItem}
+        style={wide ? styles.sideItem : [styles.tabItem, active && styles.tabItemActive]}
       >
         {wide ? <View style={[styles.marker, active && styles.markerActive]} /> : null}
-        <Text style={[styles.label, active && styles.labelActive]}>{label}</Text>
+        <Text
+          numberOfLines={1}
+          style={
+            wide
+              ? [styles.label, active && styles.labelActive]
+              : [styles.tabLabel, active && styles.tabLabelActive]
+          }
+        >
+          {label}
+        </Text>
       </Pressable>
     );
   });
 
   if (!wide) {
     return (
-      <View style={[styles.tabBar, { paddingBottom: insets.bottom }]}>
-        <Rule weight="heavy" />
+      <View style={[styles.tabBar, { paddingBottom: tabBarBottomPad(insets.bottom) }]}>
         <View accessibilityRole="tablist" style={styles.tabRow}>
           {items}
         </View>
@@ -69,10 +77,16 @@ function NavBar({ state, layout }: BarProps & { layout: Layout }) {
 
 export default function TabLayout() {
   const layout = useLayout();
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       tabBar={(props) => <NavBar {...props} layout={layout} />}
-      screenOptions={{ headerShown: false, tabBarPosition: layout === 'wide' ? 'left' : 'bottom' }}
+      screenOptions={{
+        headerShown: false,
+        tabBarPosition: layout === 'wide' ? 'left' : 'bottom',
+        // Keep content below the status bar, so it never scrolls under it (where iOS blurs it).
+        sceneStyle: { paddingTop: insets.top, backgroundColor: theme.color.paper },
+      }}
     >
       {TABS.map(({ name, label }) => (
         <Tabs.Screen key={name} name={name} options={{ title: label }} />
@@ -82,9 +96,29 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabBar: { backgroundColor: theme.color.paper },
-  tabRow: { flexDirection: 'row' },
-  tabItem: { flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center' },
+  tabBar: {
+    backgroundColor: theme.color.paper,
+    paddingHorizontal: theme.space(3),
+    paddingTop: theme.space(2),
+  },
+  tabRow: {
+    flexDirection: 'row',
+    backgroundColor: theme.color.ink,
+    borderRadius: 30,
+    padding: theme.space(1.5),
+    gap: theme.space(1),
+  },
+  tabItem: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 24,
+    paddingHorizontal: theme.space(1),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabItemActive: { backgroundColor: theme.color.paper },
+  tabLabel: { fontFamily: theme.font.app, fontSize: 13, color: theme.color.rule },
+  tabLabelActive: { fontFamily: theme.font.appBold, color: theme.color.ink },
   sidebar: {
     width: 180,
     justifyContent: 'space-between',
