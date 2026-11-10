@@ -1,19 +1,24 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { saveChangeEveryWeek, saveMoveThisWeek } from '../../src/data/sessionEdits';
 import { useStore } from '../../src/data/useStore';
-import { addDays, mondayOf, todayISO } from '../../src/domain/dates';
+import { addDays, mondayOf, todayISO, weekdayOf } from '../../src/domain/dates';
+import { droppedByChange } from '../../src/domain/edits';
 import { sessionsWithCancelled } from '../../src/domain/sessions';
 import type { ISODate, Session } from '../../src/domain/types';
 import { weekFor } from '../../src/domain/weeks';
+import { droppedWarning } from '../../src/ui/ChangeForm';
 import { ClassDetail } from '../../src/ui/ClassDetail';
+import { DropBar } from '../../src/ui/DropBar';
 import { Rule } from '../../src/ui/Rule';
 import { SetupPrompt } from '../../src/ui/SetupPrompt';
 import { Text } from '../../src/ui/Text';
 import { theme } from '../../src/ui/theme';
 import { useLayout } from '../../src/ui/useLayout';
 import { useNow } from '../../src/ui/useNow';
-import { MONTHS_LONG } from '../../src/ui/format';
+import { MONTHS_LONG, WEEKDAYS_SHORT } from '../../src/ui/format';
+import type { DropTarget } from '../../src/ui/weekDrag';
 import { lastShownDay, WeekGrid } from '../../src/ui/WeekGrid';
 
 const dayMonth = (d: ISODate) => {
@@ -29,12 +34,26 @@ function rangeLabel(from: ISODate, to: ISODate): string {
     : `${a.day} ${a.month} to ${b.day} ${b.month}`;
 }
 
+interface Drop {
+  session: Session;
+  target: DropTarget;
+  /** Set when Every week would drop one-off changes or notes, until confirmed. */
+  warning?: string;
+  failure?: string;
+}
+
 export default function WeekScreen() {
   const layout = useLayout();
   const now = useNow();
-  const { data } = useStore();
-  const [offset, setOffset] = useState(0);
+  const { data, repo } = useStore();
+  const [offset, setWeekOffset] = useState(0);
   const [selectedId, setSelectedId] = useState<string | undefined>();
+  const [dragging, setDragging] = useState(false);
+  const [drop, setDrop] = useState<Drop | undefined>();
+  const setOffset = (f: number | ((o: number) => number)) => {
+    setDrop(undefined);
+    setWeekOffset(f);
+  };
 
   const today = todayISO(now);
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
@@ -58,6 +77,55 @@ export default function WeekScreen() {
   const onPressSession = (s: Session) => (wide ? setSelectedId(s.id) : open(s));
   const selected = sessions.find((s) => s.id === selectedId);
 
+  const subjectName = (s: Session) =>
+    data.subjects.find((x) => x.id === s.subjectId)?.name ?? 'class';
+  const question = drop
+    ? `Move ${subjectName(drop.session)} to ${WEEKDAYS_SHORT[weekdayOf(drop.target.date) - 1]} ${drop.target.start}?`
+    : '';
+  const thisWeek = () => {
+    if (!drop) return;
+    const { session, target } = drop;
+    saveMoveThisWeek(repo, data, session, {
+      ...target,
+      ...(session.online ? {} : { room: session.room }),
+    });
+    setDrop(undefined);
+  };
+  // Every week changes the class from the week it was dragged in, as Change every week would.
+  const everyWeekFrom = (s: Session) => mondayOf(s.id.slice(s.id.lastIndexOf(':') + 1));
+  const saveEveryWeek = () => {
+    if (!drop) return;
+    const { session, target } = drop;
+    const pattern = data.patterns.find((p) => p.id === session.patternId);
+    if (!pattern) return setDrop(undefined);
+    try {
+      const moved = saveChangeEveryWeek(
+        repo,
+        data,
+        pattern,
+        everyWeekFrom(session),
+        { weekday: weekdayOf(target.date), start: target.start, end: target.end },
+        target.date,
+      );
+      if (selectedId === session.id) setSelectedId(moved?.id);
+      setDrop(undefined);
+    } catch (e) {
+      setDrop({
+        ...drop,
+        warning: undefined,
+        failure: e instanceof Error ? e.message : 'Could not save the change.',
+      });
+    }
+  };
+  const everyWeek = () => {
+    if (!drop) return;
+    const from = everyWeekFrom(drop.session);
+    const dropped = droppedByChange(data, drop.session.patternId, from);
+    if (dropped.overrides.length + dropped.notes.length > 0)
+      setDrop({ ...drop, warning: droppedWarning(dropped, from), failure: undefined });
+    else saveEveryWeek();
+  };
+
   let body: React.ReactNode;
   if (needsSetup) body = <SetupPrompt data={data} />;
   else if (week?.isBreak && sessions.length === 0)
@@ -74,55 +142,77 @@ export default function WeekScreen() {
         density={wide ? 'full' : 'compact'}
         selectedSessionId={wide ? selectedId : undefined}
         cancelledIds={cancelledIds}
+        onDropSession={(session, target) => setDrop({ session, target })}
+        onDragChange={setDragging}
+        pendingDrop={drop ? { sessionId: drop.session.id, target: drop.target } : undefined}
       />
     );
 
   return (
     <View style={styles.screen}>
-      <ScrollView style={styles.main} contentContainerStyle={styles.content}>
-        <View style={styles.inner}>
-          {needsSetup ? null : (
-            <>
-              <View style={styles.headerRow}>
-                <View style={styles.titles}>
-                  <Text style={styles.title}>{title}</Text>
-                  <Text variant="meta">{`${rangeLabel(monday, end)}, ${kind}`}</Text>
-                  {offset !== 0 ? (
+      <View style={styles.main}>
+        <ScrollView
+          testID="week-scroll"
+          style={styles.main}
+          contentContainerStyle={styles.content}
+          scrollEnabled={!dragging}
+        >
+          <View style={styles.inner}>
+            {needsSetup ? null : (
+              <>
+                <View style={styles.headerRow}>
+                  <View style={styles.titles}>
+                    <Text style={styles.title}>{title}</Text>
+                    <Text variant="meta">{`${rangeLabel(monday, end)}, ${kind}`}</Text>
+                    {offset !== 0 ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="This week"
+                        onPress={() => setOffset(0)}
+                        style={styles.thisWeek}
+                      >
+                        <Text style={styles.thisWeekText}>This week</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                  <View style={styles.nav}>
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel="This week"
-                      onPress={() => setOffset(0)}
-                      style={styles.thisWeek}
+                      accessibilityLabel="Previous week"
+                      onPress={() => setOffset((o) => o - 1)}
+                      style={styles.navButton}
                     >
-                      <Text style={styles.thisWeekText}>This week</Text>
+                      <Text style={styles.navText}>‹</Text>
                     </Pressable>
-                  ) : null}
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Next week"
+                      onPress={() => setOffset((o) => o + 1)}
+                      style={styles.navButton}
+                    >
+                      <Text style={styles.navText}>›</Text>
+                    </Pressable>
+                  </View>
                 </View>
-                <View style={styles.nav}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Previous week"
-                    onPress={() => setOffset((o) => o - 1)}
-                    style={styles.navButton}
-                  >
-                    <Text style={styles.navText}>‹</Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Next week"
-                    onPress={() => setOffset((o) => o + 1)}
-                    style={styles.navButton}
-                  >
-                    <Text style={styles.navText}>›</Text>
-                  </Pressable>
-                </View>
-              </View>
-              <Rule weight="heavy" />
-            </>
-          )}
-          {body}
-        </View>
-      </ScrollView>
+                <Rule weight="heavy" />
+              </>
+            )}
+            {body}
+          </View>
+        </ScrollView>
+        {drop ? (
+          <DropBar
+            question={question}
+            warning={drop.warning}
+            failure={drop.failure}
+            onThisWeek={thisWeek}
+            onEveryWeek={everyWeek}
+            onCancel={() => setDrop(undefined)}
+            onSaveAnyway={saveEveryWeek}
+            onGoBack={() => setDrop({ ...drop, warning: undefined })}
+          />
+        ) : null}
+      </View>
       {wide && !needsSetup ? (
         <View style={styles.panel}>
           {selected ? (

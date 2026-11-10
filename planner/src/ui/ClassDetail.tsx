@@ -1,20 +1,18 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { newId } from '../data/ids';
+import {
+  liveOverrideOf,
+  overrideStamp,
+  saveChangeEveryWeek,
+  saveMoveThisWeek,
+} from '../data/sessionEdits';
 import { useStore } from '../data/useStore';
 import { todayISO } from '../domain/dates';
-import {
-  cancelThisWeek,
-  changeEveryWeek,
-  droppedByChange,
-  moveThisWeek,
-  overrideIdOf,
-  stamp,
-} from '../domain/edits';
+import { cancelThisWeek, changeEveryWeek, droppedByChange, stamp } from '../domain/edits';
 import { dueLabel, homeworkGroups, linksBySubject, notesFor } from '../domain/selectors';
-import { resolveSession, sessionsBetween } from '../domain/sessions';
-import type { ISODate, Repeat, SessionOverride } from '../domain/types';
+import { resolveSession } from '../domain/sessions';
+import type { ISODate, Repeat } from '../domain/types';
 import { weekFor } from '../domain/weeks';
 import { goBack } from './BackLink';
 import { Button } from './Button';
@@ -106,16 +104,7 @@ export function ClassDetail({
   }
 
   const originalDate = session.id.slice(session.id.lastIndexOf(':') + 1);
-  const override = data.overrides
-    .filter((o) => !o.deleted && o.sessionId === session.id)
-    .sort((a, b) => b.updatedAt - a.updatedAt)[0];
-  // A removed override stays in the store as a tombstone, and the rules want a strictly newer
-  // updatedAt than whatever is stored, so a re-created move or cancellation is stamped above it.
-  const overrideStamp = () =>
-    stamp(
-      override,
-      repo.tombstones<SessionOverride>('overrides').find((o) => o.id === overrideIdOf(session)),
-    );
+  const override = liveOverrideOf(data, session.id);
   const type = TYPE_LABEL[session.type];
   const links =
     linksBySubject(data).bySubject.find((x) => x.subject.id === subject.id)?.links ?? [];
@@ -142,14 +131,7 @@ export function ClassDetail({
   ];
 
   const saveChange = (from: ISODate, changes: Parameters<typeof changeEveryWeek>[2]) => {
-    const { ended, created } = changeEveryWeek(pattern, from, changes, stamp(pattern), newId);
-    void repo.upsert('patterns', ended);
-    void repo.upsert('patterns', created);
-    const next = {
-      ...data,
-      patterns: [...data.patterns.filter((p) => p.id !== ended.id), ended, created],
-    };
-    const target = sessionsBetween(next, from, from).find((s) => s.patternId === created.id);
+    const target = saveChangeEveryWeek(repo, data, pattern, from, changes);
     setMode('none');
     if (!target) return leave();
     if (onOpenSession) onOpenSession(target.id);
@@ -235,7 +217,7 @@ export function ClassDetail({
           session={session}
           onCancel={() => setMode('none')}
           onSave={(to) => {
-            void repo.upsert('overrides', moveThisWeek(session, to, overrideStamp()));
+            saveMoveThisWeek(repo, data, session, to);
             setMode('none');
           }}
         />
@@ -257,7 +239,10 @@ export function ClassDetail({
             <Button
               label="Cancel class"
               onPress={() => {
-                void repo.upsert('overrides', cancelThisWeek(session, overrideStamp()));
+                void repo.upsert(
+                  'overrides',
+                  cancelThisWeek(session, overrideStamp(repo, data, session)),
+                );
                 leave();
               }}
             />
