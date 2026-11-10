@@ -21,7 +21,8 @@ export function DropBar({
   warning?: string;
   failure?: string;
   onThisWeek: () => void;
-  onEveryWeek: () => void;
+  /** Left out when the class can only be moved this week. */
+  onEveryWeek?: () => void;
   onCancel: () => void;
   onSaveAnyway: () => void;
   onGoBack: () => void;
@@ -38,7 +39,7 @@ export function DropBar({
       ) : (
         <View style={styles.buttons}>
           <Button label="Just this week" onPress={onThisWeek} />
-          <Button label="Every week" kind="outline" onPress={onEveryWeek} />
+          {onEveryWeek ? <Button label="Every week" kind="outline" onPress={onEveryWeek} /> : null}
           <Button label="Cancel" kind="outline" onPress={onCancel} />
         </View>
       )}

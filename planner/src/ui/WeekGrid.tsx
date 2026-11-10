@@ -40,6 +40,8 @@ export interface WeekGridProps {
   onDragChange?: (dragging: boolean) => void;
   /** A drop waiting for an answer: its class is dimmed and its landing place outlined. */
   pendingDrop?: { sessionId: string; target: DropTarget };
+  /** The days a class can be dropped on (e.g. the semester); default every shown day. */
+  dropRange?: { from: ISODate; to: ISODate };
 }
 
 /** Number of columns shown: Monday to Friday, extended to the last weekend day with a class. */
@@ -159,6 +161,7 @@ export function WeekGrid({
   onDropSession,
   onDragChange,
   pendingDrop,
+  dropRange,
 }: WeekGridProps) {
   const days = Array.from({ length: lastShownDay(sessions, monday) }, (_, i) => addDays(monday, i));
   const nowVisible = nowMinutes >= GRID_START && nowMinutes < GRID_END;
@@ -176,13 +179,54 @@ export function WeekGrid({
   const active = useRef(false);
   const bodyRef = useRef<ComponentRef<typeof View>>(null);
   // The responder is created once; it reads the latest props from here.
-  const live = useRef({ monday, dayCount: days.length, columnWidth, onDropSession, onDragChange });
-  live.current = { monday, dayCount: days.length, columnWidth, onDropSession, onDragChange };
+  const minCol = dropRange ? daysBetween(monday, dropRange.from) : 0;
+  const maxCol = dropRange ? daysBetween(monday, dropRange.to) : days.length - 1;
+  const current = {
+    monday,
+    dayCount: days.length,
+    columnWidth,
+    minCol,
+    maxCol,
+    onDropSession,
+    onDragChange,
+  };
+  const live = useRef(current);
+  live.current = current;
+
+  // Picks a class up as soon as the long press fires: it lifts in place and its outline shows.
+  const lift = (p: Placed) => {
+    armed.current = p;
+    const col = daysBetween(monday, p.session.date);
+    setGhost({
+      session: p.session,
+      left: SPINE_WIDTH + columnWidth * (col + p.lane / p.lanes),
+      top: p.first * ROW_HEIGHT,
+      width: columnWidth / p.lanes,
+      height: (p.last - p.first + 1) * ROW_HEIGHT,
+    });
+  };
+
+  // If the grid goes away mid-drag (e.g. a sync empties the week), let the screen scroll again.
+  useEffect(
+    () => () => {
+      if (active.current) live.current.onDragChange?.(false);
+    },
+    [],
+  );
 
   const responder = useMemo(() => {
     const snap = (s: Session, dx: number, dy: number) => {
-      const { monday: m, dayCount, columnWidth: w } = live.current;
-      return snapDrop({ session: s, monday: m, dayCount, columnWidth: w, dx, dy });
+      const g = live.current;
+      return snapDrop({
+        session: s,
+        monday: g.monday,
+        dayCount: g.dayCount,
+        columnWidth: g.columnWidth,
+        minCol: g.minCol,
+        maxCol: g.maxCol,
+        dx,
+        dy,
+      });
     };
     const finish = (gesture?: { dx: number; dy: number }) => {
       const picked = armed.current;
@@ -202,15 +246,6 @@ export function WeekGrid({
         const p = armed.current;
         if (!p) return;
         active.current = true;
-        const { monday: m, columnWidth: w } = live.current;
-        const col = daysBetween(m, p.session.date);
-        setGhost({
-          session: p.session,
-          left: SPINE_WIDTH + w * (col + p.lane / p.lanes),
-          top: p.first * ROW_HEIGHT,
-          width: w / p.lanes,
-          height: (p.last - p.first + 1) * ROW_HEIGHT,
-        });
         live.current.onDragChange?.(true);
       },
       onPanResponderMove: (_e, g) => {
@@ -314,21 +349,17 @@ export function WeekGrid({
                     accessibilityState={{ selected }}
                     onPress={() => onPressSession(s)}
                     delayLongPress={LONG_PRESS_MS}
-                    onLongPress={
-                      draggable
-                        ? () => {
-                            armed.current = p;
-                          }
-                        : undefined
-                    }
+                    onLongPress={draggable ? () => lift(p) : undefined}
                     onPressOut={
                       draggable
                         ? () => {
                             // Let go without moving: drop the pick-up. Deferred, because the body
                             // claiming the touch also ends this press.
                             setTimeout(() => {
-                              if (!active.current && armed.current?.session.id === s.id)
+                              if (!active.current && armed.current?.session.id === s.id) {
                                 armed.current = null;
+                                setGhost(null);
+                              }
                             }, 0);
                           }
                         : undefined
@@ -397,7 +428,7 @@ export function WeekGrid({
                 width: ghost.width,
                 height: ghost.height,
                 backgroundColor: typeFill(ghost.session.type),
-                transform: pan.getTranslateTransform(),
+                transform: [...pan.getTranslateTransform(), { scale: 1.04 }],
               },
             ]}
           >
@@ -483,8 +514,11 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     borderColor: theme.color.ink,
   },
+  // Lifted: a static scale and shadow, no animation, so it suits reduced motion too.
   ghost: {
     position: 'absolute',
+    zIndex: 2,
+    boxShadow: '0 6px 16px rgba(0, 0, 0, 0.25)',
     borderWidth: 2,
     borderColor: theme.color.ink,
     padding: 4,

@@ -63,11 +63,18 @@ export function changeEveryWeek(
   changes: PatternChanges,
   now: number,
   newId: () => string,
+  /**
+   * startAtFrom: the copy starts at `from` even when that is before the pattern's validFrom (the
+   * pattern is then removed). For a change to a whole week (from its Monday) of a pattern that
+   * starts mid-week, so the class does not vanish from that week.
+   */
+  opts: { startAtFrom?: boolean } = {},
 ): { ended: ClassPattern; created: ClassPattern } {
   if (pattern.validTo !== null && compareDates(from, pattern.validTo) > 0) {
     throw new Error('Cannot change a class after it has ended.');
   }
-  const effectiveFrom = compareDates(from, pattern.validFrom) < 0 ? pattern.validFrom : from;
+  const early = compareDates(from, pattern.validFrom) < 0;
+  const effectiveFrom = early ? pattern.validFrom : from;
 
   const ended: ClassPattern = { ...pattern, updatedAt: now };
   if (effectiveFrom === pattern.validFrom) {
@@ -82,7 +89,7 @@ export function changeEveryWeek(
     if (v !== undefined) (created as unknown as Record<string, unknown>)[k] = v;
   }
   created.id = newId();
-  created.validFrom = effectiveFrom;
+  created.validFrom = early && opts.startAtFrom ? from : effectiveFrom;
   created.validTo = pattern.validTo;
   created.updatedAt = now;
   return { ended, created };

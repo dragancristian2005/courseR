@@ -507,6 +507,88 @@ describe('dragging a class', () => {
     expect(screen.getByText('Seminar, Thursday 5 November')).toBeTruthy();
   });
 
+  it('Every week keeps the class in the dragged week when its pattern starts mid-week', async () => {
+    const before = { ...p2, validTo: '2026-11-17' };
+    const after = pat({ ...p2, id: 'p2b', validFrom: '2026-11-18' });
+    await setup({ ...base, patterns: [p1, before, after] });
+    await press('Next week');
+    await press('Next week');
+    expect(screen.getByText('16 to 20 November, odd week')).toBeTruthy();
+    await drop({ date: '2026-11-16', start: '09:40', end: '11:10' }, 'p2b:2026-11-18');
+    await press('Every week');
+    expect(
+      screen.getByRole('button', { name: /Algebră, seminar, Mon 09:40 to 11:10/ }),
+    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Algebră, seminar, Wed/ })).toBeNull();
+  });
+
+  it('offers only Just this week for a class moved in from another week', async () => {
+    const movedIn = {
+      id: 'ov_p2_2026-10-28',
+      sessionId: 'p2:2026-10-28',
+      kind: 'moved' as const,
+      date: '2026-11-03',
+      start: '13:00',
+      end: '14:30',
+      room: '12',
+      updatedAt: 5,
+    };
+    const { repo } = await setup({ ...base, overrides: [movedIn] });
+    const upsert = spy(repo);
+    await drop(thursday, 'p2:2026-10-28');
+    expect(screen.getByText('Move Algebră to Thu 09:40?')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Every week' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
+    await press('Just this week');
+    expect(upsert).toHaveBeenCalledWith(
+      'overrides',
+      expect.objectContaining({ id: 'ov_p2_2026-10-28', date: '2026-11-05', start: '09:40' }),
+    );
+  });
+
+  it('offers Every week for a class moved within the shown week (control)', async () => {
+    await setup({
+      ...base,
+      overrides: [
+        {
+          id: 'ov_p2_2026-11-04',
+          sessionId: SID,
+          kind: 'moved',
+          date: '2026-11-03',
+          start: '13:00',
+          end: '14:30',
+          updatedAt: 5,
+        },
+      ],
+    });
+    await drop(thursday);
+    expect(screen.getByRole('button', { name: 'Every week' })).toBeTruthy();
+  });
+
+  it('Just this week back on the original slot removes the move', async () => {
+    const moved = {
+      id: 'ov_p2_2026-11-04',
+      sessionId: SID,
+      kind: 'moved' as const,
+      date: '2026-11-05',
+      start: '09:40',
+      end: '11:10',
+      room: '12',
+      updatedAt: 5,
+    };
+    const { repo } = await setup({ ...base, overrides: [moved] });
+    const upsert = spy(repo);
+    const remove = jest.spyOn(repo, 'remove');
+    await drop({ date: '2026-11-04', start: '14:40', end: '16:10' });
+    await press('Just this week');
+    expect(remove).toHaveBeenCalledWith('overrides', 'ov_p2_2026-11-04');
+    expect(upsert).not.toHaveBeenCalled();
+    expect(screen.queryByText('Moved')).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Algebră, seminar, Wed 14:40 to 16:10, room 12' }),
+    ).toBeTruthy();
+  });
+
   describe('gesture', () => {
     // A single-finger touch history as the responder system builds it.
     let t = 0;
@@ -584,6 +666,46 @@ describe('dragging a class', () => {
       await act(async () => body().props.onResponderRelease(touch(101, 301)));
       expect(screen.getByTestId('week-scroll').props.scrollEnabled).toBe(true);
       expect(screen.queryByTestId('drag-ghost')).toBeNull();
+    });
+
+    it('lifts the class as soon as the long press fires, before any move', async () => {
+      await setup();
+      await layout();
+      await fireEvent(screen.getByTestId(`cell-${SID}`), 'longPress');
+      const ghost = screen.getByTestId('drag-ghost');
+      const style = StyleSheet.flatten(ghost.props.style);
+      expect(style.transform).toEqual(expect.arrayContaining([{ scale: 1.04 }]));
+      expect(style.boxShadow).toBeTruthy();
+      expect(screen.getByTestId('drop-outline')).toBeTruthy();
+      // Let go without moving: the class settles back.
+      await fireEvent(screen.getByTestId(`cell-${SID}`), 'pressOut');
+      await act(async () => {
+        jest.runOnlyPendingTimers();
+      });
+      expect(screen.queryByTestId('drag-ghost')).toBeNull();
+      expect(screen.queryByTestId('drop-outline')).toBeNull();
+    });
+
+    it('keeps drops inside the semester', async () => {
+      await setup({ ...base, semester: { ...semester, firstDay: '2026-11-04' } });
+      expect(await drag(-120, -3 * 64)).toBe(true);
+      expect(screen.getByText('Move Algebră to Wed 09:40?')).toBeTruthy();
+    });
+
+    it('restores scrolling if the grid goes away mid-drag', async () => {
+      const { repo } = await setup();
+      await layout();
+      await fireEvent(screen.getByTestId(`cell-${SID}`), 'longPress');
+      const first = touch(101, 301);
+      await act(async () => {
+        body().props.onMoveShouldSetResponderCapture(first);
+      });
+      await act(async () => body().props.onResponderGrant(first));
+      expect(screen.getByTestId('week-scroll').props.scrollEnabled).toBe(false);
+      await act(async () => repo.remove('patterns', 'p1'));
+      await act(async () => repo.remove('patterns', 'p2'));
+      expect(screen.queryByTestId('week-grid-body')).toBeNull();
+      expect(screen.getByTestId('week-scroll').props.scrollEnabled).toBe(true);
     });
 
     it('does not take the touch without a long press, so the week scrolls', async () => {

@@ -28,12 +28,31 @@ export function overrideStamp(repo: Repository, data: PlannerData, session: Sess
   );
 }
 
+/**
+ * Moves `session` this week. A move back to exactly the pattern's own date, times and room
+ * removes the existing move instead (as Undo this week's change does), so the class is no
+ * longer marked as moved.
+ */
 export function saveMoveThisWeek(
   repo: Repository,
   data: PlannerData,
   session: Session,
   to: Parameters<typeof moveThisWeek>[1],
 ): void {
+  const live = liveOverrideOf(data, session.id);
+  const pattern = data.patterns.find((p) => p.id === session.patternId);
+  const originalDate = session.id.slice(session.id.lastIndexOf(':') + 1);
+  const backHome =
+    live?.kind === 'moved' &&
+    pattern !== undefined &&
+    to.date === originalDate &&
+    to.start === pattern.start &&
+    to.end === pattern.end &&
+    (to.room === undefined || to.room === pattern.room);
+  if (backHome) {
+    void repo.remove('overrides', live.id);
+    return;
+  }
   void repo.upsert('overrides', moveThisWeek(session, to, overrideStamp(repo, data, session)));
 }
 
@@ -48,8 +67,9 @@ export function saveChangeEveryWeek(
   from: ISODate,
   changes: Parameters<typeof changeEveryWeek>[2],
   on: ISODate = from,
+  opts: Parameters<typeof changeEveryWeek>[5] = {},
 ): Session | undefined {
-  const { ended, created } = changeEveryWeek(pattern, from, changes, stamp(pattern), newId);
+  const { ended, created } = changeEveryWeek(pattern, from, changes, stamp(pattern), newId, opts);
   void repo.upsert('patterns', ended);
   void repo.upsert('patterns', created);
   const next = {

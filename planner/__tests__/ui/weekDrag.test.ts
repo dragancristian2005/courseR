@@ -60,6 +60,15 @@ describe('snapDrop', () => {
     expect(at(0, 5000, long)).toEqual({ date: '2026-11-02', start: '18:00', end: '23:00' });
   });
 
+  it('clamps to the days allowed, e.g. the semester', () => {
+    const wed = { date: '2026-11-04', start: '09:40', end: '11:10' };
+    const within = (dx: number, minCol: number, maxCol: number) =>
+      snapDrop({ session: wed, monday, dayCount: 5, columnWidth: 60, dx, dy: 64, minCol, maxCol });
+    expect(within(-500, 2, 4)).toEqual({ date: '2026-11-04', start: '11:20', end: '12:50' });
+    expect(within(500, 0, 3)).toEqual({ date: '2026-11-05', start: '11:20', end: '12:50' });
+    expect(within(0, 3, 2)).toBeNull(); // no allowed day
+  });
+
   it('stays in the same column without a measured width', () => {
     expect(snapDrop({ session: mon, monday, dayCount: 5, columnWidth: 0, dx: 300, dy: 0 })).toBe(
       null,

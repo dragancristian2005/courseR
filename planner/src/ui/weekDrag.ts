@@ -33,7 +33,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
 
 /**
  * Where a class dragged by (dx, dy) pixels lands: the nearest day column (within the dayCount
- * shown from monday) and the nearest standard slot, keeping the class's length. Null when it
+ * shown from monday, and minCol to maxCol) and the nearest standard slot, keeping the class's length. Null when it
  * lands on the day and slot it started in.
  */
 export function snapDrop({
@@ -43,6 +43,8 @@ export function snapDrop({
   columnWidth,
   dx,
   dy,
+  minCol = 0,
+  maxCol = dayCount - 1,
 }: {
   session: Pick<Session, 'date' | 'start' | 'end'>;
   monday: ISODate;
@@ -50,12 +52,18 @@ export function snapDrop({
   columnWidth: number;
   dx: number;
   dy: number;
+  /** Columns that can take a drop (default: all shown), e.g. the semester's days. */
+  minCol?: number;
+  maxCol?: number;
 }): DropTarget | null {
+  const lo = Math.max(0, minCol);
+  const hi = Math.min(dayCount - 1, maxCol);
+  if (lo > hi) return null;
   const fromCol = daysBetween(monday, session.date);
   const fromRow = slotRowOf(session.start);
   const length = timeToMinutes(session.end) - timeToMinutes(session.start);
   const cols = columnWidth > 0 ? Math.round(dx / columnWidth) : 0;
-  const col = clamp(fromCol + cols, 0, dayCount - 1);
+  const col = clamp(fromCol + cols, lo, hi);
   let row = clamp(fromRow + Math.round(dy / ROW_HEIGHT), 0, SLOT_MINUTES.length - 1);
   while (row > 0 && SLOT_MINUTES[row] + length > LAST_MINUTE) row--;
   if (col === fromCol && row === fromRow) return null;

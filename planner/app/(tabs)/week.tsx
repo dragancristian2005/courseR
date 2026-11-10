@@ -91,10 +91,13 @@ export default function WeekScreen() {
     });
     setDrop(undefined);
   };
-  // Every week changes the class from the week it was dragged in, as Change every week would.
-  const everyWeekFrom = (s: Session) => mondayOf(s.id.slice(s.id.lastIndexOf(':') + 1));
+  // Every week changes the class from the shown week's Monday on, as Change every week would.
+  // It is only offered for a class that belongs to the shown week: one moved in from, or out to,
+  // another week can only be moved just this week.
+  const originalWeek = (s: Session) => mondayOf(s.id.slice(s.id.lastIndexOf(':') + 1));
+  const canChangeEveryWeek = drop ? originalWeek(drop.session) === monday : false;
   const saveEveryWeek = () => {
-    if (!drop) return;
+    if (!drop || !canChangeEveryWeek) return;
     const { session, target } = drop;
     const pattern = data.patterns.find((p) => p.id === session.patternId);
     if (!pattern) return setDrop(undefined);
@@ -103,9 +106,11 @@ export default function WeekScreen() {
         repo,
         data,
         pattern,
-        everyWeekFrom(session),
+        monday,
         { weekday: weekdayOf(target.date), start: target.start, end: target.end },
         target.date,
+        // A pattern that starts mid-week still gets the class in this week.
+        { startAtFrom: true },
       );
       if (selectedId === session.id) setSelectedId(moved?.id);
       setDrop(undefined);
@@ -118,8 +123,8 @@ export default function WeekScreen() {
     }
   };
   const everyWeek = () => {
-    if (!drop) return;
-    const from = everyWeekFrom(drop.session);
+    if (!drop || !canChangeEveryWeek) return;
+    const from = monday;
     const dropped = droppedByChange(data, drop.session.patternId, from);
     if (dropped.overrides.length + dropped.notes.length > 0)
       setDrop({ ...drop, warning: droppedWarning(dropped, from), failure: undefined });
@@ -145,6 +150,9 @@ export default function WeekScreen() {
         onDropSession={(session, target) => setDrop({ session, target })}
         onDragChange={setDragging}
         pendingDrop={drop ? { sessionId: drop.session.id, target: drop.target } : undefined}
+        dropRange={
+          data.semester ? { from: data.semester.firstDay, to: data.semester.lastDay } : undefined
+        }
       />
     );
 
@@ -206,7 +214,7 @@ export default function WeekScreen() {
             warning={drop.warning}
             failure={drop.failure}
             onThisWeek={thisWeek}
-            onEveryWeek={everyWeek}
+            onEveryWeek={canChangeEveryWeek ? everyWeek : undefined}
             onCancel={() => setDrop(undefined)}
             onSaveAnyway={saveEveryWeek}
             onGoBack={() => setDrop({ ...drop, warning: undefined })}
