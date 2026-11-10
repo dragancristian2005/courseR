@@ -6,7 +6,16 @@ import { useStore } from '../../src/data/useStore';
 import type { Exam } from '../../src/domain/types';
 import { goBack } from '../../src/ui/BackLink';
 import { Button } from '../../src/ui/Button';
-import { Chips, Field, isDate, isTime, MSG_DATE, MSG_TIME } from '../../src/ui/FormBits';
+import {
+  Chips,
+  DateField,
+  Field,
+  isDate,
+  isTime,
+  MSG_DATE,
+  MSG_TIME,
+  TimeField,
+} from '../../src/ui/FormBits';
 import { DeleteBlock, FormScreen, RecordGate } from '../../src/ui/FormScreen';
 
 function ExamForm() {
@@ -72,7 +81,7 @@ function ExamForm() {
         error={shown('title')}
         autoCapitalize="sentences"
       />
-      <Field
+      <DateField
         label="Date"
         value={date}
         onChangeText={on('date', setDate)}
@@ -80,7 +89,7 @@ function ExamForm() {
         error={shown('date')}
         placeholder="2026-11-12"
       />
-      <Field
+      <TimeField
         label="Start time"
         value={start}
         onChangeText={on('start', setStart)}

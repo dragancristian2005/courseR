@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { ISODate, Session } from '../domain/types';
 import { Button } from './Button';
-import { Field, isDate, MSG_DATE, timeErrors } from './FormBits';
+import { DateField, Field, isDate, MSG_DATE, timeErrors, TimeField } from './FormBits';
 import { theme } from './theme';
 
 export interface MoveValues {
@@ -30,21 +30,27 @@ export function MoveForm({
   const valid = !errors.start && !errors.end && !dateError;
   return (
     <View style={styles.form}>
-      <Field
+      <DateField
         label="Date"
         value={date}
         onChangeText={setDate}
         error={dateError}
         placeholder="2026-11-09"
       />
-      <Field
+      <TimeField
         label="Start"
         value={start}
         onChangeText={setStart}
         error={errors.start}
         placeholder="09:40"
       />
-      <Field label="End" value={end} onChangeText={setEnd} error={errors.end} placeholder="11:10" />
+      <TimeField
+        label="End"
+        value={end}
+        onChangeText={setEnd}
+        error={errors.end}
+        placeholder="11:10"
+      />
       {session.online ? null : <Field label="Room" value={room} onChangeText={setRoom} />}
       <View style={styles.buttons}>
         <Button

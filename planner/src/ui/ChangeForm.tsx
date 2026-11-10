@@ -9,7 +9,7 @@ import type {
   SessionOverride,
 } from '../domain/types';
 import { Button } from './Button';
-import { Chips, Field, isDate, MSG_DATE, timeErrors } from './FormBits';
+import { Chips, DateField, Field, isDate, MSG_DATE, timeErrors, TimeField } from './FormBits';
 import { Text } from './Text';
 import { theme } from './theme';
 import { shortDate, TYPE_LABEL, WEEKDAYS_SHORT } from './format';
@@ -116,7 +116,7 @@ export function ChangeForm({
 
   return (
     <View style={styles.form}>
-      <Field
+      <DateField
         label="Starting from"
         value={from}
         onChangeText={edit(setFrom)}
@@ -130,14 +130,14 @@ export function ChangeForm({
         value={weekday}
         onChange={edit(setWeekday)}
       />
-      <Field
+      <TimeField
         label="Start"
         value={start}
         onChangeText={edit(setStart)}
         error={errors.start}
         placeholder="09:40"
       />
-      <Field
+      <TimeField
         label="End"
         value={end}
         onChangeText={edit(setEnd)}

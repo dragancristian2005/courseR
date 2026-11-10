@@ -6,7 +6,16 @@ import { useStore } from '../../src/data/useStore';
 import type { Homework } from '../../src/domain/types';
 import { goBack } from '../../src/ui/BackLink';
 import { Button } from '../../src/ui/Button';
-import { Chips, Field, isDate, isTime, MSG_DATE, MSG_TIME } from '../../src/ui/FormBits';
+import {
+  Chips,
+  DateField,
+  Field,
+  isDate,
+  isTime,
+  MSG_DATE,
+  MSG_TIME,
+  TimeField,
+} from '../../src/ui/FormBits';
 import { DeleteBlock, FormScreen, RecordGate } from '../../src/ui/FormScreen';
 
 function HomeworkForm() {
@@ -84,7 +93,7 @@ function HomeworkForm() {
         value={subject}
         onChange={setSubject}
       />
-      <Field
+      <DateField
         label="Due date"
         value={due}
         onChangeText={field('due', setDue)}
@@ -92,7 +101,7 @@ function HomeworkForm() {
         error={shown('due')}
         placeholder="2026-11-09"
       />
-      <Field
+      <TimeField
         label="Due time"
         value={dueTime}
         onChangeText={field('dueTime', setDueTime)}

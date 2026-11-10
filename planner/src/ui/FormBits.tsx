@@ -1,4 +1,5 @@
-import { StyleSheet, TextInput, View } from 'react-native';
+import { Platform, StyleSheet, TextInput, View } from 'react-native';
+import { unstable_createElement } from 'react-native-web';
 import { isDate } from '../domain/dates';
 import { PressScale } from './PressScale';
 import { Text } from './Text';
@@ -58,6 +59,47 @@ export function Field({
   );
 }
 
+type PickerProps = {
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  onBlur?: () => void;
+  error?: string;
+  placeholder?: string;
+};
+
+const WebInput = (props: Record<string, unknown>) => unstable_createElement('input', props);
+
+/** A real <input type=date|time> on the web (iPhone shows its wheel); the plain Field elsewhere. */
+function PickerField({ type, ...p }: PickerProps & { type: 'date' | 'time' }) {
+  if (Platform.OS !== 'web') return <Field {...p} />;
+  const report = (e: { target: { value: string } }) => p.onChangeText(e.target.value);
+  return (
+    <View style={styles.field}>
+      <Text variant="meta">{p.label}</Text>
+      <WebInput
+        type={type}
+        aria-label={p.label}
+        value={p.value}
+        placeholder={p.placeholder}
+        onChange={report}
+        onInput={report}
+        onBlur={p.onBlur}
+        style={[styles.input, styles.webPicker, p.error ? styles.inputError : null]}
+      />
+      {p.error ? <Text style={styles.error}>{p.error}</Text> : null}
+    </View>
+  );
+}
+
+export function DateField(p: PickerProps) {
+  return <PickerField type="date" {...p} />;
+}
+
+export function TimeField(p: PickerProps) {
+  return <PickerField type="time" {...p} />;
+}
+
 export function Chips<T extends string | number>({
   label,
   options,
@@ -108,6 +150,7 @@ export const styles = StyleSheet.create({
     color: theme.color.ink,
     backgroundColor: theme.color.paper,
   },
+  webPicker: { alignSelf: 'stretch', boxSizing: 'border-box' } as object,
   inputError: { borderColor: theme.color.now },
   error: {
     color: theme.color.now,
