@@ -50,11 +50,11 @@ describe('tabs layout', () => {
     (useLayout as jest.Mock).mockReturnValue('phone');
     await renderRouter(routes, { initialUrl: '/' });
     const [today, week] = screen.getAllByRole('tab');
-    expect(StyleSheet.flatten(today.props.style).backgroundColor).toBe(theme.color.paper);
+    expect(StyleSheet.flatten(today.props.style).backgroundColor).toBe(theme.color.barPill);
     expect(StyleSheet.flatten(week.props.style).backgroundColor).toBeUndefined();
     const bar = today.parent!;
     expect(StyleSheet.flatten(bar.props.style)).toMatchObject({
-      backgroundColor: theme.color.ink,
+      backgroundColor: theme.color.bar,
       borderRadius: expect.any(Number),
     });
   });
@@ -75,7 +75,7 @@ describe('tabs layout motion and icons', () => {
       row.props.onLayout({ nativeEvent: { layout: { width: 378, height: 60, x: 0, y: 0 } } });
     });
     const pill = screen.getByTestId('tab-indicator');
-    expect(StyleSheet.flatten(pill.props.style).backgroundColor).toBe(theme.color.paper);
+    expect(StyleSheet.flatten(pill.props.style).backgroundColor).toBe(theme.color.barPill);
     // The pill carries the highlight, so the tab itself no longer does.
     const [today] = screen.getAllByRole('tab');
     expect(StyleSheet.flatten(today.props.style).backgroundColor).toBeUndefined();

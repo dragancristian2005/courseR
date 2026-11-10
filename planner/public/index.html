@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
     <title>%WEB_TITLE%</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#F4F6F8">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#F4F6F8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0F141D" media="(prefers-color-scheme: dark)">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -18,9 +20,41 @@
       body {
         height: 100%;
       }
+      /* Theme colours (src/ui/theme.ts palette): light by default, dark with the phone. */
+      :root {
+        color-scheme: light dark;
+        --c-paper: #F4F6F8;
+        --c-ink: #17213A;
+        --c-muted: #48536B;
+        --c-rule: #C9CFD8;
+        --c-course: #C3CBF2;
+        --c-seminar: #F6D9B0;
+        --c-lab: #BFE3DA;
+        --c-now: #C8302A;
+        --c-bar: #17213A;
+        --c-barPill: #F4F6F8;
+        --c-barActive: #17213A;
+        --c-barIdle: #C9CFD8;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --c-paper: #0F141D;
+          --c-ink: #E6EAF0;
+          --c-muted: #A3ACBD;
+          --c-rule: #343D4E;
+          --c-course: #2C3766;
+          --c-seminar: #533F22;
+          --c-lab: #1C443D;
+          --c-now: #FF7466;
+          --c-bar: #1F2737;
+          --c-barPill: #E6EAF0;
+          --c-barActive: #0F141D;
+          --c-barIdle: #9AA4B6;
+        }
+      }
       body {
         overflow: hidden;
-        background-color: #F4F6F8;
+        background-color: var(--c-paper);
       }
       #root {
         display: flex;

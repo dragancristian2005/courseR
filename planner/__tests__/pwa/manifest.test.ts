@@ -47,7 +47,7 @@ describe('html template', () => {
   const html = read('public/index.html');
   it.each([
     '<link rel="manifest" href="/manifest.json">',
-    '<meta name="theme-color" content="#F4F6F8">',
+    '<meta name="theme-color" content="#F4F6F8" media="(prefers-color-scheme: light)">',
     '<meta name="apple-mobile-web-app-capable" content="yes">',
     '<meta name="mobile-web-app-capable" content="yes">',
     '<meta name="apple-mobile-web-app-status-bar-style" content="default">',
