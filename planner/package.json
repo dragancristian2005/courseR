@@ -1,5 +1,8 @@
 {
   "name": "planner",
+  "private": true,
+  "description": "A university timetable, homework and exam planner: an installable web app with Firebase sync, timetable import and Google Classroom import.",
+  "license": "MIT",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
@@ -50,7 +53,6 @@
     "format:check": "prettier --check .",
     "test:rules": "firebase emulators:exec --only firestore --project demo-planner \"jest -c rules-tests/jest.config.js\""
   },
-  "private": true,
   "jest": {
     "preset": "jest-expo",
     "testPathIgnorePatterns": [

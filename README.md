@@ -3,10 +3,17 @@
 A timetable, homework and exam planner for university students. It started from the timetables at the West University of Timișoara (UVT) and Politehnica Timișoara. It is a web app that you install on your iPhone, iPad or laptop, and your data syncs between devices through your Google account.
 
 <p align="center">
-  <img src="docs/screenshots/today-light.png" width="240" alt="Today: the day's classes with a red now line, then homework due this week">
-  <img src="docs/screenshots/week-light.png" width="240" alt="Week: a grid of courses, seminars and labs from Monday to Friday">
+  <img src="docs/screenshots/today-light.png" width="240" alt="Today: the day's classes with a red now line, homework due this week and the next exam">
+  <img src="docs/screenshots/week-light.png" width="240" alt="Week: a grid of courses, seminars and labs from Monday to Friday, with a class moved this week">
+  <img src="docs/screenshots/week-drag-light.png" width="240" alt="Dragging a class to Wednesday 13:00, with a bar asking Just this week, Every week or Cancel">
+</p>
+<p align="center">
+  <img src="docs/screenshots/homework-light.png" width="240" alt="Homework grouped into this week, later, no due date and done">
+  <img src="docs/screenshots/class-dark.png" width="240" alt="A class page in dark mode, with move, change and cancel actions">
   <img src="docs/screenshots/today-dark.png" width="240" alt="Today in dark mode">
 </p>
+
+<p align="center"><sub>Screenshots from the built-in demo (<code>npm run demo</code>), made-up data.</sub></p>
 
 ## What it does
 

@@ -1,6 +1,15 @@
 # Study Planner
 
-A study planner for a university timetable, homework, exams and notes. Phase 1 runs as an installable web app on iPhone, iPad and laptop, and keeps its data in Firebase (Firestore).
+Setup guide for the Study Planner: a timetable, homework, exam and notes planner that runs as an installable web app on iPhone, iPad and laptop, and keeps its data in Firebase (Firestore). For an overview, see the [main README](../README.md).
+
+## Just looking? Run the demo
+
+```
+npm ci
+npm run demo
+```
+
+This opens the app in the browser with a made-up semester. It needs no Firebase project, no sign-in, and nothing is saved. `npm run build:demo` exports the same thing to `dist-demo/`.
 
 ## 1. Firebase setup
 
