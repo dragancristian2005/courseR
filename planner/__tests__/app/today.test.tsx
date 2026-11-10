@@ -108,6 +108,14 @@ describe('Today screen', () => {
     expect(screen.getByText('Week 6, even week')).toBeTruthy();
   });
 
+  it('Settings is a gear button that never squeezes the date', async () => {
+    await setup();
+    const settings = screen.getByRole('button', { name: 'Settings' });
+    expect(screen.getByTestId('settings-icon')).toBeTruthy();
+    expect(screen.queryByText('Settings')).toBeNull();
+    expect(settings.props.style).toMatchObject({ minWidth: 44, minHeight: 44 });
+  });
+
   it('header falls back for break and outside the semester', async () => {
     jest.setSystemTime(new Date(2026, 10, 10, 10, 25));
     await setup();

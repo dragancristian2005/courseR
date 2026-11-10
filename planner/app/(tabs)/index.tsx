@@ -9,6 +9,7 @@ import { daysCount, longDate, shortDate, STANDARD_SLOTS, TYPE_LABEL } from '../.
 import { Rule } from '../../src/ui/Rule';
 import { SetupPrompt } from '../../src/ui/SetupPrompt';
 import { SlotRow } from '../../src/ui/SlotRow';
+import { SettingsIcon } from '../../src/ui/TabIcon';
 import { Text } from '../../src/ui/Text';
 import { theme } from '../../src/ui/theme';
 import { useLayout } from '../../src/ui/useLayout';
@@ -108,7 +109,7 @@ export default function Today() {
         onPress={() => router.push('/settings')}
         style={styles.settings}
       >
-        <Text style={{ fontFamily: theme.font.appBold }}>Settings</Text>
+        <SettingsIcon color={theme.color.ink} />
       </Pressable>
     ) : null;
 
@@ -202,7 +203,9 @@ export default function Today() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.inner}>
         <View style={styles.headerRow}>
-          <Header today={today} weekLine={weekLineOf(agenda.week)} />
+          <View style={styles.headerText}>
+            <Header today={today} weekLine={weekLineOf(agenda.week)} />
+          </View>
           {settings}
         </View>
         <Rule weight="heavy" />
@@ -214,24 +217,27 @@ export default function Today() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.color.paper },
-  content: { padding: theme.space(4), alignItems: 'center' },
+  // Just under the status bar: the tab layout already keeps clear of it.
+  content: { padding: theme.space(4), paddingTop: theme.space(2), alignItems: 'center' },
   inner: { width: '100%', maxWidth: 720 },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    gap: theme.space(2),
     paddingBottom: theme.space(2),
   },
+  headerText: { flex: 1, minWidth: 0 },
   date: {
     fontFamily: theme.font.appBold,
-    fontSize: 30,
+    fontSize: 26,
     color: theme.color.ink,
   },
   settings: {
     minHeight: 44,
     minWidth: 44,
     justifyContent: 'center',
-    alignItems: 'flex-end',
+    alignItems: 'center',
   },
   plain: { paddingVertical: theme.space(4) },
   thin: {
