@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { Linking } from 'react-native';
+import { Linking, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import ClassScreen from '../../app/class/[sessionId]';
 import EditClass from '../../app/class/edit';
@@ -9,6 +9,7 @@ import { OPEN_START } from '../../src/domain/edits';
 import { sessionsBetween } from '../../src/domain/sessions';
 import { emptyPlannerData } from '../../src/data/repository';
 import { StoreProvider } from '../../src/data/StoreProvider';
+import { theme } from '../../src/ui/theme';
 import type { ClassPattern, PlannerData, Semester, Subject } from '../../src/domain/types';
 
 let mockParams: { sessionId?: string } = {};
@@ -453,6 +454,15 @@ describe('Class detail', () => {
     expect((router.dismissAll as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(
       (router.replace as jest.Mock).mock.invocationCallOrder[0],
     );
+  });
+
+  it('indents the empty Links, Homework and Notes lines like the rest of the page', async () => {
+    await detail();
+    for (const text of ['No links yet.', 'No homework for this subject.', 'No notes yet.']) {
+      expect(StyleSheet.flatten(screen.getByText(text).props.style)).toMatchObject({
+        paddingHorizontal: theme.space(4),
+      });
+    }
   });
 
   it('lists links, homework and notes, and navigates to add screens', async () => {

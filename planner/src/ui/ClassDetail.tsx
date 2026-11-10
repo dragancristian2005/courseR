@@ -258,7 +258,11 @@ export function ClassDetail({
         title="Links"
         right={<TextButton label="Add link" onPress={() => router.push(`/link/edit?${q}`)} />}
       >
-        {links.length === 0 ? <Text variant="meta">No links yet.</Text> : null}
+        {links.length === 0 ? (
+          <Text variant="meta" style={styles.empty}>
+            No links yet.
+          </Text>
+        ) : null}
         {links.map((l) => (
           <View key={l.id}>
             <Pressable
@@ -281,7 +285,11 @@ export function ClassDetail({
           <TextButton label="Add homework" onPress={() => router.push(`/homework/edit?${q}`)} />
         }
       >
-        {homework.length === 0 ? <Text variant="meta">No homework for this subject.</Text> : null}
+        {homework.length === 0 ? (
+          <Text variant="meta" style={styles.empty}>
+            No homework for this subject.
+          </Text>
+        ) : null}
         {homework.map((h) => {
           const label = dueLabel(h.due, today);
           const urgent = label === 'Overdue' || label === 'Today' || label === 'Tomorrow';
@@ -325,7 +333,11 @@ export function ClassDetail({
           />
         }
       >
-        {notes.length === 0 ? <Text variant="meta">No notes yet.</Text> : null}
+        {notes.length === 0 ? (
+          <Text variant="meta" style={styles.empty}>
+            No notes yet.
+          </Text>
+        ) : null}
         {notes.map((n) => (
           <View key={n.id} style={styles.note}>
             <Text variant="note">{n.text}</Text>
@@ -410,6 +422,8 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   section: { paddingHorizontal: 0, marginTop: theme.space(3) },
+  // Same 16px indent as the section titles and rows.
+  empty: { paddingHorizontal: theme.space(4), paddingVertical: theme.space(2) },
   sectionHead: {
     flexDirection: 'row',
     alignItems: 'center',
