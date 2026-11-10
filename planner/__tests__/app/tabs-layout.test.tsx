@@ -1,7 +1,10 @@
 import React from 'react';
 import { Text } from 'react-native';
-import { fireEvent, renderRouter, screen } from 'expo-router/testing-library';
+import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
+import { StyleSheet } from 'react-native';
 import TabLayout from '../../app/(tabs)/_layout';
+import { tabBarBottomPad, TOP_CLEARANCE } from '../../src/ui/tabBar';
+import { theme } from '../../src/ui/theme';
 import { useLayout } from '../../src/ui/useLayout';
 
 jest.mock('../../src/ui/useLayout', () => ({ useLayout: jest.fn() }));
@@ -41,5 +44,58 @@ describe('tabs layout', () => {
     expect(await screen.findByText('page week')).toBeTruthy();
     await fireEvent.press(screen.getByText('Settings'));
     expect(await screen.findByText('page settings')).toBeTruthy();
+  });
+
+  it('phone: the active tab is a light pill on the dark floating bar', async () => {
+    (useLayout as jest.Mock).mockReturnValue('phone');
+    await renderRouter(routes, { initialUrl: '/' });
+    const [today, week] = screen.getAllByRole('tab');
+    expect(StyleSheet.flatten(today.props.style).backgroundColor).toBe(theme.color.paper);
+    expect(StyleSheet.flatten(week.props.style).backgroundColor).toBeUndefined();
+    const bar = today.parent!;
+    expect(StyleSheet.flatten(bar.props.style)).toMatchObject({
+      backgroundColor: theme.color.ink,
+      borderRadius: expect.any(Number),
+    });
+  });
+});
+
+describe('tabs layout motion and icons', () => {
+  it('phone: every tab has an icon above its label', async () => {
+    (useLayout as jest.Mock).mockReturnValue('phone');
+    await renderRouter(routes, { initialUrl: '/' });
+    for (const l of labels) expect(screen.getByTestId(`tab-icon-${l}`)).toBeTruthy();
+  });
+
+  it('phone: once measured, a sliding pill marks the active tab and moves on navigation', async () => {
+    (useLayout as jest.Mock).mockReturnValue('phone');
+    await renderRouter(routes, { initialUrl: '/' });
+    const row = screen.getAllByRole('tab')[0].parent!;
+    await act(async () => {
+      row.props.onLayout({ nativeEvent: { layout: { width: 378, height: 60, x: 0, y: 0 } } });
+    });
+    const pill = screen.getByTestId('tab-indicator');
+    expect(StyleSheet.flatten(pill.props.style).backgroundColor).toBe(theme.color.paper);
+    // The pill carries the highlight, so the tab itself no longer does.
+    const [today] = screen.getAllByRole('tab');
+    expect(StyleSheet.flatten(today.props.style).backgroundColor).toBeUndefined();
+    await fireEvent.press(screen.getByText('Week'));
+    expect(await screen.findByText('page week')).toBeTruthy();
+    expect(screen.getAllByRole('tab')[1].props.accessibilityState.selected).toBe(true);
+  });
+});
+
+describe('TOP_CLEARANCE', () => {
+  it('keeps the first line 24px below the status bar on every screen', () => {
+    expect(TOP_CLEARANCE).toBe(24);
+  });
+});
+
+describe('tabBarBottomPad', () => {
+  it('floats the bar clearly above the iPhone home indicator', () => {
+    expect(tabBarBottomPad(34)).toBe(46);
+  });
+  it('keeps a gap on screens without a home indicator', () => {
+    expect(tabBarBottomPad(0)).toBe(16);
   });
 });

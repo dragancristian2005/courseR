@@ -146,7 +146,7 @@ export default function WeekScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, flexDirection: 'row', backgroundColor: theme.color.paper },
   main: { flex: 1 },
-  content: { padding: theme.space(4), alignItems: 'center' },
+  content: { padding: theme.space(4), paddingTop: 0, alignItems: 'center' },
   inner: { width: '100%', maxWidth: 1100 },
   headerRow: {
     flexDirection: 'row',

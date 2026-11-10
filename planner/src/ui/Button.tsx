@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { PressScale } from './PressScale';
 import { Text } from './Text';
 import { theme } from './theme';
 
@@ -12,7 +13,7 @@ export interface ButtonProps {
 export function Button({ label, onPress, kind = 'primary', disabled = false }: ButtonProps) {
   const primary = kind === 'primary';
   return (
-    <Pressable
+    <PressScale
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled }}
@@ -33,7 +34,7 @@ export function Button({ label, onPress, kind = 'primary', disabled = false }: B
       >
         {label}
       </Text>
-    </Pressable>
+    </PressScale>
   );
 }
 

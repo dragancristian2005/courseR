@@ -1,7 +1,9 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import type { Homework, ISODate, Subject } from '../domain/types';
 import { dueLabel } from '../domain/selectors';
+import { NATIVE_DRIVER, useReducedMotion } from './motion';
 import { Rule } from './Rule';
 import { Text } from './Text';
 import { theme } from './theme';
@@ -20,6 +22,22 @@ export function HomeworkRow({
   onToggle: () => void;
 }) {
   const label = dueLabel(hw.due, today);
+  const reduced = useReducedMotion();
+  // Ticking a homework off pops the box once; un-ticking doesn't.
+  const pop = useRef(new Animated.Value(1)).current;
+  const wasDone = useRef(hw.done);
+  useEffect(() => {
+    if (hw.done && !wasDone.current && !reduced) {
+      pop.setValue(0.7);
+      Animated.spring(pop, {
+        toValue: 1,
+        useNativeDriver: NATIVE_DRIVER,
+        speed: 14,
+        bounciness: 14,
+      }).start();
+    }
+    wasDone.current = hw.done;
+  }, [hw.done, reduced, pop]);
   const sub = [subject?.name, hw.dueTime].filter(Boolean).join(', ');
   return (
     <View>
@@ -31,9 +49,12 @@ export function HomeworkRow({
           onPress={onToggle}
           style={styles.hit}
         >
-          <View style={[styles.box, hw.done && styles.boxOn]}>
+          <Animated.View
+            testID="homework-box"
+            style={[styles.box, hw.done && styles.boxOn, { transform: [{ scale: pop }] }]}
+          >
             {hw.done ? <Text style={styles.tick}>✓</Text> : null}
-          </View>
+          </Animated.View>
         </Pressable>
         <Pressable
           accessibilityRole="button"

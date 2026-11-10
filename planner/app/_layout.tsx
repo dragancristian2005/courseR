@@ -12,6 +12,7 @@ import { initFirebase } from '../src/data/firebase';
 import { createFirestoreRepository } from '../src/data/firestoreRepository';
 import { StoreProvider } from '../src/data/StoreProvider';
 import { BackLink } from '../src/ui/BackLink';
+import { CompactHeader } from '../src/ui/CompactHeader';
 import { fontsSettled } from '../src/ui/fonts';
 import { StoreGate } from '../src/ui/StoreGate';
 import { theme } from '../src/ui/theme';
@@ -60,6 +61,8 @@ export default function RootLayout() {
             headerTitleStyle: { fontFamily: theme.font.appBold },
             headerBackVisible: false,
             headerLeft: () => <BackLink />,
+            // Slim header: Back right under the status bar, no tall title bar.
+            header: () => <CompactHeader />,
             contentStyle: { backgroundColor: theme.color.paper },
           }}
         >

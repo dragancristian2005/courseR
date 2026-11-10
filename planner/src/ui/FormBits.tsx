@@ -1,5 +1,6 @@
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { isDate } from '../domain/dates';
+import { PressScale } from './PressScale';
 import { Text } from './Text';
 import { theme } from './theme';
 
@@ -78,7 +79,7 @@ export function Chips<T extends string | number>({
         {options.map((o) => {
           const selected = o.value === value;
           return (
-            <Pressable
+            <PressScale
               key={String(o.value)}
               accessibilityRole="radio"
               accessibilityLabel={o.label}
@@ -87,7 +88,7 @@ export function Chips<T extends string | number>({
               style={[styles.chip, selected && styles.chipOn]}
             >
               <Text style={[styles.chipText, selected && styles.chipTextOn]}>{o.label}</Text>
-            </Pressable>
+            </PressScale>
           );
         })}
       </View>

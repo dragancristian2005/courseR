@@ -44,6 +44,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 720,
     padding: theme.space(4),
+    paddingTop: theme.space(1),
     gap: theme.space(4),
   },
   title: {

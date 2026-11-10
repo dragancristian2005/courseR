@@ -49,6 +49,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.color.paper },
   content: {
     padding: theme.space(4),
+    paddingTop: 0,
     alignItems: 'center',
     paddingBottom: theme.space(8),
   },
@@ -62,7 +63,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: theme.font.appBold,
-    fontSize: 30,
+    fontSize: 26,
     color: theme.color.ink,
   },
   heading: {
