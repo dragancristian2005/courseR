@@ -1,10 +1,10 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { newId } from '../../src/data/ids';
 import { useStore } from '../../src/data/useStore';
 import { OPEN_START } from '../../src/domain/edits';
 import type { ClassPattern, ClassType, Repeat, Subject } from '../../src/domain/types';
+import { leaveTo } from '../../src/ui/leaveImport';
 import { Button } from '../../src/ui/Button';
 import { REPEAT_OPTIONS, TYPE_OPTIONS, WEEKDAY_OPTIONS } from '../../src/ui/ChangeForm';
 import { Chips, Field, timeErrors, TimeField } from '../../src/ui/FormBits';
@@ -81,7 +81,7 @@ export default function EditClass() {
       updatedAt: Date.now(),
     };
     void repo.upsert('patterns', pattern);
-    router.replace('/');
+    leaveTo('/');
   };
 
   return (

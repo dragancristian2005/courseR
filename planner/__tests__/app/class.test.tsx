@@ -18,6 +18,8 @@ jest.mock('expo-router', () => ({
     replace: jest.fn(),
     back: jest.fn(),
     canGoBack: jest.fn(() => true),
+    canDismiss: jest.fn(() => true),
+    dismissAll: jest.fn(),
   },
   useLocalSearchParams: () => mockParams,
 }));
@@ -445,7 +447,12 @@ describe('Class detail', () => {
     await press('Delete class');
     await press('Delete class');
     expect(remove).toHaveBeenCalledWith('patterns', 'p1');
+    // Opened from Week: clear the class screen off the stack, then switch to Today.
+    expect(router.dismissAll).toHaveBeenCalled();
     expect(router.replace).toHaveBeenCalledWith('/');
+    expect((router.dismissAll as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(
+      (router.replace as jest.Mock).mock.invocationCallOrder[0],
+    );
   });
 
   it('lists links, homework and notes, and navigates to add screens', async () => {

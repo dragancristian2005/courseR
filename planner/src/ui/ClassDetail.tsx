@@ -15,6 +15,7 @@ import { resolveSession } from '../domain/sessions';
 import type { ISODate, Repeat } from '../domain/types';
 import { weekFor } from '../domain/weeks';
 import { goBack } from './BackLink';
+import { leaveTo } from './leaveImport';
 import { Button } from './Button';
 import { ChangeForm, REPEAT_OPTIONS } from './ChangeForm';
 import { longDate, shortDate, TYPE_LABEL } from './format';
@@ -350,7 +351,8 @@ export function ClassDetail({
                 onPress={() => {
                   void repo.remove('patterns', pattern.id);
                   if (onClose) onClose();
-                  else router.replace('/');
+                  // Opened from Week (or Today) on a phone: land on Today, not the tab underneath.
+                  else leaveTo('/');
                 }}
               />
               <Button label="Keep it" kind="outline" onPress={() => setMode('none')} />
