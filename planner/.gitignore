@@ -44,3 +44,6 @@ yarn-error.*
 # Firebase CLI project selection (local only)
 .firebaserc
 firestore-debug.log
+
+# Demo build
+dist-demo/

@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
+import { isDemo } from './demo';
 import { initFirebase } from './firebase';
 
 export interface AuthUser {
@@ -49,6 +50,11 @@ export function useAuth(): AuthState {
   const [redirectFailed, setRedirectFailed] = useState(false);
 
   useEffect(() => {
+    // Demo mode has no account: nothing to sign in to, and Firebase is never touched.
+    if (isDemo()) {
+      setLoading(false);
+      return;
+    }
     let auth;
     try {
       auth = initFirebase().auth;

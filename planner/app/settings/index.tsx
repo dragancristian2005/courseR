@@ -1,5 +1,6 @@
 import { router, type Href } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { isDemo } from '../../src/data/demo';
 import { useAuth } from '../../src/data/auth';
 import { clearPending } from '../../src/data/importSession';
 import { Button } from '../../src/ui/Button';
@@ -47,7 +48,13 @@ export default function Settings() {
             </View>
           ))}
         </View>
-        <Button kind="outline" label="Sign out" onPress={() => void signOut()} />
+        {isDemo() ? (
+          <Text variant="meta" style={{ color: theme.color.muted }}>
+            Demo data — nothing is saved
+          </Text>
+        ) : (
+          <Button kind="outline" label="Sign out" onPress={() => void signOut()} />
+        )}
       </View>
     </View>
   );
