@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { compareDates } from '../domain/dates';
 import type { ISODate, Parity } from '../domain/types';
 import { Button } from './Button';
-import { Field, isDate } from './FormBits';
+import { DateField, isDate } from './FormBits';
 import { Rule } from './Rule';
 import { Text } from './Text';
 import { TextButton } from './TextButton';
@@ -104,7 +104,7 @@ export function BreakForm({
     <View style={styles.form}>
       <View style={styles.pair}>
         <View style={styles.half}>
-          <Field
+          <DateField
             label="From"
             value={from}
             onChangeText={(v) => {
@@ -116,7 +116,7 @@ export function BreakForm({
           />
         </View>
         <View style={styles.half}>
-          <Field
+          <DateField
             label="To"
             value={to}
             onChangeText={(v) => {

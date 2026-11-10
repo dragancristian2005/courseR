@@ -11,7 +11,15 @@ import { Button } from '../../src/ui/Button';
 import { leaveImport } from '../../src/ui/leaveImport';
 import { NothingToReview } from '../../src/ui/NothingToReview';
 import { useSaveLock } from '../../src/ui/useSaveLock';
-import { Chips, Field, isDate, isTime, MSG_TIME } from '../../src/ui/FormBits';
+import {
+  Chips,
+  DateField,
+  Field,
+  isDate,
+  isTime,
+  MSG_TIME,
+  TimeField,
+} from '../../src/ui/FormBits';
 import { shortDate } from '../../src/ui/format';
 import { FormScreen } from '../../src/ui/FormScreen';
 import { Rule } from '../../src/ui/Rule';
@@ -216,13 +224,14 @@ function Review({ file }: { file: ExamImport }) {
                   >{`Check this: ${inWords(unsure)} may be misread.`}</Text>
                   {open[e.id] ? (
                     <View style={styles.question}>
-                      <Field
+                      <DateField
                         label="Date"
                         value={ed?.date ?? e.date}
                         onChangeText={(v) => patch(e, { date: v })}
                         error={isDate(ed?.date ?? e.date) ? undefined : MSG_EXAM_DATE}
                       />
-                      <Field
+                      <TimeField
+                        optional
                         label="Start"
                         value={ed?.start ?? e.start ?? ''}
                         onChangeText={(v) => patch(e, { start: v })}

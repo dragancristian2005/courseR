@@ -200,6 +200,24 @@ describe('changeEveryWeek', () => {
     expect(created.validFrom).toBe('2026-09-28');
   });
 
+  it('can start the copy at a from before validFrom, for a change to the whole week', () => {
+    const midWeek = { ...p1, weekday: 3 as const, validFrom: '2026-11-18' };
+    const { ended, created } = changeEveryWeek(
+      midWeek,
+      '2026-11-16',
+      { weekday: 1 },
+      5,
+      () => 'n',
+      { startAtFrom: true },
+    );
+    expect(ended.deleted).toBe(true);
+    expect(created.validFrom).toBe('2026-11-16');
+    const d = make({ patterns: [ended, created] });
+    expect(sessionsBetween(d, '2026-11-16', '2026-11-22').map((s) => s.id)).toEqual([
+      'n:2026-11-16',
+    ]);
+  });
+
   it('throws when from is after validTo', () => {
     expect(() =>
       changeEveryWeek({ ...p1, validTo: '2026-10-31' }, '2026-11-09', changes, 1, () => 'n'),

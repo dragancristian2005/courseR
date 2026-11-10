@@ -1,7 +1,9 @@
-import { StyleSheet, TextInput, View } from 'react-native';
+import { Platform, StyleSheet, TextInput, View } from 'react-native';
 import { isDate } from '../domain/dates';
+import { PickerInput } from './PickerInput';
 import { PressScale } from './PressScale';
 import { Text } from './Text';
+import { TextButton } from './TextButton';
 import { theme } from './theme';
 
 export const MSG_TIME = 'Enter a time like 09:40.';
@@ -58,6 +60,54 @@ export function Field({
   );
 }
 
+type PickerProps = {
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  onBlur?: () => void;
+  error?: string;
+  placeholder?: string;
+  /** An empty value is allowed: the web picker then shows a Clear button. */
+  optional?: boolean;
+};
+
+/** A real <input type=date|time> on the web (iPhone shows its wheel); the plain Field elsewhere. */
+function PickerField({ type, optional, ...p }: PickerProps & { type: 'date' | 'time' }) {
+  if (Platform.OS !== 'web') return <Field {...p} />;
+  return (
+    <View style={styles.field}>
+      <Text variant="meta">{p.label}</Text>
+      <View style={styles.pickerRow}>
+        <PickerInput
+          type={type}
+          label={p.label}
+          value={p.value}
+          placeholder={p.placeholder}
+          onChangeText={p.onChangeText}
+          onBlur={p.onBlur}
+          style={[styles.input, styles.webPicker, p.error ? styles.inputError : null]}
+        />
+        {optional && p.value !== '' ? (
+          <TextButton
+            label="Clear"
+            accessibilityLabel={`Clear ${p.label}`}
+            onPress={() => p.onChangeText('')}
+          />
+        ) : null}
+      </View>
+      {p.error ? <Text style={styles.error}>{p.error}</Text> : null}
+    </View>
+  );
+}
+
+export function DateField(p: PickerProps) {
+  return <PickerField type="date" {...p} />;
+}
+
+export function TimeField(p: PickerProps) {
+  return <PickerField type="time" {...p} />;
+}
+
 export function Chips<T extends string | number>({
   label,
   options,
@@ -108,6 +158,8 @@ export const styles = StyleSheet.create({
     color: theme.color.ink,
     backgroundColor: theme.color.paper,
   },
+  pickerRow: { flexDirection: 'row', alignItems: 'center', gap: theme.space(2) },
+  webPicker: { flex: 1, minWidth: 0, boxSizing: 'border-box' } as object,
   inputError: { borderColor: theme.color.now },
   error: {
     color: theme.color.now,

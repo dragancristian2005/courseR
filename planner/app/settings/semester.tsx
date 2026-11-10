@@ -6,7 +6,7 @@ import { addDays, compareDates } from '../../src/domain/dates';
 import type { ISODate, Parity, Semester } from '../../src/domain/types';
 import { buildWeeks } from '../../src/domain/weeks';
 import { Button } from '../../src/ui/Button';
-import { Field, isDate } from '../../src/ui/FormBits';
+import { DateField, Field, isDate } from '../../src/ui/FormBits';
 import { FormScreen } from '../../src/ui/FormScreen';
 import { dayRange } from '../../src/ui/format';
 import { Rule } from '../../src/ui/Rule';
@@ -127,7 +127,7 @@ function SemesterSetup() {
       <Field label="Name" value={name} onChangeText={edit(setName)} autoCapitalize="words" />
       <View style={styles.pair}>
         <View style={styles.half}>
-          <Field
+          <DateField
             label="First day of classes"
             value={firstDay}
             onChangeText={(v) => {
@@ -139,7 +139,7 @@ function SemesterSetup() {
           />
         </View>
         <View style={styles.half}>
-          <Field
+          <DateField
             label="Last day of classes"
             value={lastDay}
             onChangeText={(v) => {

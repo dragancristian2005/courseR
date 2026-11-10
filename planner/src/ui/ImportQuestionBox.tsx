@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { ImportBlock, UnsureField } from '../domain/importFormat';
 import { TYPE_LABEL } from './format';
-import { Chips, Field, isTime, MSG_ORDER, MSG_TIME } from './FormBits';
+import { Chips, Field, isTime, MSG_ORDER, MSG_TIME, TimeField } from './FormBits';
 import { whenWords } from './ImportBlockRow';
 import { Text } from './Text';
 import { TextButton } from './TextButton';
@@ -153,7 +153,7 @@ export function UnsureQuestion({
           {showType ? (
             <Chips label="Type" options={TYPE_OPTIONS} value={type} onChange={onType} />
           ) : null}
-          <Field
+          <TimeField
             label="Start"
             value={start}
             onChangeText={(v) => {
@@ -162,7 +162,7 @@ export function UnsureQuestion({
             }}
             error={startError}
           />
-          <Field
+          <TimeField
             label="End"
             value={end}
             onChangeText={(v) => {

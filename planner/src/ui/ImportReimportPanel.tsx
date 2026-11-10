@@ -3,7 +3,7 @@ import { droppedByChange } from '../domain/edits';
 import type { ImportDiff } from '../domain/importDiff';
 import type { ClassPattern, PlannerData, Subject } from '../domain/types';
 import { droppedWarning } from './ChangeForm';
-import { Field, isDate, MSG_DATE } from './FormBits';
+import { DateField, isDate, MSG_DATE } from './FormBits';
 import { TYPE_LABEL } from './format';
 import { whenWords } from './ImportBlockRow';
 import { Text } from './Text';
@@ -49,7 +49,7 @@ export function ImportReimportPanel({
   const warning = diff === null ? null : warningFor(diff, data, from);
   return (
     <View style={styles.block}>
-      <Field
+      <DateField
         label="Apply changes from"
         value={from}
         onChangeText={onFromChange}

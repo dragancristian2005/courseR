@@ -1,13 +1,13 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { newId } from '../../src/data/ids';
 import { useStore } from '../../src/data/useStore';
 import { OPEN_START } from '../../src/domain/edits';
 import type { ClassPattern, ClassType, Repeat, Subject } from '../../src/domain/types';
+import { leaveTo } from '../../src/ui/leaveImport';
 import { Button } from '../../src/ui/Button';
 import { REPEAT_OPTIONS, TYPE_OPTIONS, WEEKDAY_OPTIONS } from '../../src/ui/ChangeForm';
-import { Chips, Field, timeErrors } from '../../src/ui/FormBits';
+import { Chips, Field, timeErrors, TimeField } from '../../src/ui/FormBits';
 import { Text } from '../../src/ui/Text';
 import { theme } from '../../src/ui/theme';
 
@@ -81,7 +81,7 @@ export default function EditClass() {
       updatedAt: Date.now(),
     };
     void repo.upsert('patterns', pattern);
-    router.replace('/');
+    leaveTo('/');
   };
 
   return (
@@ -116,7 +116,7 @@ export default function EditClass() {
         ) : null}
         <Chips label="Type" options={TYPE_OPTIONS} value={type} onChange={setType} />
         <Chips label="Weekday" options={WEEKDAY_OPTIONS} value={weekday} onChange={setWeekday} />
-        <Field
+        <TimeField
           label="Start"
           value={start}
           onChangeText={(v) => {
@@ -126,7 +126,7 @@ export default function EditClass() {
           error={touched.includes('start') ? errors.start : undefined}
           placeholder="09:40"
         />
-        <Field
+        <TimeField
           label="End"
           value={end}
           onChangeText={(v) => {
