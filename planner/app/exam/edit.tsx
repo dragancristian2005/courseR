@@ -90,6 +90,7 @@ function ExamForm() {
         placeholder="2026-11-12"
       />
       <TimeField
+        optional
         label="Start time"
         value={start}
         onChangeText={on('start', setStart)}

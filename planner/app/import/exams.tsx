@@ -231,6 +231,7 @@ function Review({ file }: { file: ExamImport }) {
                         error={isDate(ed?.date ?? e.date) ? undefined : MSG_EXAM_DATE}
                       />
                       <TimeField
+                        optional
                         label="Start"
                         value={ed?.start ?? e.start ?? ''}
                         onChangeText={(v) => patch(e, { start: v })}

@@ -16,6 +16,9 @@ function inputs(json: unknown, out: Node[] = []): Node[] {
   return out;
 }
 
+// Jest resolves the native PickerInput; the web build resolves PickerInput.web.
+jest.mock('../../src/ui/PickerInput', () => require('../../src/ui/PickerInput.web'));
+
 describe('DateField / TimeField on the web', () => {
   const original = Platform.OS;
   beforeAll(() => {
@@ -65,6 +68,43 @@ describe('DateField / TimeField on the web', () => {
   it('shows the error line', async () => {
     await render(<DateField label="D" value="" onChangeText={() => {}} error="Bad date" />);
     expect(screen.getByText('Bad date')).toBeTruthy();
+  });
+});
+
+describe('optional pickers on the web', () => {
+  const original = Platform.OS;
+  beforeAll(() => {
+    Platform.OS = 'web';
+  });
+  afterAll(() => {
+    Platform.OS = original;
+  });
+
+  it('Clear gives an empty value', async () => {
+    const onChangeText = jest.fn();
+    await render(
+      <DateField optional label="Due date" value="2026-11-12" onChangeText={onChangeText} />,
+    );
+    await fireEvent.press(screen.getByLabelText('Clear Due date'));
+    expect(onChangeText).toHaveBeenCalledWith('');
+  });
+
+  it('has no Clear when required or already empty', async () => {
+    await render(
+      <>
+        <TimeField label="Req" value="09:40" onChangeText={() => {}} />
+        <TimeField optional label="Opt" value="" onChangeText={() => {}} />
+      </>,
+    );
+    expect(screen.queryByLabelText('Clear Req')).toBeNull();
+    expect(screen.queryByLabelText('Clear Opt')).toBeNull();
+  });
+
+  it('removes native appearance and left-aligns', async () => {
+    const { toJSON } = await render(<DateField label="D" value="" onChangeText={() => {}} />);
+    const [input] = inputs(toJSON());
+    expect(input.props.style.appearance).toBe('none');
+    expect(input.props.style.textAlign).toBe('left');
   });
 });
 

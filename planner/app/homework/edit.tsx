@@ -94,6 +94,7 @@ function HomeworkForm() {
         onChange={setSubject}
       />
       <DateField
+        optional
         label="Due date"
         value={due}
         onChangeText={field('due', setDue)}
@@ -102,6 +103,7 @@ function HomeworkForm() {
         placeholder="2026-11-09"
       />
       <TimeField
+        optional
         label="Due time"
         value={dueTime}
         onChangeText={field('dueTime', setDueTime)}
