@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { springTo, useReducedMotion } from '../../src/ui/motion';
 import { PressScale } from '../../src/ui/PressScale';
-import { tabBarBottomPad } from '../../src/ui/tabBar';
+import { tabBarBottomPad, TOP_CLEARANCE } from '../../src/ui/tabBar';
 import { TabIcon } from '../../src/ui/TabIcon';
 import { Text } from '../../src/ui/Text';
 import { theme } from '../../src/ui/theme';
@@ -139,7 +139,10 @@ export default function TabLayout() {
         tabBarPosition: layout === 'wide' ? 'left' : 'bottom',
         animation: reduced ? 'none' : 'fade',
         // Keep content below the status bar, so it never scrolls under it (where iOS blurs it).
-        sceneStyle: { paddingTop: insets.top, backgroundColor: theme.color.paper },
+        sceneStyle: {
+          paddingTop: insets.top + TOP_CLEARANCE,
+          backgroundColor: theme.color.paper,
+        },
       }}
     >
       {TABS.map(({ name, label }) => (

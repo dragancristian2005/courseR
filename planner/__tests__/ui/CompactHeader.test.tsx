@@ -9,7 +9,7 @@ jest.mock('expo-router', () => ({
 }));
 
 describe('CompactHeader', () => {
-  it('puts Back just under the status bar, in a 44px row', async () => {
+  it('keeps Back 24px clear of the status bar, where iOS blurs, in a 44px row', async () => {
     await render(
       <SafeAreaInsetsContext.Provider value={{ top: 62, bottom: 34, left: 0, right: 0 }}>
         <CompactHeader />
@@ -17,6 +17,7 @@ describe('CompactHeader', () => {
     );
     expect(screen.getByRole('button', { name: 'Back' })).toBeTruthy();
     const bar = StyleSheet.flatten(screen.getByTestId('compact-header').props.style);
-    expect(bar).toMatchObject({ paddingTop: 62, height: 62 + 44 });
+    // The label sits 12px down a 44px row, so 12px of padding puts its top 24px clear.
+    expect(bar).toMatchObject({ paddingTop: 62 + 12, height: 62 + 12 + 44 });
   });
 });

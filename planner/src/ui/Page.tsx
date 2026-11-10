@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.color.paper },
   content: {
     padding: theme.space(4),
-    paddingTop: theme.space(2),
+    paddingTop: 0,
     alignItems: 'center',
     paddingBottom: theme.space(8),
   },

@@ -217,8 +217,8 @@ export default function Today() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.color.paper },
-  // Just under the status bar: the tab layout already keeps clear of it.
-  content: { padding: theme.space(4), paddingTop: theme.space(2), alignItems: 'center' },
+  // The tab layout already keeps the top clear of the status bar.
+  content: { padding: theme.space(4), paddingTop: 0, alignItems: 'center' },
   inner: { width: '100%', maxWidth: 720 },
   headerRow: {
     flexDirection: 'row',

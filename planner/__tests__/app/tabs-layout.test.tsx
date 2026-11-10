@@ -3,7 +3,7 @@ import { Text } from 'react-native';
 import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 import { StyleSheet } from 'react-native';
 import TabLayout from '../../app/(tabs)/_layout';
-import { tabBarBottomPad } from '../../src/ui/tabBar';
+import { tabBarBottomPad, TOP_CLEARANCE } from '../../src/ui/tabBar';
 import { theme } from '../../src/ui/theme';
 import { useLayout } from '../../src/ui/useLayout';
 
@@ -82,6 +82,12 @@ describe('tabs layout motion and icons', () => {
     await fireEvent.press(screen.getByText('Week'));
     expect(await screen.findByText('page week')).toBeTruthy();
     expect(screen.getAllByRole('tab')[1].props.accessibilityState.selected).toBe(true);
+  });
+});
+
+describe('TOP_CLEARANCE', () => {
+  it('keeps the first line 24px below the status bar on every screen', () => {
+    expect(TOP_CLEARANCE).toBe(24);
   });
 });
 
